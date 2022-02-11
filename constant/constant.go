@@ -18,6 +18,8 @@ func (version TransactionVersion) Check() bool {
 type ChainID [4]byte
 
 var (
+	// stacks 2.0 was 0x00000000
+	// stacks 2.05 started a soft fork using 0x00000001
 	ChainIDMainnet = ChainID([4]byte{00, 00, 00, 01})
 	ChainIDTestnet = ChainID([4]byte{80, 00, 00, 00})
 )

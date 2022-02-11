@@ -30,7 +30,7 @@ type MultiSigSpendingCondition struct {
 	Signer             string
 	Nonce              int
 	Fee                int
-	Feilds             []AuthorizationField
+	Fields             []AuthorizationField
 	signaturesRequired int
 }
 
