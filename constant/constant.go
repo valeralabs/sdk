@@ -3,8 +3,8 @@ package constant
 type TransactionVersion byte
 
 const (
-	TransactionVersionMainnet = TransactionVersion(byte(00))
-	TransactionVersionTestnet = TransactionVersion(byte(80))
+	TransactionVersionMainnet = TransactionVersion(byte(0x00))
+	TransactionVersionTestnet = TransactionVersion(byte(0x80))
 )
 
 func (version TransactionVersion) Check() bool {
