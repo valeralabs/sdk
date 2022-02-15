@@ -1,6 +1,7 @@
 package lengthprefixed
 
 import (
+	"bytes"
 	"testing"
 )
 
@@ -13,7 +14,11 @@ func TestStringMarshal(test *testing.T) {
 		test.Fatal(err)
 	}
 
-	if string(plain) != "11721011081081113287111114108100" {
+	if bytes.Compare(plain, []byte{
+		48, 48, 48, 48, 48, 48, 48, 49, 49, 55, 50, 49, 48, 49,
+		49, 48, 56, 49, 48, 56, 49, 49, 49, 51, 50, 56, 55, 49,
+		49, 49, 49, 49, 52, 49, 48, 56, 49, 48, 48,
+	}) != 0 {
 		test.Fatalf("failed to encode LP string")
 	}
 
