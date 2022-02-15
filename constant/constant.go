@@ -25,30 +25,8 @@ var (
 )
 
 func (chainID ChainID) Check() bool {
-	if chainID == ChainIDMainnet || chainID == ChainIDTestnet {
-		return true
-	}
-
-	return false
+	return chainID == ChainIDMainnet || chainID == ChainIDTestnet
 }
-
-type PostConditionMode byte
-
-var (
-	PostConditionModeAllow = PostConditionMode(byte(0x01))
-	PostConditionModeDeny  = PostConditionMode(byte(0x02))
-)
-
-func (postConditionMode PostConditionMode) Check() bool {
-	if postConditionMode == PostConditionModeAllow || postConditionMode == PostConditionModeDeny {
-		return true
-	}
-
-	return false
-}
-
-//TODO (Linden): figure out what can be inside this
-type PostCondition struct{}
 
 type AnchorMode byte
 
@@ -59,11 +37,7 @@ var (
 )
 
 func (mode AnchorMode) Check() bool {
-	if mode == AnchorModeOnChainOnly || mode == AnchorModeOffChainOnly || mode == AnchorModeAny {
-		return true
-	}
-
-	return false
+	return mode == AnchorModeOnChainOnly || mode == AnchorModeOffChainOnly || mode == AnchorModeAny
 }
 
 type PublicKeyEncoding byte
@@ -74,9 +48,8 @@ var (
 )
 
 func (encoding PublicKeyEncoding) Check() bool {
-	if encoding == PubKeyEncodingCompressed || encoding == PubKeyEncodingUncompressed {
-		return true
-	}
-
-	return false
+	return encoding == PubKeyEncodingCompressed || encoding == PubKeyEncodingUncompressed
 }
+
+const MaxStringLength = 128
+const DefaultPrefixLength = 8
