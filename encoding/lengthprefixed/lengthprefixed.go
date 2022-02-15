@@ -31,13 +31,6 @@ func (cursor *String) Marshal() ([]byte, error) {
 	buffer = append(buffer, prefixed...)
 	buffer = append(buffer, []byte(cursor.Content)...)
 
-	for index, cursor := range buffer {
-		if cursor != byte(0) {
-			buffer = buffer[index:]
-			break
-		}
-	}
-
 	var result []byte
 
 	// TODO: probably a better way to do this
