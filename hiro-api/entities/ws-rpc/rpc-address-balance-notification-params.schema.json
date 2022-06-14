@@ -1,0 +1,18 @@
+{
+  "title": "RpcAddressBalanceNotificationParams",
+  "description": "",
+  "type": "object",
+  "required": [
+    "address",
+    "balance"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "address": {
+      "type": "string"
+    },
+    "balance": {
+      "type": "string"
+    }
+  }
+}

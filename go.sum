@@ -1,0 +1,4 @@
+github.com/azarc-io/json-schema-to-go-struct-generator v0.0.9 h1:BWy2L/Cj1WsP+iN/k3+mszQeL7gK+DJA9Wjnnr9Nwpc=
+github.com/azarc-io/json-schema-to-go-struct-generator v0.0.9/go.mod h1:2ZwiHx7uNtAcVuqdPJVcsNXIOaEKMljY8Elg12yZH8c=
+github.com/pkg/errors v0.9.1 h1:FEBLx1zS214owpjy7qsBeixbURkuhQAwrK5UwLGTwt4=
+github.com/pkg/errors v0.9.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=
