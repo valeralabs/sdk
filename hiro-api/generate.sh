@@ -8,3 +8,5 @@ fi
 git submodule update --init --recursive
 
 swagger-cli bundle -o BundledSpec.json stacks-api/docs/openapi.yaml
+
+openapi-generator generate -i BundledSpec.json -g go -o ./test
