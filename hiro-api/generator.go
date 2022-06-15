@@ -45,7 +45,7 @@ func Convert(inputFiles []string, packageName string, outputFile string, debug b
 // this is a script that reads all **/*.schema.json files in hiro-api and generates go structs
 
 func main() {
-	out, err := exec.Command("find", ".", "-name", "*.schema.json").Output()
+	out, err := exec.Command("find", "entities", "-name", "*.schema.json").Output()
 	if err != nil {
 		panic(err)
 	}
