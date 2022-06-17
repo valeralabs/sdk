@@ -43,17 +43,19 @@ swagger-cli bundle -o spec.json stacks-api/docs/openapi.yaml
 
 echo -e "Processing bundled spec..."
 sed -i '' -e 's/STACKS_API_VERSION/v4.0.1/g' spec.json
-sed -i '' -e 's/btc/BTC/g' spec.json
-sed -i '' -e 's/stx/STX/g' spec.json
-sed -i '' -e 's/nft/NFT/g' spec.json
+# sed -i '' -e 's/btc/BTC/g' spec.json
+# sed -i '' -e 's/stx/STX/g' spec.json
+# sed -i '' -e 's/nft/NFT/g' spec.json
 
 echo "Dereferencing bundled spec..."
 json-dereference -s spec.json -o spec.json
 
 echo -e "Generating client..."
-openapi-generator generate -i spec.json -g go -o ../api
+go run github.com/deepmap/oapi-codegen/cmd/oapi-codegen@v1.11.0 --config oapi.cfg.yaml spec.json > ../api.gen.go
 
-cd ../api
-go get github.com/stretchr/testify/assert
-go get golang.org/x/oauth2
-go get golang.org/x/net/context
+rm spec.json
+
+# cd ../api
+# go get github.com/stretchr/testify/assert
+# go get golang.org/x/oauth2
+# go get golang.org/x/net/context
