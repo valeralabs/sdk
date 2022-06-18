@@ -64,7 +64,7 @@ func main() {
 		}
 
 		// clean OperationIDs
-		for _, op := range nilOps(path) {
+		for _, op := range getOperations(path) {
 			op.OperationID = clean(op.OperationID)
 		}
 
@@ -85,34 +85,44 @@ func main() {
 }
 
 // returns an array of non-nil *openapi3.Operation objects in a given *openapi3.PathItem
-func nilOps (itm *openapi3.PathItem) []*openapi3.Operation {
+func getOperations(itm *openapi3.PathItem) []*openapi3.Operation {
 	var ops []*openapi3.Operation
+
 	if itm.Connect != nil {
 		ops = append(ops, itm.Connect)
 	}
+
 	if itm.Delete != nil {
 		ops = append(ops, itm.Delete)
 	}
+
 	if itm.Get != nil {
 		ops = append(ops, itm.Get)
 	}
+
 	if itm.Head != nil {
 		ops = append(ops, itm.Head)
 	}
+
 	if itm.Options != nil {
 		ops = append(ops, itm.Options)
 	}
+
 	if itm.Patch != nil {
 		ops = append(ops, itm.Patch)
 	}
+
 	if itm.Post != nil {
 		ops = append(ops, itm.Post)
 	}
+
 	if itm.Put != nil {
 		ops = append(ops, itm.Put)
 	}
+
 	if itm.Trace != nil {
 		ops = append(ops, itm.Trace)
 	}
+
 	return ops
 }
