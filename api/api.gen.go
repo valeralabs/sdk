@@ -279,7 +279,7 @@ type GetFTMetadataListParams struct {
 // GetNFTHistoryParams defines parameters for GetNFTHistory.
 type GetNFTHistoryParams struct {
 	// token asset class identifier
-	AssetIdentifier string `form:"asset_identifier" json:"asset_identifier"`
+	AssetIDentifier string `form:"asset_IDentifier" json:"asset_IDentifier"`
 
 	// hex representation of the token's unique value
 	Value string `form:"value" json:"value"`
@@ -294,7 +294,7 @@ type GetNFTHistoryParams struct {
 	Unanchored *bool `form:"unanchored,omitempty" json:"unanchored,omitempty"`
 
 	// whether or not to include the complete transaction metadata instead of just `tx_id`. Enabling this option can affect performance and response times.
-	TxMetadata *bool `form:"tx_metadata,omitempty" json:"tx_metadata,omitempty"`
+	TXMetadata *bool `form:"TX_metadata,omitempty" json:"TX_metadata,omitempty"`
 }
 
 // GetNFTHoldingsParams defines parameters for GetNFTHoldings.
@@ -303,7 +303,7 @@ type GetNFTHoldingsParams struct {
 	Principal string `form:"principal" json:"principal"`
 
 	// identifiers of the token asset classes to filter for
-	AssetIdentifiers *[]string `form:"asset_identifiers,omitempty" json:"asset_identifiers,omitempty"`
+	AssetIDentifiers *[]string `form:"asset_IDentifiers,omitempty" json:"asset_IDentifiers,omitempty"`
 
 	// max number of tokens to fetch
 	Limit *int `form:"limit,omitempty" json:"limit,omitempty"`
@@ -315,7 +315,7 @@ type GetNFTHoldingsParams struct {
 	Unanchored *bool `form:"unanchored,omitempty" json:"unanchored,omitempty"`
 
 	// whether or not to include the complete transaction metadata instead of just `tx_id`. Enabling this option can affect performance and response times.
-	TxMetadata *bool `form:"tx_metadata,omitempty" json:"tx_metadata,omitempty"`
+	TXMetadata *bool `form:"TX_metadata,omitempty" json:"TX_metadata,omitempty"`
 }
 
 // GetNFTMetadataListParams defines parameters for GetNFTMetadataList.
@@ -330,7 +330,7 @@ type GetNFTMetadataListParams struct {
 // GetNFTMintsParams defines parameters for GetNFTMints.
 type GetNFTMintsParams struct {
 	// token asset class identifier
-	AssetIdentifier string `form:"asset_identifier" json:"asset_identifier"`
+	AssetIDentifier string `form:"asset_IDentifier" json:"asset_IDentifier"`
 
 	// max number of events to fetch
 	Limit *int `form:"limit,omitempty" json:"limit,omitempty"`
@@ -342,7 +342,7 @@ type GetNFTMintsParams struct {
 	Unanchored *bool `form:"unanchored,omitempty" json:"unanchored,omitempty"`
 
 	// whether or not to include the complete transaction metadata instead of just `tx_id`. Enabling this option can affect performance and response times.
-	TxMetadata *bool `form:"tx_metadata,omitempty" json:"tx_metadata,omitempty"`
+	TXMetadata *bool `form:"TX_metadata,omitempty" json:"TX_metadata,omitempty"`
 }
 
 // GetTransactionListParams defines parameters for GetTransactionList.
@@ -387,7 +387,7 @@ type GetTransactionsByBlockHeightParams struct {
 // GetFilteredEventsParams defines parameters for GetFilteredEvents.
 type GetFilteredEventsParams struct {
 	// Hash of transaction
-	TxId *string `form:"tx_id,omitempty" json:"tx_id,omitempty"`
+	TXID *string `form:"TX_ID,omitempty" json:"TX_ID,omitempty"`
 
 	// Stacks address or a Contract identifier
 	Address *string `form:"address,omitempty" json:"address,omitempty"`
@@ -438,7 +438,7 @@ type GetDroppedMempoolTransactionListParams struct {
 // GetTXListDetailsParams defines parameters for GetTXListDetails.
 type GetTXListDetailsParams struct {
 	// Array of transaction ids
-	TxId []string `form:"tx_id" json:"tx_id"`
+	TXID []string `form:"TX_ID" json:"TX_ID"`
 
 	// The number of events to skip
 	EventOffset *int `form:"event_offset,omitempty" json:"event_offset,omitempty"`

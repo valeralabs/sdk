@@ -3,11 +3,11 @@ package main
 import (
 	"fmt"
 	"io/ioutil"
+	"regexp"
 	"strings"
 
 	"github.com/deepmap/oapi-codegen/pkg/codegen"
 	"github.com/deepmap/oapi-codegen/pkg/util"
-	"github.com/getkin/kin-openapi/openapi3"
 )
 
 //go:generate git submodule update --init --recursive
@@ -17,7 +17,8 @@ var (
 	input  = "./source/docs/openapi.yaml"
 )
 
-var replacements = []string{"nft", "btc", "stx", "api", "id", "tx", "ft"}
+var URLArgumentScope = regexp.MustCompile(`{([^}]*)}`)
+var replacements = []string{"nft", "btc", "stx", "api", "id", "tx", "ft", "tld"}
 
 func clean(source string) string {
 	for _, cursor := range replacements {
@@ -51,21 +52,30 @@ func main() {
 	}
 
 	for name, path := range swagger.Paths {
-		// clean Parameters
-		if path.Parameters != nil {
-			// type Parameters []*ParameterRef
-			for _, parameter := range path.Parameters {
-				// parameter.Value.Name = clean(parameter.Value.Name)
-				// parameter.Value.Description = clean(parameter.Value.Description)
-				// log parameter as json
-				fmt.Printf("%s\n", clean(parameter.Value.Name))
+		delete(swagger.Paths, name)
 
+		if path.Parameters != nil {
+			for _, parameter := range path.Parameters {
+				parameter.Value.Name = clean(parameter.Value.Name)
 			}
 		}
 
-		// clean OperationIDs
-		for _, op := range getOperations(path) {
-			op.OperationID = clean(op.OperationID)
+		for _, match := range URLArgumentScope.FindAllStringSubmatch(name, -1) {
+			modified := clean(match[0])
+
+			if modified != match[0] {
+				name = strings.ReplaceAll(name, match[0], modified)
+			}
+		}
+
+		for _, operation := range path.Operations() {
+			if operation != nil {
+				for _, parameter := range operation.Parameters {
+					parameter.Value.Name = clean(parameter.Value.Name)
+				}
+
+				operation.OperationID = clean(operation.OperationID)
+			}
 		}
 
 		swagger.Paths[name] = path
@@ -82,47 +92,4 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-}
-
-// returns an array of non-nil *openapi3.Operation objects in a given *openapi3.PathItem
-func getOperations(itm *openapi3.PathItem) []*openapi3.Operation {
-	var ops []*openapi3.Operation
-
-	if itm.Connect != nil {
-		ops = append(ops, itm.Connect)
-	}
-
-	if itm.Delete != nil {
-		ops = append(ops, itm.Delete)
-	}
-
-	if itm.Get != nil {
-		ops = append(ops, itm.Get)
-	}
-
-	if itm.Head != nil {
-		ops = append(ops, itm.Head)
-	}
-
-	if itm.Options != nil {
-		ops = append(ops, itm.Options)
-	}
-
-	if itm.Patch != nil {
-		ops = append(ops, itm.Patch)
-	}
-
-	if itm.Post != nil {
-		ops = append(ops, itm.Post)
-	}
-
-	if itm.Put != nil {
-		ops = append(ops, itm.Put)
-	}
-
-	if itm.Trace != nil {
-		ops = append(ops, itm.Trace)
-	}
-
-	return ops
 }
