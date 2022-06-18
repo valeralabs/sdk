@@ -35,7 +35,7 @@ func main() {
 			EchoServer: false,
 			GinServer:  false,
 			// API client functions
-			Client: false,
+			Client: true,
 			// API client types
 			Models:       true,
 			EmbeddedSpec: false,
