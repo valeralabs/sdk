@@ -1,4 +1,0 @@
-package: sdk
-generate:
-  client: true
-  models: true
