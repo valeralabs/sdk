@@ -34,8 +34,6 @@ var decoder = base32.StdEncoding.WithPadding(base32.NoPadding)
 
 func parseType(raw any) any {
 	switch value := raw.(type) {
-	case string:
-		return Path(value)
 	case map[string]any:
 		array, isArray := value["Array"]
 
@@ -48,7 +46,15 @@ func parseType(raw any) any {
 			}
 		}
 
-		panic("TODO: handle non-array types")
+		path, isPath := value["Path"]
+
+		if isPath == true {
+			nested := path.([]any)
+
+			return Path(nested[0].(string))
+		}
+
+		panic("TODO: handle non-(array/path) types")
 	default:
 		panic("file a bug report, you shouldn't be here")
 	}
@@ -168,5 +174,5 @@ func component(plain string) (string, string) {
 }
 
 func main() {
-	fmt.Printf("example: %+v\n", decode("MIKE_1_4_4mike12capture_test7example4demo_QGUEM5LOMN2GS33OSKIZFJ3FPBQW24DMMWA2KQLSOJQXTERAURIGC5DIURIGC5DI"))
+	fmt.Printf("example: %+v\n", decode("MIKE_1_4_4mike12capture_test7example4demo_QGUEM5LOMN2GS33OSKIZFJ3FPBQW24DMMWA2KQLSOJQXTERAQGSFAYLUNCI2E5JYQGSFAYLUNCI2K5LTNF5GK"))
 }
