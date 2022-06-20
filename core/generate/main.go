@@ -11,7 +11,7 @@ import (
 
 //TODO (Linden): use generics
 type Array struct {
-	Length string
+	Length int
 	Body   any
 }
 
@@ -43,7 +43,7 @@ func parseType(raw any) any {
 			nested := array.([]any)
 
 			return Array{
-				Length: nested[0].(string),
+				Length: int(nested[0].(int8)),
 				Body:   nested[1],
 			}
 		}
@@ -168,5 +168,5 @@ func component(plain string) (string, string) {
 }
 
 func main() {
-	fmt.Printf("example: %+v\n", decode("MIKE_1_4_4mike12capture_test7example4demo_QGUEM5LOMN2GS33OSKIZFJ3FPBQW24DMMWA2KQLSOJQXTEVCGMZKIUDBORUKIUDBORUA"))
+	fmt.Printf("example: %+v\n", decode("MIKE_1_4_4mike12capture_test7example4demo_QGUEM5LOMN2GS33OSKIZFJ3FPBQW24DMMWA2KQLSOJQXTERAURIGC5DIURIGC5DI"))
 }
