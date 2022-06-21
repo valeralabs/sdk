@@ -2,7 +2,9 @@ package main
 
 import (
 	"encoding/base32"
+	"flag"
 	"fmt"
+	"os/exec"
 	"strconv"
 	"strings"
 
@@ -17,6 +19,8 @@ type Array struct {
 
 type Path string
 
+type Pointer any
+
 type Function struct {
 	Arguments  map[string]any
 	ReturnType any
@@ -29,8 +33,19 @@ type Symbol struct {
 
 var _ msgpack.CustomDecoder = (*Function)(nil)
 
+var path string
+
 var VERSION = 1
 var decoder = base32.StdEncoding.WithPadding(base32.NoPadding)
+
+func init() {
+	flag.StringVar(&path, "path", "", "path to dynamic library")
+	flag.Parse()
+
+	if path == "" {
+		panic("path to dynamic library is required")
+	}
+}
 
 func parseType(raw any) any {
 	switch value := raw.(type) {
@@ -52,6 +67,14 @@ func parseType(raw any) any {
 			nested := path.([]any)
 
 			return Path(nested[0].(string))
+		}
+
+		pointer, isPointer := value["Pointer"]
+
+		if isPointer == true {
+			nested := pointer.([]any)
+
+			return Pointer(nested[0])
 		}
 
 		panic("TODO: handle non-(array/path) types")
@@ -92,13 +115,13 @@ func (function *Function) DecodeMsgpack(unpacker *msgpack.Decoder) error {
 	return nil
 }
 
-func decode(plain string) Symbol {
+func decode(plain string) (Symbol, error) {
 	var err error
 
-	prefix := fmt.Sprintf("MIKE_%d_", VERSION)
+	prefix := fmt.Sprintf("_MIKE_%d_", VERSION)
 
 	if strings.HasPrefix(plain, prefix) == false {
-		panic("symbol lacks the mike prefix")
+		return Symbol{}, fmt.Errorf("symbol lacks the mike prefix")
 	}
 
 	plain = plain[len(prefix):]
@@ -110,7 +133,7 @@ func decode(plain string) Symbol {
 			total, err = strconv.Atoi(plain[:index])
 
 			if err != nil {
-				panic(err)
+				return Symbol{}, err
 			}
 
 			plain = plain[index:]
@@ -130,12 +153,17 @@ func decode(plain string) Symbol {
 		path = append(path, cursor)
 	}
 
+	last := len(path) - 1
+
+	path[last] = strings.TrimPrefix(path[last], "mike_fn_")
+	path[last] = strings.TrimPrefix(path[last], "mike_new_")
+
 	plain = plain[1:]
 
 	decoded, err := decoder.DecodeString(plain)
 
 	if err != nil {
-		panic(err)
+		return Symbol{}, err
 	}
 
 	var function Function
@@ -143,13 +171,13 @@ func decode(plain string) Symbol {
 	err = msgpack.Unmarshal(decoded, &function)
 
 	if err != nil {
-		panic(err)
+		return Symbol{}, err
 	}
 
 	return Symbol{
 		Path: path,
 		Body: function,
-	}
+	}, nil
 }
 
 func component(plain string) (string, string) {
@@ -174,5 +202,20 @@ func component(plain string) (string, string) {
 }
 
 func main() {
-	fmt.Printf("example: %+v\n", decode("MIKE_1_4_4mike12capture_test7example4demo_QGUEM5LOMN2GS33OSKIZFJ3FPBQW24DMMWA2KQLSOJQXTERAQGSFAYLUNCI2E5JYQGSFAYLUNCI2K5LTNF5GK"))
+	command := exec.Command("nm", "-j", path)
+	output, err := command.Output()
+
+	if err != nil {
+		panic(err)
+	}
+
+	lines := strings.Split(string(output), "\n")
+
+	for _, line := range lines {
+		decoded, err := decode(line)
+
+		if err == nil {
+			fmt.Println(decoded)
+		}
+	}
 }
