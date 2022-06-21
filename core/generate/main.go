@@ -2,8 +2,8 @@ package main
 
 import (
 	"encoding/base32"
-	"flag"
 	"fmt"
+	"io/ioutil"
 	"os/exec"
 	"strconv"
 	"strings"
@@ -27,8 +27,9 @@ type Function struct {
 }
 
 type Symbol struct {
-	Path []string
-	Body any
+	Unmangled string
+	Path      []string
+	Body      any
 }
 
 var _ msgpack.CustomDecoder = (*Function)(nil)
@@ -37,14 +38,15 @@ var path string
 
 var VERSION = 1
 var decoder = base32.StdEncoding.WithPadding(base32.NoPadding)
-
-func init() {
-	flag.StringVar(&path, "path", "", "path to dynamic library")
-	flag.Parse()
-
-	if path == "" {
-		panic("path to dynamic library is required")
-	}
+var mapping = map[string]string{
+	"id":       "ID",
+	"addrtype": "addressType",
+	"b58":      "B58",
+	"pkg":      "package",
+	"pubkey":   "PublicKey",
+	"p2pkh":    "P2PKH",
+	"p2sh":     "P2SH",
+	"tx":       "TX",
 }
 
 func parseType(raw any) any {
@@ -124,6 +126,7 @@ func decode(plain string) (Symbol, error) {
 		return Symbol{}, fmt.Errorf("symbol lacks the mike prefix")
 	}
 
+	unmangled := plain[1:]
 	plain = plain[len(prefix):]
 
 	var total int
@@ -175,8 +178,9 @@ func decode(plain string) (Symbol, error) {
 	}
 
 	return Symbol{
-		Path: path,
-		Body: function,
+		Unmangled: unmangled,
+		Path:      path,
+		Body:      function,
 	}, nil
 }
 
@@ -201,8 +205,32 @@ func component(plain string) (string, string) {
 	return plain[length:], plain[:length]
 }
 
+func CamelCase(name string, function bool) string {
+	var result string
+
+	for index, cursor := range strings.Split(name, "_") {
+		if function == false && index == 0 {
+			result += cursor
+
+			continue
+		}
+
+		for before, after := range mapping {
+			if cursor == before {
+				cursor = after
+			}
+		}
+
+		cursor = strings.Title(cursor)
+
+		result += cursor
+	}
+
+	return result
+}
+
 func main() {
-	command := exec.Command("nm", "-j", path)
+	command := exec.Command("nm", "-j", "../libblockstack_lib.dylib")
 	output, err := command.Output()
 
 	if err != nil {
@@ -211,11 +239,113 @@ func main() {
 
 	lines := strings.Split(string(output), "\n")
 
+	created := map[string]bool{}
+
+	var header string
+
+	module := "package core\n\n"
+	module += "//#cgo LDFLAGS: -L. -lblockstack_lib\n"
+	module += "//#include \"header.h\"\n"
+	module += "import \"C\"\n"
+	module += "import \"unsafe\"\n\n"
+
 	for _, line := range lines {
 		decoded, err := decode(line)
 
-		if err == nil {
-			fmt.Println(decoded)
+		if err != nil || decoded.Path[0] != "blockstack_lib" {
+			continue
 		}
+
+		function := decoded.Body.(Function)
+
+		header += "void"
+
+		if function.ReturnType != "Nothing" {
+			header += "*"
+		}
+
+		header += " "
+		header += decoded.Unmangled
+		header += "("
+
+		header += strings.Repeat("void*, ", len(function.Arguments))
+
+		if header[len(header)-2] == ',' {
+			header = header[:len(header)-2]
+		}
+
+		header += ");\n"
+
+		name := decoded.Path[len(decoded.Path)-1]
+
+		hasSelf := false
+
+		if _, ok := function.Arguments["wrapped_self"]; ok {
+			delete(function.Arguments, "wrapped_self")
+
+			hasSelf = true
+		}
+
+		if strings.Contains(name, "__") == true {
+			split := strings.Split(name, "__")
+
+			structure := split[0]
+			name = split[1]
+
+			if _, ok := created[structure]; !ok {
+				module += "type " + structure + " unsafe.Pointer\n\n"
+				created[structure] = true
+			}
+
+			fmt.Println(function.Arguments)
+
+			if hasSelf {
+				module += "func (self *"
+			} else {
+				module += "func (_ "
+			}
+
+			module += structure + ") " + CamelCase(name, true)
+		} else {
+			module += "func " + CamelCase(name, true)
+		}
+
+		module += "("
+
+		var arguments []string
+
+		for name, _ := range function.Arguments {
+			arguments = append(arguments, CamelCase(name, false)+" unsafe.Pointer")
+		}
+
+		module += strings.Join(arguments, ", ")
+		module += ") {\n"
+		module += "\tC." + decoded.Unmangled + "("
+
+		arguments = []string{}
+
+		if hasSelf {
+			arguments = append(arguments, "self")
+		}
+
+		for name, _ := range function.Arguments {
+			arguments = append(arguments, CamelCase(name, false))
+		}
+
+		module += strings.Join(arguments, ", ")
+		module += ")\n"
+		module += "}\n\n"
+	}
+
+	err = ioutil.WriteFile("../header.h", []byte(header), 0644)
+
+	if err != nil {
+		panic(err)
+	}
+
+	err = ioutil.WriteFile("../core.gen.go", []byte(module), 0644)
+
+	if err != nil {
+		panic(err)
 	}
 }
