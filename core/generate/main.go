@@ -230,6 +230,126 @@ func CamelCase(name string, function bool) string {
 	return result
 }
 
+func (path Path) ConvertRust(argument *jenny.Statement) (*jenny.Statement, bool) {
+	value := argument
+
+	switch path {
+	case "u8":
+		value.ID("uint")
+
+	case "u16":
+		value.ID("uint")
+
+	case "u32":
+		value.ID("uint")
+
+	case "usize":
+		value.ID("int")
+
+	case "i8":
+		value.ID("int")
+
+	case "i16":
+		value.ID("int")
+
+	case "i32":
+		value.ID("int")
+
+	case "isize":
+		value.ID("int")
+
+	default:
+		return value.Qualified("unsafe", "Pointer"), false
+	}
+
+	return value, true
+}
+
+func (path Path) ConvertBlock(name string) *jenny.Statement {
+	value := jenny.ID("_" + name).Op(":=")
+
+	switch path {
+	case "u8":
+		value.Qualified("github.com/linden/ffi", "CreateU8")
+
+	case "u16":
+		value.Qualified("github.com/linden/ffi", "CreateU16")
+
+	case "u32":
+		value.Qualified("github.com/linden/ffi", "CreateU32")
+
+	case "usize":
+		value.Qualified("github.com/linden/ffi", "CreateUSize")
+
+	case "i8":
+		value.Qualified("github.com/linden/ffi", "CreateI8")
+
+	case "i16":
+		value.Qualified("github.com/linden/ffi", "CreateI16")
+
+	case "i32":
+		value.Qualified("github.com/linden/ffi", "CreateI32")
+
+	case "isize":
+		value.Qualified("github.com/linden/ffi", "CreateISize")
+
+	default:
+		panic("can't handle unknown types")
+	}
+
+	value.Call(jenny.ID(name))
+
+	return value
+}
+
+func (path Path) ConvertGo() *jenny.Statement {
+	var value *jenny.Statement
+
+	switch path {
+	case "u8":
+		value = jenny.Qualified("github.com/linden/ffi", "CreateUIntFromU8")
+
+	case "u16":
+		value = jenny.Qualified("github.com/linden/ffi", "CreateUIntFromU16")
+
+	case "u32":
+		value = jenny.Qualified("github.com/linden/ffi", "CreateUIntFromU32")
+
+	case "usize":
+		value = jenny.Qualified("github.com/linden/ffi", "CreateUIntFromUSize")
+
+	case "i8":
+		value = jenny.Qualified("github.com/linden/ffi", "CreateIntFromI8")
+
+	case "i16":
+		value = jenny.Qualified("github.com/linden/ffi", "CreateIntFromI16")
+
+	case "i32":
+		value = jenny.Qualified("github.com/linden/ffi", "CreateIntFromI32")
+
+	case "isize":
+		value = jenny.Qualified("github.com/linden/ffi", "CreateIntFromISize")
+
+	default:
+		panic("can't handle unknown types")
+	}
+
+	value.Call(jenny.ID("_return"))
+
+	return jenny.Return(value)
+}
+
+func unbox(path Path) Path {
+	cursor := string(path)
+
+	if len(cursor) > len("Box<>") {
+		cursor = cursor[len("Box<"):]
+		cursor = cursor[:(len(cursor) - len(">"))]
+	}
+
+	return Path(cursor)
+}
+
 func main() {
 	command := exec.Command("nm", "-j", "../libblockstack_lib.dylib")
 	output, err := command.Output()
@@ -325,21 +445,49 @@ func main() {
 		}
 
 		arguments := []jenny.Code{}
+		blocks := []jenny.Code{}
 
-		for cursor, _ := range function.Arguments {
-			name := CamelCase(cursor, false)
+		for _name, _path := range function.Arguments {
+			name := CamelCase(_name, false)
+			path := _path.(Path)
 
-			parameters = append(parameters,
-				jenny.ID(name),
-			)
+			//TODO (Linden): fix mike `Result` handling
+			if path == Path("Box") {
+				continue
+			}
 
-			arguments = append(arguments,
-				jenny.ID(name).Qualified("unsafe", "Pointer"),
-			)
+			path = unbox(path)
+
+			argument, isKnown := path.ConvertRust(jenny.ID(name))
+
+			arguments = append(arguments, argument)
+
+			parameter := jenny.ID(name)
+
+			if isKnown {
+				parameter = jenny.ID("_" + name)
+
+				blocks = append(blocks, path.ConvertBlock(name))
+			}
+
+			parameters = append(parameters, parameter)
+		}
+
+		returnPath := function.ReturnType.(Path)
+		returnPath = unbox(returnPath)
+
+		returnValue, isKnown := returnPath.ConvertRust(jenny.ID(""))
+
+		if isKnown {
+			blocks = append(blocks, jenny.ID("_return").Op(":=").Qualified("C", decoded.Unmangled).Call(parameters...))
+			blocks = append(blocks, returnPath.ConvertGo())
+		} else {
+			blocks = append(blocks, jenny.Return(jenny.Qualified("C", decoded.Unmangled).Call(parameters...)))
 		}
 
 		wrapper.Parameters(arguments...)
-		wrapper.Block(jenny.Qualified("C", decoded.Unmangled).Call(parameters...))
+		wrapper.Parameters(returnValue)
+		wrapper.Block(blocks...)
 
 		functions = append(functions, wrapper)
 	}
