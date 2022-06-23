@@ -307,28 +307,28 @@ func (path Path) ConvertGo() *jenny.Statement {
 
 	switch path {
 	case "u8":
-		value = jenny.Qualified("github.com/linden/ffi", "CreateUIntFromU8")
+		value = jenny.Qualified("github.com/linden/ffi", "CreateFromU8")
 
 	case "u16":
-		value = jenny.Qualified("github.com/linden/ffi", "CreateUIntFromU16")
+		value = jenny.Qualified("github.com/linden/ffi", "CreateFromU16")
 
 	case "u32":
-		value = jenny.Qualified("github.com/linden/ffi", "CreateUIntFromU32")
+		value = jenny.Qualified("github.com/linden/ffi", "CreateFromU32")
 
 	case "usize":
-		value = jenny.Qualified("github.com/linden/ffi", "CreateUIntFromUSize")
+		value = jenny.Qualified("github.com/linden/ffi", "CreateFromUSize")
 
 	case "i8":
-		value = jenny.Qualified("github.com/linden/ffi", "CreateIntFromI8")
+		value = jenny.Qualified("github.com/linden/ffi", "CreateFromI8")
 
 	case "i16":
-		value = jenny.Qualified("github.com/linden/ffi", "CreateIntFromI16")
+		value = jenny.Qualified("github.com/linden/ffi", "CreateFromI16")
 
 	case "i32":
-		value = jenny.Qualified("github.com/linden/ffi", "CreateIntFromI32")
+		value = jenny.Qualified("github.com/linden/ffi", "CreateFromI32")
 
 	case "isize":
-		value = jenny.Qualified("github.com/linden/ffi", "CreateIntFromISize")
+		value = jenny.Qualified("github.com/linden/ffi", "CreateFromISize")
 
 	default:
 		panic("can't handle unknown types")
@@ -401,7 +401,7 @@ func main() {
 
 		header += ");\n"
 
-		wrapper := jenny.Func()
+		wrapper := jenny.Comment(strings.Join(decoded.Path, "::")).Line().Func()
 
 		name := decoded.Path[len(decoded.Path)-1]
 
