@@ -1,8 +1,7 @@
 package main
 
 import (
-	"fmt"
-	// "io/ioutil"
+	// "fmt"
 	"regexp"
 	"strings"
 
@@ -67,7 +66,7 @@ func main() {
 
 	// now to generate the types
 
-	f := jen.NewFile("main")
+	f := jen.NewFile("api")
 
 	// loop through paths
 	for _, operations := range swagger.Paths {
@@ -86,7 +85,7 @@ func main() {
 					params = append(
 						params,
 						jen.Comment(val.Description),
-						jen.ID(val.Name).ID(typeReplace(val.Schema.Value.Type)),
+						jen.ID(replaceKeyword(val.Name)).ID(typeReplace(val.Schema.Value.Type)),
 						// jen.Line(),
 					)
 				}
@@ -95,17 +94,9 @@ func main() {
 			}
 		}
 	}
-	fmt.Printf("%#v", f)
+	// fmt.Printf("%#v", f)
 
-	// this isn't working for some reason?
-
-	// str := f.GoString()
-	// // convert to []byte
-	// b, err := ioutil.ReadAll(strings.NewReader(str))
-	// check(err)
-	
-	// err = ioutil.WriteFile(output, b, 0644)
-	// check(err)
+	f.Save(output)
 }
 
 // get_address_mempool_transactions -> GetAddressMempoolTransactionsParams
@@ -125,6 +116,8 @@ func typeReplace(src string) string {
 	switch src {
 	case "integer":
 		return "int"
+	case "number":
+		return "int"
 	case "string":
 		return "string"
 	case "boolean":
@@ -141,5 +134,15 @@ func typeReplace(src string) string {
 func check(err error) {
 	if err != nil {
 		panic(err)
+	}
+}
+
+func replaceKeyword(src string) string {
+	// ensure src doesn't collide with a go keyword (like "type")
+	switch src {
+	case "type":
+		return "type_"
+	default:
+		return src
 	}
 }
