@@ -34,8 +34,11 @@ func main() {
 		panic(err)
 	}
 
+	// clean up the swagger object
 	for name, path := range swagger.Paths {
 		delete(swagger.Paths, name)
+
+		// TODO: add enum cleaning here
 
 		if path.Parameters != nil {
 			for _, parameter := range path.Parameters {
@@ -64,7 +67,7 @@ func main() {
 		swagger.Paths[name] = path
 	}
 
-	// now to generate the types
+	// type generation
 
 	f := jen.NewFile("api")
 
@@ -72,44 +75,103 @@ func main() {
 	for _, operations := range swagger.Paths {
 		for _, operation := range operations.Operations() {
 			if operation != nil {
-				typeName := cleanOpID(operation.OperationID)
+				typeName := cleanID(operation.OperationID)
 				params := []jen.Code{}
-
-				f.Commentf("%sParams defines parameters for %v", typeName, typeName)
 
 				// loop through parameters
 				for _, parameter := range operation.Parameters {
 					val := parameter.Value
-					// create the parameter statement
-					// create the comment
-					params = append(
-						params,
-						jen.Comment(val.Description),
-						jen.ID(replaceKeyword(val.Name)).ID(typeReplace(val.Schema.Value.Type)),
-						// jen.Line(),
-					)
+					if val.Schema.Value.Type == "array" {
+						if val.Schema.Value.Items.Value.Enum != nil {
+							// enum type
+							// convert to string array
+							values := []string{}
+							for _, enum := range val.Schema.Value.Items.Value.Enum {
+								values = append(values, cleanID(enum.(string)))
+							}
+							// fmt.Printf("%v\n", values)
+
+							typeNameIota := typeName + cleanID(val.Name)
+
+							enums := []jen.Code{}
+							for index, value := range values {
+								if index == 0 {
+									enums = append(
+										enums,
+										jen.ID(values[0]).ID(typeNameIota).Op("=").Iota(),
+									)
+								} else {
+									enums = append(
+										enums,
+										jen.ID(value),
+									)
+								}
+							}
+							
+							f.Type().ID(typeNameIota).Int64()
+							f.Const().Definitions(enums...)
+
+							params = append(
+								params,
+								jen.Comment(val.Description),
+								jen.Commentf("%v", values),
+								jen.ID(cleanID(val.Name)).ID(typeNameIota),
+							)
+						}
+					} else {
+						params = append(
+							params,
+							jen.Comment(val.Description),
+							jen.ID(cleanID(val.Name)).ID(typeReplace(val.Schema.Value.Type)),
+						)
+					}
 				}
 
+				if operation.RequestBody != nil {
+					for _, body := range operation.RequestBody.Value.Content {
+						// fmt.Println(body.Schema.Value.Properties)
+						for title, prop := range body.Schema.Value.Properties {
+							val := prop.Value
+							if val.Description != "" {
+								params = append(
+									params,
+									jen.Comment(val.Description),
+								)
+							}
+							params = append(
+								params,
+								jen.ID(cleanID(title)).ID(typeReplace(val.Type)),
+							)
+						}
+					}
+				}
+				f.Commentf("%sParams defines parameters for %v", typeName, typeName)
 				f.Type().ID(typeName+"Params").Structure(params...)
 			}
 		}
 	}
 	// fmt.Printf("%#v", f)
 
-	f.Save(output)
+	err = f.Save(output)
+	check(err)
 }
 
-// get_address_mempool_transactions -> GetAddressMempoolTransactionsParams
-func cleanOpID(opID string) string {
-	parts := strings.Split(opID, "_")
+func check(err error) {
+	if err != nil {
+		panic(err)
+	}
+}
+
+// get_address_mempool_transactions -> GetAddressMempoolTransactions
+func cleanID(ID string) string {
+	parts := strings.Split(ID, "_")
 
 	for i, part := range parts {
 		// i know this has a deprecation warning, but i don't care
 		parts[i] = strings.Title(part)
 	}
 
-	opID = strings.Join(parts, "")
-	return opID
+	return strings.Join(parts, "")
 }
 
 func typeReplace(src string) string {
@@ -126,22 +188,6 @@ func typeReplace(src string) string {
 		return "interface{}"
 	case "array":
 		return "interface{}"
-	default:
-		return src
-	}
-}
-
-func check(err error) {
-	if err != nil {
-		panic(err)
-	}
-}
-
-func replaceKeyword(src string) string {
-	// ensure src doesn't collide with a go keyword (like "type")
-	switch src {
-	case "type":
-		return "type_"
 	default:
 		return src
 	}
