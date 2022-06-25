@@ -184,9 +184,9 @@ func typeReplace(src string) string {
 	case "boolean":
 		return "bool"
 	case "object":
-		return "interface{}"
+		return "any"
 	case "array":
-		return "interface{}"
+		return "any"
 	default:
 		return src
 	}
