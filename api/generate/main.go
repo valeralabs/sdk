@@ -16,12 +16,30 @@ var (
 )
 
 var URLArgumentScope = regexp.MustCompile(`{([^}]*)}`)
-var replacements = []string{"nft", "btc", "stx", "api", "id", "tx", "ft", "tld"}
+var replacements = []string{"nft", "btc", "stx", "api", "id", "tx", "ft", "tld", "abi"}
+var PartialLowerCase = regexp.MustCompile(`(.*|\A)(Nft|Btc|Stx|Api|Id|Tx|Ft|Tld|Abi)([A-Z]|\z)`)
 
 func clean(source string) string {
 	for _, cursor := range replacements {
 		source = strings.ReplaceAll(source, cursor, strings.ToUpper(cursor))
 	}
+
+	source = PartialLowerCase.ReplaceAllStringFunc(source, func(cursor string) string {
+		found := PartialLowerCase.FindStringSubmatch(cursor)
+		found = found[1:]
+
+		if len(found) == 1 {
+			return strings.ToUpper(found[0])
+		}
+
+		result := found[0] + strings.ToUpper(found[1])
+
+		if len(found) == 3 {
+			result = found[2]
+		}
+
+		return result
+	})
 
 	return source
 }
@@ -57,17 +75,14 @@ func main() {
 
 		for _, operation := range path.Operations() {
 			if operation != nil {
-				operation.OperationID = clean(operation.OperationID)
-
 				typeName := cleanID(operation.OperationID)
 
 				var params []jen.Code
 
 				// loop through parameters
 				for _, parameter := range operation.Parameters {
-					parameter.Value.Name = clean(parameter.Value.Name)
-
 					val := parameter.Value
+
 					if val.Schema.Value.Type == "array" {
 						if val.Schema.Value.Items.Value.Enum != nil {
 							// enum type
@@ -152,7 +167,6 @@ func cleanID(ID string) string {
 	parts := strings.Split(ID, "_")
 
 	for i, part := range parts {
-		// i know this has a deprecation warning, but i don't care
 		parts[i] = strings.Title(part)
 	}
 
