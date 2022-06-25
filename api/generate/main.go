@@ -164,7 +164,7 @@ func main() {
 
 // get_address_mempool_transactions -> GetAddressMempoolTransactions
 func cleanID(ID string) string {
-	parts := strings.Split(ID, "_")
+	parts := strings.Split(clean(ID), "_")
 
 	for i, part := range parts {
 		parts[i] = strings.Title(part)
