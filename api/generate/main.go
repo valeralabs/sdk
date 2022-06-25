@@ -1,7 +1,6 @@
 package main
 
 import (
-	// "fmt"
 	"regexp"
 	"strings"
 
@@ -34,10 +33,12 @@ func main() {
 		panic(err)
 	}
 
+	// type generation
+	f := jen.NewFile("api")
+
 	// clean up the swagger object
 	for name, path := range swagger.Paths {
 		delete(swagger.Paths, name)
-
 		// TODO: add enum cleaning here
 
 		if path.Parameters != nil {
@@ -56,49 +57,36 @@ func main() {
 
 		for _, operation := range path.Operations() {
 			if operation != nil {
-				for _, parameter := range operation.Parameters {
-					parameter.Value.Name = clean(parameter.Value.Name)
-				}
-
 				operation.OperationID = clean(operation.OperationID)
-			}
-		}
 
-		swagger.Paths[name] = path
-	}
-
-	// type generation
-
-	f := jen.NewFile("api")
-
-	// loop through paths
-	for _, operations := range swagger.Paths {
-		for _, operation := range operations.Operations() {
-			if operation != nil {
 				typeName := cleanID(operation.OperationID)
-				params := []jen.Code{}
+
+				var params []jen.Code
 
 				// loop through parameters
 				for _, parameter := range operation.Parameters {
+					parameter.Value.Name = clean(parameter.Value.Name)
+
 					val := parameter.Value
 					if val.Schema.Value.Type == "array" {
 						if val.Schema.Value.Items.Value.Enum != nil {
 							// enum type
 							// convert to string array
-							values := []string{}
+							var values []string
+
 							for _, enum := range val.Schema.Value.Items.Value.Enum {
 								values = append(values, cleanID(enum.(string)))
 							}
-							// fmt.Printf("%v\n", values)
 
 							typeNameIota := typeName + cleanID(val.Name)
 
-							enums := []jen.Code{}
+							var enums []jen.Code
+
 							for index, value := range values {
 								if index == 0 {
 									enums = append(
 										enums,
-										jen.ID(values[0]).ID(typeNameIota).Op("=").Iota(),
+										jen.ID(value).ID(typeNameIota).Op("=").Iota(),
 									)
 								} else {
 									enums = append(
@@ -107,7 +95,7 @@ func main() {
 									)
 								}
 							}
-							
+
 							f.Type().ID(typeNameIota).Int64()
 							f.Const().Definitions(enums...)
 
@@ -145,18 +133,15 @@ func main() {
 						}
 					}
 				}
+
 				f.Commentf("%sParams defines parameters for %v", typeName, typeName)
-				f.Type().ID(typeName+"Params").Structure(params...)
+				f.Type().ID(typeName + "Parameters").Structure(params...)
 			}
 		}
 	}
-	// fmt.Printf("%#v", f)
 
 	err = f.Save(output)
-	check(err)
-}
 
-func check(err error) {
 	if err != nil {
 		panic(err)
 	}
