@@ -1,3 +1,3 @@
-module github.com/syvita/racks
+module github.com/valeralabs/racks
 
-go 1.17
+go 1.18

@@ -1,7 +1,7 @@
 package transaction
 
 import (
-	"github.com/syvita/racks/constant"
+	"github.com/valeralabs/racks/constant"
 
 	"encoding/binary"
 	"encoding/hex"

@@ -1,7 +1,7 @@
 package lengthprefixed
 
 import (
-	"github.com/syvita/racks/constant"
+	"github.com/valeralabs/racks/constant"
 
 	"errors"
 	"strconv"

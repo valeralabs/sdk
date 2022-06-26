@@ -1,7 +1,7 @@
 package c32check
 
 import (
-	"github.com/syvita/racks/encoding/c32check/crock32"
+	"github.com/valeralabs/racks/encoding/c32check/crock32"
 
 	"crypto/sha256"
 )

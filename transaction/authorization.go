@@ -1,6 +1,6 @@
 package transaction
 
-import "github.com/syvita/racks/constant"
+import "github.com/valeralabs/racks/constant"
 
 type Authorization interface {
 	GetFee() int
