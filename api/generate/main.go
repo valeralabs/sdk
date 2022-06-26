@@ -16,30 +16,20 @@ var (
 )
 
 var URLArgumentScope = regexp.MustCompile(`{([^}]*)}`)
-var replacements = []string{"nft", "btc", "stx", "api", "id", "tx", "ft", "tld", "abi"}
-var PartialLowerCase = regexp.MustCompile(`(.*|\A)(Nft|Btc|Stx|Api|Id|Tx|Ft|Tld|Abi)([A-Z]|\z)`)
+var LowerCaseReplacements = regexp.MustCompile(`(?P<start>(.*(_|{)|\A))(?P<match>nft|btc|stx|api|id|tx|ft|tld|abi)(?P<end>((_|}).*|\z))`)
 
 func clean(source string) string {
-	for _, cursor := range replacements {
-		source = strings.ReplaceAll(source, cursor, strings.ToUpper(cursor))
+	for LowerCaseReplacements.MatchString(source) {
+		source = LowerCaseReplacements.ReplaceAllStringFunc(source, func(cursor string) string {
+			found := LowerCaseReplacements.FindStringSubmatch(cursor)
+
+			start := LowerCaseReplacements.SubexpIndex("start")
+			match := LowerCaseReplacements.SubexpIndex("match")
+			end := LowerCaseReplacements.SubexpIndex("end")
+
+			return found[start] + strings.ToUpper(found[match]) + found[end]
+		})
 	}
-
-	source = PartialLowerCase.ReplaceAllStringFunc(source, func(cursor string) string {
-		found := PartialLowerCase.FindStringSubmatch(cursor)
-		found = found[1:]
-
-		if len(found) == 1 {
-			return strings.ToUpper(found[0])
-		}
-
-		result := found[0] + strings.ToUpper(found[1])
-
-		if len(found) == 3 {
-			result = found[2]
-		}
-
-		return result
-	})
 
 	return source
 }
