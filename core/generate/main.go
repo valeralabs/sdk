@@ -452,11 +452,9 @@ func main() {
 			path := _path.(Path)
 
 			//TODO (Linden): fix mike `Result` handling
-			if path == Path("Box") {
-				continue
+			if path != Path("Box") {
+				path = unbox(path)
 			}
-
-			path = unbox(path)
 
 			argument, isKnown := path.ConvertRust(jenny.ID(name))
 
@@ -487,6 +485,7 @@ func main() {
 
 		wrapper.Parameters(arguments...)
 		wrapper.Parameters(returnValue)
+
 		wrapper.Block(blocks...)
 
 		functions = append(functions, wrapper)
