@@ -1,22 +1,43 @@
 package c32check
 
 import (
-	"fmt"
 	"testing"
 )
 
 func TestEncode(test *testing.T) {
-	raw, err := Encode(MainnetP2PKH, []byte("HelloWorld"))
+	encoded, err := Encode([]byte("abcdef"))
 
 	if err != nil {
-		test.Fatalf("failed to encode: %v", err)
+		test.Fatalf("failed to encode got %v", err)
 	}
 
-	plain := fmt.Sprintf("%X", raw)
-
-	if plain != "55D3FD4E102BF6994CBB8BFF0A47A07A5056C790A3D7AB24A42CA6799E939ADC" {
-		test.Fatalf("failed (silently) to encode: got %v", err)
+	if string(encoded) != "AQKFF" {
+		test.Fatalf("expected \"AQKFF\" got \"%s\"", encoded)
 	}
 
-	test.Log("got encoded", plain)
+	test.Log("got encoded", string(encoded))
+}
+
+func TestChecksum(test *testing.T) {
+	checksum := Checksum([]byte("0123456789abcdef"))
+
+	if string(checksum) != "137ad663" {
+		test.Fatalf("expected \"137ad663\" got \"%s\"", checksum)
+	}
+
+	test.Log("got checksum", string(checksum))
+}
+
+func TestCheckEncode(test *testing.T) {
+	checksum, err := ChecksumEncode([]byte("a956ed79819901b1b2c7b3ec045081f749c588ed"), 22)
+
+	if err != nil {
+		test.Fatalf("failed to encode got %v", err)
+	}
+
+	if string(checksum) != "P2MNDVBSG6CG3CDJRYSYR12GG7VMKHC8XMVVHEH6" {
+		test.Fatalf("expected \"P2MNDVBSG6CG3CDJRYSYR12GG7VMKHC8XMVVHEH6\" got \"%s\"", checksum)
+	}
+
+	test.Log("got checksum", string(checksum))
 }
