@@ -22,7 +22,7 @@ func NewPrivateKey(raw []byte) (PrivateKey, error) {
 			return PrivateKey(secp256k1.PrivateKey{}), errors.New("private key has a length of 33 but is not compressed")
 		}
 	} else if len(raw) != 32 {
-		return PrivateKey(secp256k1.PrivateKey{}), errors.New("private key has a length of 33 but is not compressed")
+		return PrivateKey(secp256k1.PrivateKey{}), errors.New("private key must have a length of 33 or 32")
 	}
 
 	return PrivateKey(*secp256k1.PrivKeyFromBytes(raw)), nil
