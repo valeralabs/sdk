@@ -26,7 +26,7 @@ func NewAddress(publics []transaction.PublicKey, version constant.AddressVersion
 		prefix = 196
 	}
 
-	if hash == constant.HashModeP2WPKH || hash == constant.HashModeP2WSH {
+	if hash == constant.HashModeP2SH || hash == constant.HashModeP2WPKH || hash == constant.HashModeP2WSH {
 		return "", fmt.Errorf("TODO: add segwit support")
 	}
 
@@ -34,8 +34,6 @@ func NewAddress(publics []transaction.PublicKey, version constant.AddressVersion
 
 	if hash == constant.HashModeP2PKH {
 		address = btcutil.Hash160(publics[0].Serialize())
-	} else {
-		return "", fmt.Errorf("TODO: add more address support support")
 	}
 
 	return string(base58.CheckEncode(address, prefix)), nil
