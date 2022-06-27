@@ -1,25 +1,25 @@
-package b58
+package c32
 
 import (
 	"fmt"
 
-	"github.com/btcsuite/btcd/btcutil/base58"
 	"github.com/valeralabs/racks/constant"
+	"github.com/valeralabs/racks/encoding/c32"
 )
 
 func ConvertVersion(version constant.AddressVersion) (byte, error) {
 	switch version {
 	case constant.AddressVersionMainnetSingleSignature:
-		return 0, nil
+		return 22, nil
 
 	case constant.AddressVersionMainnetMultipleSignature:
-		return 5, nil
+		return 20, nil
 
 	case constant.AddressVersionTestnetSingleSignature:
-		return 111, nil
+		return 26, nil
 
 	case constant.AddressVersionTestnetMultipleSignature:
-		return 196, nil
+		return 21, nil
 
 	default:
 		return 0, fmt.Errorf("invalid version %d", version)
@@ -33,5 +33,11 @@ func Encode(hash []byte, version constant.AddressVersion) (string, error) {
 		return "", err
 	}
 
-	return string(base58.CheckEncode(hash, converted)), nil
+	encoded, err := c32.ChecksumEncode(hash, converted)
+
+	if err != nil {
+		return "", err
+	}
+
+	return fmt.Sprintf("S%s", encoded), nil
 }
