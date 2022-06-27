@@ -1,4 +1,4 @@
-package c32check
+package c32
 
 import (
 	"testing"
