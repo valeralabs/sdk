@@ -53,3 +53,16 @@ func (encoding PublicKeyEncoding) Check() bool {
 
 const MaxStringLength = 128
 const DefaultPrefixLength = 8
+
+type AddressVersion byte
+
+var (
+	AddressVersionMainnetSingleSignature   = AddressVersion(byte(0))
+	AddressVersionTestnetSingleSignature   = AddressVersion(byte(111))
+	AddressVersionMainnetMultipleSignature = AddressVersion(byte(5))
+	AddressVersionTestnetMultipleSignature = AddressVersion(byte(196))
+)
+
+func (version AddressVersion) Check() bool {
+	return version == AddressVersionMainnetSingleSignature || version == AddressVersionMainnetSingleSignature || version == AddressVersionMainnetMultipleSignature || version == AddressVersionTestnetMultipleSignature
+}

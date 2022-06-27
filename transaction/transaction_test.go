@@ -20,7 +20,7 @@ func TestUnmarshalTransaction(test *testing.T) {
 		test.Errorf("failed to unmarshal transaction: %v", err)
 	}
 
-	test.Logf("got transaction %+v\n", transaction)
+	test.Logf("got transaction %#+v\n", transaction)
 }
 
 func TestMarshalTransaction(test *testing.T) {
@@ -31,4 +31,20 @@ func TestMarshalTransaction(test *testing.T) {
 	if err != nil {
 		test.Errorf("failed to marshal transaction: %v", err)
 	}
+}
+
+func TestKeys(test *testing.T) {
+	decoded, _ := HexToBytes("edf9aee84d9b7abc145504dde6726c64f369d37ee34ded868fabd876c26570bc01")
+
+	private, err := NewPrivateKey(decoded)
+
+	if err != nil {
+		test.Errorf("failed to check secret key: %v", err)
+	}
+
+	test.Logf("got private key %#+v\n", private)
+
+	public := private.PublicKey()
+
+	test.Logf("got public key %#+v\n", public)
 }
