@@ -54,15 +54,28 @@ func (encoding PublicKeyEncoding) Check() bool {
 const MaxStringLength = 128
 const DefaultPrefixLength = 8
 
-type AddressVersion byte
+type AddressVersion int
 
-var (
-	AddressVersionMainnetSingleSignature   = AddressVersion(byte(0))
-	AddressVersionTestnetSingleSignature   = AddressVersion(byte(111))
-	AddressVersionMainnetMultipleSignature = AddressVersion(byte(5))
-	AddressVersionTestnetMultipleSignature = AddressVersion(byte(196))
+const (
+	AddressVersionMainnetSingleSignature AddressVersion = iota
+	AddressVersionTestnetSingleSignature
+	AddressVersionMainnetMultipleSignature
+	AddressVersionTestnetMultipleSignature
 )
 
 func (version AddressVersion) Check() bool {
-	return version == AddressVersionMainnetSingleSignature || version == AddressVersionMainnetSingleSignature || version == AddressVersionMainnetMultipleSignature || version == AddressVersionTestnetMultipleSignature
+	return version >= AddressVersionMainnetSingleSignature && version <= AddressVersionTestnetMultipleSignature
+}
+
+type HashMode byte
+
+var (
+	HashModeP2PKH  = HashMode(byte(0x00))
+	HashModeP2SH   = HashMode(byte(0x01))
+	HashModeP2WPKH = HashMode(byte(0x02))
+	HashModeP2WSH  = HashMode(byte(0x03))
+)
+
+func (mode HashMode) Check() bool {
+	return mode >= HashModeP2PKH && mode <= HashModeP2WSH
 }

@@ -57,7 +57,7 @@ func (transaction *StacksTransaction) Unmarshal(data []byte) error {
 	case 0x04:
 		var condtion SingleSigSpendingCondition
 
-		condtion.HashMode = HashMode(reader.ReadSingle())
+		condtion.HashMode = constant.HashMode(reader.ReadSingle())
 
 		if condtion.HashMode.Check() == false {
 			return errors.New("authorization must be signed with either P2PKH, P2SH, P2WPKH-P2SH or P2WSH-P2SH")
@@ -68,7 +68,7 @@ func (transaction *StacksTransaction) Unmarshal(data []byte) error {
 		condtion.Fee = binary.BigEndian.Uint64(reader.Read(8))
 
 		switch condtion.HashMode {
-		case HashModeP2PKH, HashModeP2WPKH_P2SH:
+		case constant.HashModeP2PKH, constant.HashModeP2WPKH:
 			condtion.KeyEncoding = constant.PublicKeyEncoding(reader.ReadSingle())
 
 			if condtion.KeyEncoding.Check() == false {
@@ -77,7 +77,7 @@ func (transaction *StacksTransaction) Unmarshal(data []byte) error {
 
 			condtion.Signature = *(*[65]byte)(reader.Read(65))
 
-		case HashModeP2SH, HashModeP2WSH_P2SH:
+		case constant.HashModeP2SH, constant.HashModeP2WSH:
 			panic("TODO: implment HashModeP2SH and HashModeP2WSH_P2SH")
 		}
 

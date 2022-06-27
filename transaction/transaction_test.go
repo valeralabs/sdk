@@ -42,6 +42,10 @@ func TestKeys(test *testing.T) {
 		test.Errorf("failed to check secret key: %v", err)
 	}
 
+	if private.Compressed == false {
+		test.Error("expected private key to be compressed")
+	}
+
 	test.Logf("got private key %#+v\n", private)
 
 	public := private.PublicKey()

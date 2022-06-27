@@ -6,24 +6,40 @@ import (
 	"github.com/decred/dcrd/dcrec/secp256k1/v4"
 )
 
-type PublicKey secp256k1.PublicKey
+type PublicKey struct {
+	Value      *secp256k1.PublicKey
+	Compressed bool
+}
 
-type PrivateKey secp256k1.PrivateKey
+type PrivateKey struct {
+	Value      *secp256k1.PrivateKey
+	Compressed bool
+}
+
+func (key PublicKey) Serialize() []byte {
+	if key.Compressed == true {
+		return key.Value.SerializeCompressed()
+	} else {
+		return key.Value.SerializeUncompressed()
+	}
+}
 
 func (key PrivateKey) PublicKey() PublicKey {
-	raw := secp256k1.PrivateKey(key)
-
-	return PublicKey(*raw.PubKey())
+	return PublicKey{key.Value.PubKey(), key.Compressed}
 }
 
 func NewPrivateKey(raw []byte) (PrivateKey, error) {
+	compressed := false
+
 	if len(raw) == 33 {
 		if raw[len(raw)-1] != 1 {
-			return PrivateKey(secp256k1.PrivateKey{}), errors.New("private key has a length of 33 but is not compressed")
+			return PrivateKey{}, errors.New("private key has a length of 33 but is not compressed")
+		} else {
+			compressed = true
 		}
 	} else if len(raw) != 32 {
-		return PrivateKey(secp256k1.PrivateKey{}), errors.New("private key must have a length of 33 or 32")
+		return PrivateKey{}, errors.New("private key must have a length of 33 or 32")
 	}
 
-	return PrivateKey(*secp256k1.PrivKeyFromBytes(raw)), nil
+	return PrivateKey{secp256k1.PrivKeyFromBytes(raw), compressed}, nil
 }
