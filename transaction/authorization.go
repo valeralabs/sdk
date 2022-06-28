@@ -1,6 +1,6 @@
 package transaction
 
-import "github.com/valeralabs/racks/constant"
+import "github.com/valeralabs/sdk/constant"
 
 type Authorization interface {
 	GetFee() int

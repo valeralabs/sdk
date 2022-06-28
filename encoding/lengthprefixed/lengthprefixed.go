@@ -1,7 +1,7 @@
 package lengthprefixed
 
 import (
-	"github.com/valeralabs/racks/constant"
+	"github.com/valeralabs/sdk/constant"
 
 	"errors"
 	"strconv"

@@ -5,10 +5,10 @@ import (
 	"fmt"
 
 	"github.com/btcsuite/btcd/btcutil"
-	"github.com/valeralabs/racks/address/b58"
-	"github.com/valeralabs/racks/address/c32"
-	"github.com/valeralabs/racks/constant"
-	"github.com/valeralabs/racks/transaction"
+	"github.com/valeralabs/sdk/address/b58"
+	"github.com/valeralabs/sdk/address/c32"
+	"github.com/valeralabs/sdk/constant"
+	"github.com/valeralabs/sdk/transaction"
 )
 
 type Address struct {

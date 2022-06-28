@@ -3,8 +3,8 @@ package address
 import (
 	"testing"
 
-	"github.com/valeralabs/racks/constant"
-	"github.com/valeralabs/racks/transaction"
+	"github.com/valeralabs/sdk/constant"
+	"github.com/valeralabs/sdk/transaction"
 )
 
 func TestBasicAddress(test *testing.T) {

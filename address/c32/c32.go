@@ -3,8 +3,8 @@ package c32
 import (
 	"fmt"
 
-	"github.com/valeralabs/racks/constant"
-	"github.com/valeralabs/racks/encoding/c32"
+	"github.com/valeralabs/sdk/constant"
+	"github.com/valeralabs/sdk/encoding/c32"
 )
 
 func ConvertVersion(version constant.AddressVersion) (byte, error) {

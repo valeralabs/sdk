@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/btcsuite/btcd/btcutil/base58"
-	"github.com/valeralabs/racks/constant"
+	"github.com/valeralabs/sdk/constant"
 )
 
 func ConvertVersion(version constant.AddressVersion) (byte, error) {
