@@ -55,7 +55,7 @@ func (transaction *StacksTransaction) Unmarshal(data []byte) error {
 
 	switch authorizationType {
 	case 0x04:
-		var condtion SingleSigSpendingCondition
+		var condtion SingleSignatureSpendingCondition
 
 		condtion.HashMode = constant.HashMode(reader.ReadSingle())
 
@@ -81,7 +81,7 @@ func (transaction *StacksTransaction) Unmarshal(data []byte) error {
 			panic("TODO: implment HashModeP2SH and HashModeP2WSH_P2SH")
 		}
 
-		transaction.Authorization = StandardAuthorization{condtion}
+		transaction.Authorization = StandardAuthorization[SingleSignatureSpendingCondition]{condtion}
 	case 0x05:
 		// sponsored authorization
 		// two spending conditions.

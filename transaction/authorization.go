@@ -6,18 +6,19 @@ type Authorization interface {
 	GetFee() int
 }
 
-type StandardAuthorization struct {
-	SpendingCondition SpendingCondition
+type StandardAuthorization[T SpendingCondition] struct {
+	SpendingCondition T
 }
 
-type SponsoredAuthorization struct {
-	SpendingCondition SpendingCondition
+type SponsoredAuthorization[T SpendingCondition] struct {
+	SpendingCondition T
 }
 
-type SpendingCondition interface{}
+type SpendingCondition interface {
+	SingleSignatureSpendingCondition | MultipleSignatureSpendingCondition
+}
 
-//TODO: check hashMode == SingleSigHashMode
-type SingleSigSpendingCondition struct {
+type SingleSignatureSpendingCondition struct {
 	HashMode    constant.HashMode
 	Signer      [20]byte
 	Nonce       uint64
@@ -26,8 +27,7 @@ type SingleSigSpendingCondition struct {
 	Signature   [65]byte
 }
 
-//TODO: check hashMode == MultiSigHashMode
-type MultiSigSpendingCondition struct {
+type MultipleSignatureSpendingCondition struct {
 	Signer             [20]byte
 	Nonce              uint64
 	Fee                uint64
@@ -35,7 +35,6 @@ type MultiSigSpendingCondition struct {
 	signaturesRequired int
 }
 
-//TODO: check type == StacksMessageType.TransactionAuthField
 type AuthorizationField struct {
 	KeyEncoding constant.PublicKeyEncoding
 	Contents    TransactionFieldContents
@@ -43,10 +42,10 @@ type AuthorizationField struct {
 
 type TransactionFieldContents interface{}
 
-func (authorization StandardAuthorization) GetFee() int {
+func (authorization StandardAuthorization[SpendingCondition]) GetFee() int {
 	return 5000
 }
 
-func (authorization SponsoredAuthorization) GetFee() int {
+func (authorization SponsoredAuthorization[SpendingCondition]) GetFee() int {
 	return 5000
 }
