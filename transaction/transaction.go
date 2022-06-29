@@ -189,13 +189,9 @@ func (transaction *StacksTransaction) Unmarshal(data []byte) error {
 		return errors.New("payload is invalid")
 	}
 
-	fmt.Println(reader.Value)
-
 	return nil
 }
 
 func (transaction *StacksTransaction) Marshal() ([]byte, error) {
 	return []byte{}, nil
 }
-
-// https://cs.github.com/fungible-systems/micro-stacks/blob/8c520f855f627f078db0361e40cb3978610b4468/src/transactions/types.ts#L315
