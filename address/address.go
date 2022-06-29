@@ -12,8 +12,9 @@ import (
 )
 
 type Address struct {
-	Version constant.AddressVersion
-	Hash    []byte
+	Version  constant.AddressVersion
+	Hash     []byte
+	Contract string
 }
 
 func (address Address) B58() (string, error) {
@@ -21,7 +22,17 @@ func (address Address) B58() (string, error) {
 }
 
 func (address Address) C32() (string, error) {
-	return c32.Encode(address.Hash, address.Version)
+	encoded, err := c32.Encode(address.Hash, address.Version)
+
+	if err != nil {
+		return "", err
+	}
+
+	if address.Contract != "" {
+		encoded += "." + address.Contract
+	}
+
+	return encoded, nil
 }
 
 func NewAddress(publicKeys []keys.PublicKey, version constant.AddressVersion, mode constant.HashMode) (Address, error) {

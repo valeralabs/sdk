@@ -1,18 +1,19 @@
 package address
 
 import (
+	"encoding/hex"
 	"testing"
 
 	"github.com/valeralabs/sdk/constant"
-	"github.com/valeralabs/sdk/transaction"
+	"github.com/valeralabs/sdk/keys"
 )
 
 func TestBasicAddress(test *testing.T) {
-	decoded, _ := transaction.HexToBytes("edf9aee84d9b7abc145504dde6726c64f369d37ee34ded868fabd876c26570bc01")
-	private, _ := transaction.NewPrivateKey(decoded)
+	decoded, _ := hex.DecodeString("edf9aee84d9b7abc145504dde6726c64f369d37ee34ded868fabd876c26570bc01")
+	private, _ := keys.NewPrivateKey(decoded)
 	public := private.PublicKey()
 
-	user, err := NewAddress([]transaction.PublicKey{public}, constant.AddressVersionMainnetSingleSignature, constant.HashModeP2PKH)
+	user, err := NewAddress([]keys.PublicKey{public}, constant.AddressVersionMainnetSingleSignature, constant.HashModeP2PKH)
 
 	test.Run("can create address", func(test *testing.T) {
 		if err != nil {

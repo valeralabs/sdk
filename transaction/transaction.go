@@ -1,13 +1,17 @@
 package transaction
 
 import (
-	"github.com/valeralabs/sdk/constant"
-
+	"bytes"
 	"encoding/binary"
 	"encoding/hex"
 	"errors"
+	"fmt"
 
 	"github.com/linden/bite"
+	"github.com/valeralabs/sdk/address"
+	"github.com/valeralabs/sdk/address/c32"
+	"github.com/valeralabs/sdk/constant"
+	"github.com/valeralabs/sdk/encoding/lengthprefixed"
 )
 
 type StacksTransaction struct {
@@ -17,8 +21,8 @@ type StacksTransaction struct {
 	Authorization Authorization
 	AnchorMode    constant.AnchorMode
 	// TODO: add post-conditions
-	// PostConditionMode constant.PostConditionMode
-	// PostConditions    []constant.PostCondition
+	PostConditionMode constant.PostConditionMode
+	PostConditions    []constant.PostCondition
 }
 
 func HexToBytes(plain string) ([]byte, error) {
@@ -31,6 +35,16 @@ func HexToBytes(plain string) ([]byte, error) {
 }
 
 func (transaction *StacksTransaction) Unmarshal(data []byte) error {
+	decoded := make([]byte, hex.DecodedLen(len(data)))
+
+	_, err := hex.Decode(decoded, data)
+
+	if err != nil {
+		return err
+	}
+
+	data = decoded
+
 	// TODO: find minimum size, currently in place to prevent bounds errors
 	if len(data) < 3 {
 		return errors.New("transaction is too short to be valid")
@@ -95,54 +109,93 @@ func (transaction *StacksTransaction) Unmarshal(data []byte) error {
 		return errors.New("anchor mode is invalid")
 	}
 
-	// // next byte is post condition mode
-	// transaction.PostConditionMode = constant.PostConditionMode(reader.ReadSingle())
-	// if transaction.PostConditionMode.Check() == false {
-	// 	return errors.New("post condition mode is invalid")
-	// }
-	// postConditionCount := binary.BigEndian.Uint32(reader.Read(4))
-	// // TODO: loop through the post conditions
-	// for index := uint32(0); index < postConditionCount; index++ {
-	// 	// first 1 byte is the post condition type ID
-	// 	postConditionType := data[0]
-	// 	data = data[1:]
-	// 	switch postConditionType {
-	// 	case 00: // post condition type is STX
-	// 	case 01: // post condition type is fungible token
-	// 	case 02: // post condition type is non-fungible token (NFT)
-	// 	}
-	// }
+	transaction.PostConditionMode = constant.PostConditionMode(reader.ReadSingle())
+
+	if transaction.PostConditionMode.Check() == false {
+		return errors.New("post condition mode is invalid")
+	}
+
+	postConditionCount := binary.BigEndian.Uint32(reader.Read(4))
+
+	//TODO (Linden): post conditions
+	for index := uint32(0); index < postConditionCount; index++ {
+		postConditionType := constant.PostConditionType(reader.ReadSingle())
+
+		if postConditionType.Check() == false {
+			return fmt.Errorf("post condition %d is not valid", index)
+		}
+
+		switch postConditionType {
+		case constant.PostConditionTypeSTX:
+		case constant.PostConditionTypeFT:
+		case constant.PostConditionTypeNFT:
+		}
+	}
+
+	payloadType := PayloadType(reader.ReadSingle())
+
+	if payloadType.Check() == false {
+		return errors.New("payload type is invalid")
+	}
+
+	switch payloadType {
+	case PayloadTypeTokenTransfer:
+		var payload PayloadTokenTransfer
+
+		clarityType := constant.ClarityType(reader.ReadSingle())
+
+		if clarityType.Check() == false {
+			return errors.New("address is invalid")
+		}
+
+		if clarityType == constant.ClarityTypePrincipalStandard || clarityType == constant.ClarityTypePrincipalContract {
+			version, err := c32.ReverseVersion(reader.ReadSingle())
+
+			if err != nil {
+				return errors.New("address version is invalid")
+			}
+
+			hash := reader.Read(20)
+
+			var contract string
+
+			if clarityType == constant.ClarityTypePrincipalContract {
+				name := lengthprefixed.String{
+					PrefixLength: 1,
+				}
+
+				err = name.Unmarshal(reader.Value)
+
+				if err != nil {
+					return errors.New("invalid contract name")
+				}
+
+				contract = string(name.Content)
+
+				reader.Read(len(name.Content) + 1)
+			}
+
+			payload.Address = address.Address{version, hash, contract}
+		} else {
+			return errors.New("clarity type is not yet supported")
+		}
+
+		payload.Amount = int(binary.BigEndian.Uint64(reader.Read(8)))
+		payload.Memo = string(reader.Read(bytes.IndexByte(reader.Value, 0)))
+
+		transaction.Payload = payload
+
+	default:
+		return errors.New("payload is invalid")
+	}
+
+	fmt.Println(reader.Value)
 
 	return nil
-
-	// export function deserializeTransaction(data: BufferReader | Uint8Array | string) {
-	//   const version = bufferReader.readUInt8Enum(TransactionVersion, n => {
-	//     throw new Error(`Could not parse ${n} as TransactionVersion`);
-	//   });
-	//   const chainId = bufferReader.readUInt32BE();
-	//   const auth = deserializeAuthorization(bufferReader);
-	//
-	//   const anchorMode = bufferReader.readUInt8Enum(AnchorMode, n => {
-	//     throw new Error(`Could not parse ${n} as AnchorMode`);
-	//   });
-	//   const postConditionMode = bufferReader.readUInt8Enum(PostConditionMode, n => {
-	//     throw new Error(`Could not parse ${n} as PostConditionMode`);
-	//   });
-	//   const postConditions = deserializeLPList(bufferReader, StacksMessageType.PostCondition);
-	//   const payload = deserializePayload(bufferReader);
-	//
-	//   return new StacksTransaction(
-	//     version,
-	//     auth,
-	//     payload,
-	//     postConditions,
-	//     postConditionMode,
-	//     anchorMode,
-	//     chainId
-	//   );
-	// }
 }
 
 func (transaction *StacksTransaction) Marshal() ([]byte, error) {
 	return []byte{}, nil
 }
+
+// https://cs.github.com/fungible-systems/micro-stacks/blob/8c520f855f627f078db0361e40cb3978610b4468/src/transactions/types.ts#L315

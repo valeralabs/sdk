@@ -79,3 +79,56 @@ var (
 func (mode HashMode) Check() bool {
 	return mode >= HashModeP2PKH && mode <= HashModeP2WSH
 }
+
+type PostConditionMode byte
+
+var (
+	PostConditionModeLoose  = PostConditionMode(byte(0x01))
+	PostConditionModeStrict = PostConditionMode(byte(0x02))
+)
+
+func (mode PostConditionMode) Check() bool {
+	return mode == PostConditionModeLoose || mode == PostConditionModeStrict
+}
+
+type PostConditionType byte
+
+var (
+	PostConditionTypeSTX = PostConditionType(byte(0x00))
+	PostConditionTypeFT  = PostConditionType(byte(0x01))
+	PostConditionTypeNFT = PostConditionType(byte(0x02))
+)
+
+func (_type PostConditionType) Check() bool {
+	return _type >= PostConditionTypeSTX && _type <= PostConditionTypeNFT
+}
+
+type PostCondition byte
+
+func (mode PostCondition) Check() bool {
+	return true
+}
+
+type ClarityType byte
+
+var (
+	ClarityTypeInt               = ClarityType(byte(0x00))
+	ClarityTypeUInt              = ClarityType(byte(0x01))
+	ClarityTypeBuffer            = ClarityType(byte(0x02))
+	ClarityTypeBoolTrue          = ClarityType(byte(0x03))
+	ClarityTypeBoolFalse         = ClarityType(byte(0x04))
+	ClarityTypePrincipalStandard = ClarityType(byte(0x05))
+	ClarityTypePrincipalContract = ClarityType(byte(0x06))
+	ClarityTypeResponseOk        = ClarityType(byte(0x07))
+	ClarityTypeResponseErr       = ClarityType(byte(0x08))
+	ClarityTypeOptionalNone      = ClarityType(byte(0x09))
+	ClarityTypeOptionalSome      = ClarityType(byte(0x0a))
+	ClarityTypeList              = ClarityType(byte(0x0b))
+	ClarityTypeTuple             = ClarityType(byte(0x0c))
+	ClarityTypeStringASCII       = ClarityType(byte(0x0d))
+	ClarityTypeStringUTF8        = ClarityType(byte(0x0e))
+)
+
+func (_type ClarityType) Check() bool {
+	return _type >= ClarityTypeInt && _type <= ClarityTypeStringUTF8
+}

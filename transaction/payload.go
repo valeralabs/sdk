@@ -1,19 +1,25 @@
 package transaction
 
-type Payload byte
+import "github.com/valeralabs/sdk/address"
+
+type PayloadType byte
 
 var (
-	PayloadTokenTransfer = Payload(0x00)
-	PayloadContractCall  = Payload(0x02)
-	PayloadSmartContract = Payload(0x01)
-	PayloadPoison        = Payload(0x03)
-	PayloadCoinbase      = Payload(0x04)
+	PayloadTypeTokenTransfer = PayloadType(0x00)
+	PayloadTypeContractCall  = PayloadType(0x02)
+	PayloadTypeSmartContract = PayloadType(0x01)
+	PayloadTypePoison        = PayloadType(0x03)
+	PayloadTypeCoinbase      = PayloadType(0x04)
 )
 
-func (payload Payload) Check() bool {
-	if payload == PayloadTokenTransfer || payload == PayloadContractCall || payload == PayloadSmartContract || payload == PayloadPoison || payload == PayloadCoinbase {
-		return true
-	}
+func (payload PayloadType) Check() bool {
+	return payload >= PayloadTypeTokenTransfer && payload <= PayloadTypeCoinbase
+}
 
-	return false
+type Payload any
+
+type PayloadTokenTransfer struct {
+	Address address.Address
+	Amount  int
+	Memo    string
 }
