@@ -12,4 +12,9 @@ require (
 require (
 	github.com/btcsuite/btcd v0.22.0-beta.0.20220111032746-97732e52810c // indirect
 	github.com/btcsuite/btcd/btcec/v2 v2.1.1 // indirect
+	github.com/getkin/kin-openapi v0.97.0 // indirect
+	github.com/go-openapi/jsonpointer v0.19.5 // indirect
+	github.com/go-openapi/swag v0.19.5 // indirect
+	github.com/mailru/easyjson v0.0.0-20190626092158-b2ccc519800e // indirect
+	gopkg.in/yaml.v2 v2.4.0 // indirect
 )

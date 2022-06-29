@@ -189,7 +189,7 @@ func (transaction *StacksTransaction) Unmarshal(data []byte) error {
 		return errors.New("payload is invalid")
 	}
 
-	fmt.Println(reader.Value)
+	// fmt.Println(reader.Value)
 
 	return nil
 }
