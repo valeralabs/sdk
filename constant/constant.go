@@ -52,7 +52,7 @@ func (encoding PublicKeyEncoding) Check() bool {
 }
 
 const MaxStringLength = 128
-const DefaultPrefixLength = 8
+const DefaultPrefixLength = 4
 
 type AddressVersion int
 

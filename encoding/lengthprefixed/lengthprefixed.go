@@ -1,27 +1,42 @@
 package lengthprefixed
 
 import (
-	"github.com/valeralabs/sdk/constant"
-
+	"bytes"
+	"encoding/binary"
 	"errors"
-	"strconv"
-	"strings"
+
+	"github.com/linden/bite"
+	"github.com/valeralabs/sdk/constant"
 )
 
 type String struct {
 	Content      []byte
 	PrefixLength int
-	Max          int
 }
 
-func (cursor *String) Unmarshal(data []byte) error {
-	panic("TODO: Unmarshal LP string")
+func (cursor *String) Unmarshal(raw []byte) error {
+	reader := bite.New(raw)
+
+	if cursor.PrefixLength == 0 {
+		cursor.PrefixLength = constant.DefaultPrefixLength
+	}
+
+	var length int
+
+	for _, cursor := range reader.Read(cursor.PrefixLength) {
+		if cursor != 0 {
+			length = (length * 10) + int(cursor)
+		}
+	}
+
+	cursor.Content = reader.Read(length)
+
 	return nil
 }
 
 func (cursor *String) Marshal() ([]byte, error) {
-	if len(cursor.Content) > cursor.Max {
-		return []byte{}, errors.New("String is above the Max length")
+	if len(cursor.Content) > constant.MaxStringLength {
+		return []byte{}, errors.New("string is above the max length")
 	}
 
 	var buffer []byte
@@ -31,49 +46,28 @@ func (cursor *String) Marshal() ([]byte, error) {
 	buffer = append(buffer, prefixed...)
 	buffer = append(buffer, []byte(cursor.Content)...)
 
-	var result []byte
-
-	// TODO: probably a better way to do this
-	for _, cursor := range buffer {
-		result = append(result, []byte(strconv.Itoa(int(cursor)))...)
-	}
-
-	return result, nil
+	return buffer, nil
 }
 
-func CreateString(from []byte) String {
+func NewString(from []byte) String {
 	if len(from) > constant.MaxStringLength {
-		panic("String is above the Max length")
+		panic("string is longer then the max length")
 	}
 
 	return String{
 		Content:      from,
 		PrefixLength: constant.DefaultPrefixLength,
-		Max:          constant.MaxStringLength,
 	}
 }
 
-// TODO: clean up
-func prefix(length int, bytes int) []byte {
-	encoded := strconv.FormatInt(int64(length), 16)
+func prefix(length int, total int) []byte {
+	buffer := new(bytes.Buffer)
 
-	var padding string
+	binary.Write(buffer, binary.BigEndian, int8(length))
 
-	if len(encoded) < bytes*2 {
-		padding = strings.Repeat("0", ((bytes * 2) - len(encoded)))
-	}
+	padding := bytes.Repeat([]byte{0}, total-buffer.Len())
 
-	combined := padding + encoded
-
-	var result []byte
-
-	for index := 0; index < len(combined); index += 2 {
-		size, _ := strconv.ParseInt(combined[index:index+2], 16, 64)
-
-		result = append(result, byte(size))
-	}
-
-	return result
+	return append(padding, buffer.Bytes()...)
 }
 
 // type List struct {

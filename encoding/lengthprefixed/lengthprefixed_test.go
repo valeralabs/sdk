@@ -2,25 +2,43 @@ package lengthprefixed
 
 import (
 	"bytes"
+	"reflect"
 	"testing"
 )
 
-func TestStringMarshal(test *testing.T) {
-	LPString := CreateString([]byte("Hello World"))
+func TestString(test *testing.T) {
+	var err error
+	var plain []byte
 
-	plain, err := LPString.Marshal()
+	marshaled := NewString([]byte("Hello World"))
 
-	if err != nil {
-		test.Fatal(err)
-	}
+	test.Run("marshal string", func(test *testing.T) {
+		plain, err = marshaled.Marshal()
 
-	if bytes.Compare(plain, []byte{
-		48, 48, 48, 48, 48, 48, 48, 49, 49, 55, 50, 49, 48, 49,
-		49, 48, 56, 49, 48, 56, 49, 49, 49, 51, 50, 56, 55, 49,
-		49, 49, 49, 49, 52, 49, 48, 56, 49, 48, 48,
-	}) != 0 {
-		test.Fatalf("failed to encode LP string")
-	}
+		if err != nil {
+			test.Fatal(err)
+		}
 
-	test.Log("encoded", string(plain))
+		if bytes.Compare(plain, []byte{0, 0, 0, 11, 72, 101, 108, 108, 111, 32, 87, 111, 114, 108, 100}) != 0 {
+			test.Fatalf("failed to marshal string got %+v", plain)
+		}
+
+		test.Logf("marshaled %x", plain)
+	})
+
+	test.Run("unmarshal string", func(test *testing.T) {
+		var unmarshaled String
+
+		err = unmarshaled.Unmarshal(plain)
+
+		if err != nil {
+			test.Fatal(err)
+		}
+
+		if reflect.DeepEqual(marshaled, unmarshaled) == false {
+			test.Fatalf("failed to unmarshal string got %+v", unmarshaled)
+		}
+
+		test.Logf("unmarshaled %#+v\n", unmarshaled)
+	})
 }
