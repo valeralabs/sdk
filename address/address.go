@@ -8,7 +8,7 @@ import (
 	"github.com/valeralabs/sdk/address/b58"
 	"github.com/valeralabs/sdk/address/c32"
 	"github.com/valeralabs/sdk/constant"
-	"github.com/valeralabs/sdk/transaction"
+	"github.com/valeralabs/sdk/keys"
 )
 
 type Address struct {
@@ -24,7 +24,7 @@ func (address Address) C32() (string, error) {
 	return c32.Encode(address.Hash, address.Version)
 }
 
-func NewAddress(publicKeys []transaction.PublicKey, version constant.AddressVersion, mode constant.HashMode) (Address, error) {
+func NewAddress(publicKeys []keys.PublicKey, version constant.AddressVersion, mode constant.HashMode) (Address, error) {
 	var hash []byte
 
 	if mode == constant.HashModeP2PKH {
