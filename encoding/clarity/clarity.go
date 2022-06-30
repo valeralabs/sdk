@@ -70,11 +70,15 @@ func readLengthPrefix(reader *bite.Reader, total int) int {
 	return length
 }
 
-func (cursor *Value) Unmarshal(raw []byte) error {
+func (cursor *Value) Unmarshal(raw []byte, typed bool) error {
 	reader := bite.New(raw)
 
 	if cursor.PrefixLength == 0 {
 		cursor.PrefixLength = constant.DefaultPrefixLength
+	}
+
+	if typed == true {
+		cursor.Type = ClarityType(reader.ReadSingle())
 	}
 
 	length := readLengthPrefix(&reader, cursor.PrefixLength)
@@ -83,16 +87,18 @@ func (cursor *Value) Unmarshal(raw []byte) error {
 	return nil
 }
 
-func (cursor Value) Marshal() ([]byte, error) {
+func (cursor Value) Marshal(typed bool) ([]byte, error) {
 	if len(cursor.Content) > constant.MaxStringLength {
 		return []byte{}, errors.New("string is above the max length")
 	}
 
 	var buffer []byte
 
-	prefixed := createLengthPrefix(len(cursor.Content), cursor.PrefixLength)
+	if typed == true {
+		buffer = append(buffer, byte(cursor.Type))
+	}
 
-	buffer = append(buffer, prefixed...)
+	buffer = append(buffer, createLengthPrefix(len(cursor.Content), cursor.PrefixLength)...)
 	buffer = append(buffer, []byte(cursor.Content)...)
 
 	return buffer, nil
@@ -109,7 +115,7 @@ func NewValue(from []byte) Value {
 	}
 }
 
-func (list *List) Unmarshal(data []byte) error {
+func (list *List) Unmarshal(data []byte, typed bool) error {
 	reader := bite.New(data)
 
 	if list.PrefixLength == 0 {
@@ -127,7 +133,7 @@ func (list *List) Unmarshal(data []byte) error {
 			PrefixLength: list.SubPrefixLength,
 		}
 
-		err := decoded.Unmarshal(reader.Value)
+		err := decoded.Unmarshal(reader.Value, typed)
 
 		if err != nil {
 			return err
@@ -141,11 +147,11 @@ func (list *List) Unmarshal(data []byte) error {
 	return nil
 }
 
-func (list List) Marshal() ([]byte, error) {
+func (list List) Marshal(typed bool) ([]byte, error) {
 	buffer := createLengthPrefix(len(list.Content), list.PrefixLength)
 
 	for _, encoded := range list.Content {
-		decoded, err := encoded.Marshal()
+		decoded, err := encoded.Marshal(typed)
 
 		if err != nil {
 			return []byte{}, err
@@ -190,7 +196,7 @@ func ParsePrincipal(from ClarityType, reader *bite.Reader) (address.Address, err
 			PrefixLength: 1,
 		}
 
-		err = name.Unmarshal(reader.Value)
+		err = name.Unmarshal(reader.Value, false)
 
 		if err != nil {
 			return address.Address{}, errors.New("invalid contract name")
