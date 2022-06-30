@@ -2,7 +2,6 @@ package keys
 
 import (
 	"errors"
-
 	"github.com/decred/dcrd/dcrec/secp256k1/v4"
 )
 

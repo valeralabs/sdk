@@ -1,0 +1,9 @@
+{
+  "name": "ms",
+  "packageManager": "yarn@3.2.0",
+  "dependencies": {
+    "@stacks/transactions": "^4.3.0",
+    "micro-stacks": "^0.5.2",
+    "performance-now": "^2.1.0"
+  }
+}
