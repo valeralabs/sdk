@@ -1,4 +1,4 @@
-package lengthprefixed
+package clarity
 
 import (
 	"bytes"
@@ -6,16 +6,44 @@ import (
 	"errors"
 
 	"github.com/linden/bite"
+	"github.com/valeralabs/sdk/address"
+	"github.com/valeralabs/sdk/address/c32"
 	"github.com/valeralabs/sdk/constant"
 )
 
-type String struct {
+type ClarityType byte
+
+const (
+	ClarityTypeInt ClarityType = iota
+	ClarityTypeUInt
+	ClarityTypeBuffer
+	ClarityTypeBoolTrue
+	ClarityTypeBoolFalse
+	ClarityTypePrincipalStandard
+	ClarityTypePrincipalContract
+	ClarityTypeResponseOk
+	ClarityTypeResponseErr
+	ClarityTypeOptionalNone
+	ClarityTypeOptionalSome
+	ClarityTypeList
+	ClarityTypeTuple
+	ClarityTypeStringASCII
+	ClarityTypeStringUTF8
+)
+
+func (_type ClarityType) Check() bool {
+	return _type >= ClarityTypeInt && _type <= ClarityTypeStringUTF8
+}
+
+type Value struct {
+	Type         ClarityType
 	Content      []byte
 	PrefixLength int
 }
 
 type List struct {
-	Content         []String
+	Type            ClarityType
+	Content         []Value
 	PrefixLength    int
 	SubPrefixLength int
 }
@@ -42,7 +70,7 @@ func readLengthPrefix(reader *bite.Reader, total int) int {
 	return length
 }
 
-func (cursor *String) Unmarshal(raw []byte) error {
+func (cursor *Value) Unmarshal(raw []byte) error {
 	reader := bite.New(raw)
 
 	if cursor.PrefixLength == 0 {
@@ -55,7 +83,7 @@ func (cursor *String) Unmarshal(raw []byte) error {
 	return nil
 }
 
-func (cursor String) Marshal() ([]byte, error) {
+func (cursor Value) Marshal() ([]byte, error) {
 	if len(cursor.Content) > constant.MaxStringLength {
 		return []byte{}, errors.New("string is above the max length")
 	}
@@ -70,12 +98,12 @@ func (cursor String) Marshal() ([]byte, error) {
 	return buffer, nil
 }
 
-func NewString(from []byte) String {
+func NewValue(from []byte) Value {
 	if len(from) > constant.MaxStringLength {
 		panic("string is longer then the max length")
 	}
 
-	return String{
+	return Value{
 		Content:      from,
 		PrefixLength: constant.DefaultPrefixLength,
 	}
@@ -95,7 +123,7 @@ func (list *List) Unmarshal(data []byte) error {
 	length := readLengthPrefix(&reader, list.PrefixLength)
 
 	for index := 0; index < length; index++ {
-		decoded := String{
+		decoded := Value{
 			PrefixLength: list.SubPrefixLength,
 		}
 
@@ -136,8 +164,42 @@ func NewList(raw [][]byte) List {
 	list.SubPrefixLength = constant.DefaultPrefixLength
 
 	for _, cursor := range raw {
-		list.Content = append(list.Content, NewString(cursor))
+		list.Content = append(list.Content, NewValue(cursor))
 	}
 
 	return list
+}
+
+func ParsePrincipal(from ClarityType, reader *bite.Reader) (address.Address, error) {
+	if from != ClarityTypePrincipalStandard && from != ClarityTypePrincipalContract {
+		return address.Address{}, errors.New("clarity type can only be standard or contract")
+	}
+
+	version, err := c32.ReverseVersion(reader.ReadSingle())
+
+	if err != nil {
+		return address.Address{}, errors.New("address version is invalid")
+	}
+
+	hash := reader.Read(20)
+
+	var contract string
+
+	if from == ClarityTypePrincipalContract {
+		name := Value{
+			PrefixLength: 1,
+		}
+
+		err = name.Unmarshal(reader.Value)
+
+		if err != nil {
+			return address.Address{}, errors.New("invalid contract name")
+		}
+
+		contract = string(name.Content)
+
+		reader.Read(len(name.Content) + 1)
+	}
+
+	return address.Address{version, hash, contract}, nil
 }
