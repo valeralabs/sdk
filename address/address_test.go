@@ -13,7 +13,7 @@ func TestBasicAddress(test *testing.T) {
 	private, _ := keys.NewPrivateKey(decoded)
 	public := private.PublicKey()
 
-	user, err := NewAddress([]keys.PublicKey{public}, 1, constant.AddressVersionMainnetSingleSignature, constant.HashModeP2PKH)
+	user, err := NewAddress([]keys.PublicKey{public}, 1, constant.AddressVersionMainnetPublicKeyHash, constant.HashModeP2PKH)
 
 	publicKeyHex := hex.EncodeToString(public.Value.SerializeUncompressed())
 	test.Logf("%v", publicKeyHex)
@@ -55,7 +55,7 @@ func TestBasicAddress(test *testing.T) {
 		test.Logf("got b58 address: %s\n", b58)
 	})
 
-	test.Run("can create multisig address", func(test *testing.T) {
+	test.Run("can create p2sh multisig address", func(test *testing.T) {
 		decodedOne, _ := hex.DecodeString("c3e1c944086ea6d61e0b9948a62d9608018c00a67424a817f005cf6bba39ce9001")
 		privateOne, _ := keys.NewPrivateKey(decodedOne)
 		publicOne := privateOne.PublicKey()
@@ -66,7 +66,7 @@ func TestBasicAddress(test *testing.T) {
 
 		publicKeys := []keys.PublicKey{publicOne, publicTwo}
 
-		address, err := NewAddress(publicKeys, 2, constant.AddressVersionMainnetMultipleSignature, constant.HashModeP2SH)
+		address, err := NewAddress(publicKeys, 2, constant.AddressVersionMainnetScriptHash, constant.HashModeP2SH)
 
 		if err != nil {
 			test.Fatalf("Could not create address, err: %v", err)
@@ -77,10 +77,10 @@ func TestBasicAddress(test *testing.T) {
 			test.Fatalf("Could not encode multsig address in c32, err: %v", err)
 		}
 
-		// Reference results taken from https://github.com/mooseman1241/stacks-common-multisig-reference
+		// Reference results taken from https://github.com/mooseman1241/stacks-reference
 
 		if c32 != "SMVEM417XQ69X2R07FPZ90Y29T8R63J8QJEQFP6H" {
-			test.Fatalf("Expected \"SMVEM417XQ69X2R07FPZ90Y29T8R63J8QJEQFP6H\", got %v", c32);
+			test.Fatalf("Expected \"SMVEM417XQ69X2R07FPZ90Y29T8R63J8QJEQFP6H\", got %v", c32)
 		}
 
 		b58, err = address.B58()
@@ -90,6 +90,33 @@ func TestBasicAddress(test *testing.T) {
 
 		if b58 != "36hNotikUFm3onF99N9bmG4EzPdn5GiiQh" {
 			test.Fatalf("Expected \"36hNotikUFm3onF99N9bmG4EzPdn5GiiQh\" got \"%s\"", b58);
+		}
+	})
+
+	test.Run("can create p2wpkh address", func(test *testing.T) {
+		publicKeys := []keys.PublicKey{public}
+
+		address, err := NewAddress(publicKeys, 1, constant.AddressVersionMainnetScriptHash, constant.HashModeP2WPKH)
+		if err != nil {
+			test.Fatalf("Could not create p2wpkh address, err: %v", err)
+		}
+
+		b58, err = address.B58()
+		if err != nil {
+			test.Fatalf("Could not encode p2wpkh address in base 58, err: %v", err)
+		}
+
+		if b58 != "3HkX7ZVY1XQQsXM3aQSkwphQJHhppZTPj3" {
+			test.Fatalf("Expected \"3HkX7ZVY1XQQsXM3aQSkwphQJHhppZTPj3\", got %v", b58)
+		}
+
+		c32, err = address.C32()
+		if err != nil {
+			test.Fatalf("Could not encode p2wpkh address in c32, err: %v", err)
+		}
+
+		if c32 != "SM2R2Q8416BH23ESMDMJ13CJJS72W4GYX1WZCDM2P" {
+			test.Fatalf("Expected \"SM2R2Q8416BH23ESMDMJ13CJJS72W4GYX1WZCDM2P\", got %v", c32)
 		}
 	})
 }

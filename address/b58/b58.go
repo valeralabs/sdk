@@ -9,16 +9,16 @@ import (
 
 func ConvertVersion(version constant.AddressVersion) (byte, error) {
 	switch version {
-		case constant.AddressVersionMainnetSingleSignature:
+		case constant.AddressVersionMainnetPublicKeyHash:
 			return 0, nil
 
-		case constant.AddressVersionMainnetMultipleSignature:
+		case constant.AddressVersionMainnetScriptHash:
 			return 5, nil
 
-		case constant.AddressVersionTestnetSingleSignature:
+		case constant.AddressVersionTestnetPublicKeyHash:
 			return 111, nil
 
-		case constant.AddressVersionTestnetMultipleSignature:
+		case constant.AddressVersionTestnetScriptHash:
 			return 196, nil
 
 		default:

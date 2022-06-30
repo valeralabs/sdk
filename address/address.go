@@ -2,6 +2,7 @@ package address
 
 import (
 	"fmt"
+	"errors"
 
 	"github.com/btcsuite/btcd/btcutil"
 	"github.com/btcsuite/btcd/txscript"
@@ -40,12 +41,13 @@ func (address Address) C32() (string, error) {
 func NewAddress(publicKeys []keys.PublicKey, numSigs int, version constant.AddressVersion, mode constant.HashMode) (Address, error) {
 	var hash []byte
 
-	if mode == constant.HashModeP2PKH || mode == constant.HashModeP2WPKH {
+	if mode == constant.HashModeP2PKH {
 		if len(publicKeys) > 1 {
 			return Address{}, fmt.Errorf("P2PKH can only accept one public key")
 		}
 
 		hash = btcutil.Hash160(publicKeys[0].Serialize())
+
 	} else if mode == constant.HashModeP2SH {
 		var addressPublicKeys []*btcutil.AddressPubKey
 
@@ -64,6 +66,23 @@ func NewAddress(publicKeys []keys.PublicKey, numSigs int, version constant.Addre
 		}
 
 		hash = btcutil.Hash160(script)
+
+	} else if mode == constant.HashModeP2WPKH {
+		scriptBuilder := txscript.NewScriptBuilder()
+		scriptBuilder.AddInt64(0)
+
+		keyHash := btcutil.Hash160(publicKeys[0].Serialize())
+		scriptBuilder.AddData(keyHash)
+
+		script, err := scriptBuilder.Script()
+		if err != nil {
+			return Address{}, err
+		}
+
+		hash = btcutil.Hash160(script)
+		
+	} else {
+		return Address{}, errors.New("Only P2PKH and P2SH hash modes are supported")
 	}
 
 	// encoded := make([]byte, hex.EncodedLen(len(hash)))
@@ -74,3 +93,4 @@ func NewAddress(publicKeys []keys.PublicKey, numSigs int, version constant.Addre
 		Hash:    hash,
 	}, nil
 }
+

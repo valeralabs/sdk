@@ -57,14 +57,14 @@ func (encoding PublicKeyEncoding) Check() bool {
 type AddressVersion int
 
 const (
-	AddressVersionMainnetSingleSignature AddressVersion = iota
-	AddressVersionTestnetSingleSignature
-	AddressVersionMainnetMultipleSignature
-	AddressVersionTestnetMultipleSignature
+	AddressVersionMainnetPublicKeyHash AddressVersion = iota
+	AddressVersionTestnetPublicKeyHash
+	AddressVersionMainnetScriptHash
+	AddressVersionTestnetScriptHash
 )
 
 func (version AddressVersion) Check() bool {
-	return version >= AddressVersionMainnetSingleSignature && version <= AddressVersionTestnetMultipleSignature
+	return version >= AddressVersionMainnetPublicKeyHash && version <= AddressVersionTestnetScriptHash
 }
 
 type HashMode byte

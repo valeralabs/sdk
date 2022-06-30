@@ -9,10 +9,10 @@ import (
 )
 
 var versions = map[constant.AddressVersion]byte{
-	constant.AddressVersionMainnetSingleSignature:   22,
-	constant.AddressVersionMainnetMultipleSignature: 20,
-	constant.AddressVersionTestnetSingleSignature:   26,
-	constant.AddressVersionTestnetMultipleSignature: 21,
+	constant.AddressVersionMainnetPublicKeyHash:   22,
+	constant.AddressVersionMainnetScriptHash: 20,
+	constant.AddressVersionTestnetPublicKeyHash:   26,
+	constant.AddressVersionTestnetScriptHash: 21,
 }
 
 func ConvertVersion(version constant.AddressVersion) (byte, error) {
