@@ -7,23 +7,29 @@ import (
 	"github.com/valeralabs/sdk/constant"
 )
 
+var versions = map[constant.AddressVersion]byte{
+	constant.AddressVersionMainnetPublicKeyHash:   0,
+	constant.AddressVersionMainnetScriptHash: 5,
+	constant.AddressVersionTestnetPublicKeyHash:   111,
+	constant.AddressVersionTestnetScriptHash: 196,
+}
+
 func ConvertVersion(version constant.AddressVersion) (byte, error) {
-	switch version {
-		case constant.AddressVersionMainnetPublicKeyHash:
-			return 0, nil
-
-		case constant.AddressVersionMainnetScriptHash:
-			return 5, nil
-
-		case constant.AddressVersionTestnetPublicKeyHash:
-			return 111, nil
-
-		case constant.AddressVersionTestnetScriptHash:
-			return 196, nil
-
-		default:
-			return 0, fmt.Errorf("invalid version %d", version)
+	if value, ok := versions[version]; ok {
+		return value, nil
 	}
+
+	return 0, fmt.Errorf("invalid version %d", version)
+}
+
+func ReverseVersion(version byte) (constant.AddressVersion, error) {
+	for key, value := range versions {
+		if value == version {
+			return key, nil
+		}
+	}
+
+	return constant.AddressVersion(0), fmt.Errorf("invalid version %d", version)
 }
 
 func Encode(hash []byte, version constant.AddressVersion) (string, error) {
