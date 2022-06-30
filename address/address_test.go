@@ -77,6 +77,8 @@ func TestBasicAddress(test *testing.T) {
 			test.Fatalf("Could not encode multsig address in c32, err: %v", err)
 		}
 
+		// Reference results taken from https://github.com/mooseman1241/stacks-common-multisig-reference
+
 		if c32 != "SMVEM417XQ69X2R07FPZ90Y29T8R63J8QJEQFP6H" {
 			test.Fatalf("Expected \"SMVEM417XQ69X2R07FPZ90Y29T8R63J8QJEQFP6H\", got %v", c32);
 		}
