@@ -86,8 +86,8 @@ func TestBasicAddress(test *testing.T) {
 			test.Fatalf("Could not encode multisig address in base 58, err: %v", err)
 		}
 
-		if b58 != "2pa6Ai2CoCs15qAMtxZRX1DoUmHH" {
-			test.Fatalf("Expected \"2pa6Ai2CoCs15qAMtxZRX1DoUmHH\" got \"%s\"", b58);
+		if b58 != "36hNotikUFm3onF99N9bmG4EzPdn5GiiQh" {
+			test.Fatalf("Expected \"36hNotikUFm3onF99N9bmG4EzPdn5GiiQh\" got \"%s\"", b58);
 		}
 	})
 }
