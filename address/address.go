@@ -47,7 +47,7 @@ func NewAddress(publicKeys []keys.PublicKey, numSigs int, version constant.Addre
 		}
 
 		hash = btcutil.Hash160(publicKeys[0].Serialize())
-	} else if mode == constant.HashModeP2SH || mode == constant.HashModeP2WSH {
+	} else if mode == constant.HashModeP2SH {
 		var addressPublicKeys []*btcutil.AddressPubKey
 
 		for _, publicKey := range publicKeys {
