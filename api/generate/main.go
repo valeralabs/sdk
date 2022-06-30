@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"regexp"
 	"strings"
 
@@ -122,20 +123,36 @@ func main() {
 
 				if operation.RequestBody != nil {
 					for _, body := range operation.RequestBody.Value.Content {
-						// fmt.Println(body.Schema.Value.Properties)
+						fmt.Println("[")
 						for title, prop := range body.Schema.Value.Properties {
 							val := prop.Value
+							fmt.Println(title, val)
+							
+							// if val.Properties != nil {
+							if false {
+								props := []jen.Code{}
+
+								// for _, prop := range val.Properties {
+								// 	if 
+
+								f.Type().ID(cleanID(title)).Interface(props...)
+							} else {
+								params = append(
+									params,
+									jen.ID(cleanID(title)).ID(typeReplace(val.Type)),
+								)
+							}
+
 							if val.Description != "" {
 								params = append(
 									params,
 									jen.Comment(val.Description),
 								)
 							}
-							params = append(
-								params,
-								jen.ID(cleanID(title)).ID(typeReplace(val.Type)),
-							)
+
+
 						}
+						fmt.Println("]")
 					}
 				}
 
