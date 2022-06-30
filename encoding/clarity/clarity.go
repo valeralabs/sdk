@@ -142,6 +142,10 @@ func (list *List) Unmarshal(data []byte, typed bool) error {
 		list.Content = append(list.Content, decoded)
 
 		reader.Read(decoded.PrefixLength + len(decoded.Content))
+
+		if typed == true {
+			reader.Read(1)
+		}
 	}
 
 	return nil
