@@ -4,12 +4,12 @@ import "github.com/valeralabs/sdk/address"
 
 type PayloadType byte
 
-var (
-	PayloadTypeTokenTransfer = PayloadType(0x00)
-	PayloadTypeContractCall  = PayloadType(0x02)
-	PayloadTypeSmartContract = PayloadType(0x01)
-	PayloadTypePoison        = PayloadType(0x03)
-	PayloadTypeCoinbase      = PayloadType(0x04)
+const (
+	PayloadTypeTokenTransfer PayloadType = iota
+	PayloadTypeContractCall
+	PayloadTypeSmartContract
+	PayloadTypePoison
+	PayloadTypeCoinbase
 )
 
 func (payload PayloadType) Check() bool {
