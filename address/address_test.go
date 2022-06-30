@@ -48,8 +48,8 @@ func TestBasicAddress(test *testing.T) {
 			test.Fatalf("failed to derive b58 address: %v", err)
 		}
 
-		if b58 != "1GzySdy8Es3QPmuF7osW13pN3UEFfHrLbC8VhjuNf2Qqd5Y4J9tLQFVwAfmKN" {
-			test.Fatalf("expected \"1GzySdy8Es3QPmuF7osW13pN3UEFfHrLbC8VhjuNf2Qqd5Y4J9tLQFVwAfmKN\" got \"%s\"", c32)
+		if b58 != "12z4vLsXnbWC4rwtq962M97p7P2YjNThS4" {
+			test.Fatalf("expected \"12z4vLsXnbWC4rwtq962M97p7P2YjNThS4\" got \"%s\"", b58)
 		}
 
 		test.Logf("got b58 address: %s\n", b58)
@@ -72,18 +72,23 @@ func TestBasicAddress(test *testing.T) {
 			test.Fatalf("Could not create address, err: %v", err)
 		}
 
-		b58, err = address.B58()
-		if err != nil {
-			test.Fatalf("Could not encode multisig address in base 58, err: %v", err)
-		}
-
 		c32, err = address.C32()
 		if err != nil {
 			test.Fatalf("Could not encode multsig address in c32, err: %v", err)
 		}
 
-		test.Logf("Multisig Address:\nBase58 %v\nC32 %v", b58, c32)
+		if c32 != "SMVEM417XQ69X2R07FPZ90Y29T8R63J8QJEQFP6H" {
+			test.Fatalf("Expected \"SMVEM417XQ69X2R07FPZ90Y29T8R63J8QJEQFP6H\", got %v", c32);
+		}
 
+		b58, err = address.B58()
+		if err != nil {
+			test.Fatalf("Could not encode multisig address in base 58, err: %v", err)
+		}
+
+		if b58 != "2pa6Ai2CoCs15qAMtxZRX1DoUmHH" {
+			test.Fatalf("Expected \"2pa6Ai2CoCs15qAMtxZRX1DoUmHH\" got \"%s\"", b58);
+		}
 	})
 }
 

@@ -9,20 +9,20 @@ import (
 
 func ConvertVersion(version constant.AddressVersion) (byte, error) {
 	switch version {
-	case constant.AddressVersionMainnetSingleSignature:
-		return 0, nil
+		case constant.AddressVersionMainnetSingleSignature:
+			return 0, nil
 
-	case constant.AddressVersionMainnetMultipleSignature:
-		return 5, nil
+		case constant.AddressVersionMainnetMultipleSignature:
+			return 5, nil
 
-	case constant.AddressVersionTestnetSingleSignature:
-		return 111, nil
+		case constant.AddressVersionTestnetSingleSignature:
+			return 111, nil
 
-	case constant.AddressVersionTestnetMultipleSignature:
-		return 196, nil
+		case constant.AddressVersionTestnetMultipleSignature:
+			return 196, nil
 
-	default:
-		return 0, fmt.Errorf("invalid version %d", version)
+		default:
+			return 0, fmt.Errorf("invalid version %d", version)
 	}
 }
 

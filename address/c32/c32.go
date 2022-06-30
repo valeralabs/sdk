@@ -2,6 +2,7 @@ package c32
 
 import (
 	"fmt"
+	"encoding/hex"
 
 	"github.com/valeralabs/sdk/constant"
 	"github.com/valeralabs/sdk/encoding/c32"
@@ -39,7 +40,10 @@ func Encode(hash []byte, version constant.AddressVersion) (string, error) {
 		return "", err
 	}
 
-	encoded, err := c32.ChecksumEncode(hash, converted)
+	encodedHash := make([]byte, hex.EncodedLen(len(hash)))
+	hex.Encode(encodedHash, hash)
+
+	encoded, err := c32.ChecksumEncode(encodedHash, converted)
 
 	if err != nil {
 		return "", err

@@ -1,7 +1,6 @@
 package address
 
 import (
-	"encoding/hex"
 	"fmt"
 
 	"github.com/btcsuite/btcd/btcutil"
@@ -67,11 +66,11 @@ func NewAddress(publicKeys []keys.PublicKey, numSigs int, version constant.Addre
 		hash = btcutil.Hash160(script)
 	}
 
-	encoded := make([]byte, hex.EncodedLen(len(hash)))
-	hex.Encode(encoded, hash)
+	// encoded := make([]byte, hex.EncodedLen(len(hash)))
+	// hex.Encode(encoded, hash)
 
 	return Address{
 		Version: version,
-		Hash:    encoded,
+		Hash:    hash,
 	}, nil
 }
