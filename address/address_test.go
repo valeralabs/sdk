@@ -13,7 +13,7 @@ func TestBasicAddress(test *testing.T) {
 	private, _ := keys.NewPrivateKey(decoded)
 	public := private.PublicKey()
 
-	user, err := NewAddress([]keys.PublicKey{public}, constant.AddressVersionMainnetSingleSignature, constant.HashModeP2PKH)
+	user, err := NewAddress([]keys.PublicKey{public}, 1, constant.AddressVersionMainnetSingleSignature, constant.HashModeP2PKH)
 
 	test.Run("can create address", func(test *testing.T) {
 		if err != nil {
