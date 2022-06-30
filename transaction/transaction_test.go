@@ -27,18 +27,29 @@ func TestUnmarshalTokenTransferTransaction(test *testing.T) {
 	test.Logf("got transaction %#+v\n", transaction)
 }
 
-// func TestUnmarshalContractCallTransaction(test *testing.T) {
-// 	var transaction StacksTransaction
-//
-// 	// blockstack-cli contract-call edf9aee84d9b7abc145504dde6726c64f369d37ee34ded868fabd876c26570bc01 1 10 SP3TZ3NY4GB3E3Y1K1D40BHE07P20KMS4A8YC4QRJ demo example
-// 	err := transaction.Unmarshal([]byte("0000000001040015c31b8c1c11c515e244b75806bac48d1399c775000000000000000a00000000000000010000b02ed8fbaef6c9c9f359feb9b535ca60b43c068cdd56cd1412eb6fb76147f10b461a36265fa7620a4dc0179c7c3820a81be6378c5ee3fd1f1a767804633572e60302000000000216f5f1d7c482c6e1f8330b4805c5c03d8409d324520464656d6f076578616d706c6500000000"))
-//
-// 	if err != nil {
-// 		test.Fatalf("failed to unmarshal transaction: %v", err)
-// 	}
-//
-// 	test.Logf("got transaction %#+v\n", transaction)
-// }
+func TestUnmarshalContractCallTransaction(test *testing.T) {
+	var transaction StacksTransaction
+
+	// blockstack-cli contract-call edf9aee84d9b7abc145504dde6726c64f369d37ee34ded868fabd876c26570bc01 1 10 SP3TZ3NY4GB3E3Y1K1D40BHE07P20KMS4A8YC4QRJ demo example -e \"example\"
+	err := transaction.Unmarshal([]byte("0000000001040015c31b8c1c11c515e244b75806bac48d1399c775000000000000000a000000000000000100015eb19a8598f72ac81fa96cb11c59edac0620236f534f7bff2363c413e099a4ea630f2cdc53cc28810e969bb1a4003d1b34ee6dfca7f87fe44ac81563a37abbb10302000000000216f5f1d7c482c6e1f8330b4805c5c03d8409d324520464656d6f076578616d706c65000000010d000000076578616d706c65"))
+
+	if err != nil {
+		test.Fatalf("failed to unmarshal transaction: %v", err)
+	}
+
+	payload := transaction.Payload.(ContractCallTransfer)
+
+	if payload.Function != "example" {
+		test.Fatalf("got wrong function name: %s", payload.Function)
+	}
+
+	if payload.Address.Contract != "demo" {
+		test.Fatalf("got wrong contract name: %s", payload.Address.Contract)
+	}
+
+	test.Logf("got transaction %#+v\n", transaction)
+}
+
 //
 // func TestMarshalTransaction(test *testing.T) {
 // 	var transaction StacksTransaction

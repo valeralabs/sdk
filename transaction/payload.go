@@ -1,13 +1,16 @@
 package transaction
 
-import "github.com/valeralabs/sdk/address"
+import (
+	"github.com/valeralabs/sdk/address"
+	"github.com/valeralabs/sdk/encoding/clarity"
+)
 
 type PayloadType byte
 
 const (
 	PayloadTypeTokenTransfer PayloadType = iota
-	PayloadTypeContractCall
 	PayloadTypeSmartContract
+	PayloadTypeContractCall
 	PayloadTypePoison
 	PayloadTypeCoinbase
 )
@@ -22,4 +25,10 @@ type PayloadTokenTransfer struct {
 	Address address.Address
 	Amount  int
 	Memo    string
+}
+
+type ContractCallTransfer struct {
+	Address   address.Address
+	Function  string
+	Arguments clarity.List
 }
