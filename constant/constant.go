@@ -108,27 +108,3 @@ type PostCondition byte
 func (mode PostCondition) Check() bool {
 	return true
 }
-
-type ClarityType byte
-
-const (
-	ClarityTypeInt ClarityType = iota
-	ClarityTypeUInt
-	ClarityTypeBuffer
-	ClarityTypeBoolTrue
-	ClarityTypeBoolFalse
-	ClarityTypePrincipalStandard
-	ClarityTypePrincipalContract
-	ClarityTypeResponseOk
-	ClarityTypeResponseErr
-	ClarityTypeOptionalNone
-	ClarityTypeOptionalSome
-	ClarityTypeList
-	ClarityTypeTuple
-	ClarityTypeStringASCII
-	ClarityTypeStringUTF8
-)
-
-func (_type ClarityType) Check() bool {
-	return _type >= ClarityTypeInt && _type <= ClarityTypeStringUTF8
-}

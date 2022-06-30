@@ -6,12 +6,11 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"unicode"
 
 	"github.com/linden/bite"
-	"github.com/valeralabs/sdk/address"
-	"github.com/valeralabs/sdk/address/c32"
 	"github.com/valeralabs/sdk/constant"
-	"github.com/valeralabs/sdk/encoding/lengthprefixed"
+	"github.com/valeralabs/sdk/encoding/clarity"
 )
 
 type StacksTransaction struct {
@@ -142,42 +141,16 @@ func (transaction *StacksTransaction) Unmarshal(data []byte) error {
 	case PayloadTypeTokenTransfer:
 		var payload PayloadTokenTransfer
 
-		clarityType := constant.ClarityType(reader.ReadSingle())
+		clarityType := clarity.ClarityType(reader.ReadSingle())
 
 		if clarityType.Check() == false {
 			return errors.New("address is invalid")
 		}
 
-		if clarityType == constant.ClarityTypePrincipalStandard || clarityType == constant.ClarityTypePrincipalContract {
-			version, err := c32.ReverseVersion(reader.ReadSingle())
+		payload.Address, err = clarity.ParsePrincipal(clarityType, &reader)
 
-			if err != nil {
-				return errors.New("address version is invalid")
-			}
-
-			hash := reader.Read(20)
-
-			var contract string
-
-			if clarityType == constant.ClarityTypePrincipalContract {
-				name := lengthprefixed.String{
-					PrefixLength: 1,
-				}
-
-				err = name.Unmarshal(reader.Value)
-
-				if err != nil {
-					return errors.New("invalid contract name")
-				}
-
-				contract = string(name.Content)
-
-				reader.Read(len(name.Content) + 1)
-			}
-
-			payload.Address = address.Address{version, hash, contract}
-		} else {
-			return errors.New("clarity type is not yet supported")
+		if err != nil {
+			return err
 		}
 
 		payload.Amount = int(binary.BigEndian.Uint64(reader.Read(8)))
@@ -185,8 +158,56 @@ func (transaction *StacksTransaction) Unmarshal(data []byte) error {
 
 		transaction.Payload = payload
 
+	case PayloadTypeContractCall:
+		var payload ContractCallTransfer
+
+		payload.Address, err = clarity.ParsePrincipal(clarity.ClarityTypePrincipalContract, &reader)
+
+		if err != nil {
+			return err
+		}
+
+		function := clarity.Value{
+			PrefixLength: 1,
+		}
+
+		err = function.Unmarshal(reader.Value, false)
+
+		if err != nil {
+			return err
+		}
+
+		reader.Read(len(function.Content) + 1)
+
+		payload.Function = string(function.Content)
+
+		for _, character := range payload.Function {
+			if character > unicode.MaxASCII {
+				return errors.New("function name must be ASCII")
+			}
+		}
+
+		if len(payload.Function) > 128 {
+			return errors.New("function name must be >= 128 characters")
+		}
+
+		arguments := clarity.List{
+			PrefixLength:    4,
+			SubPrefixLength: 4,
+		}
+
+		err = arguments.Unmarshal(reader.Value, true)
+
+		if err != nil {
+			return err
+		}
+
+		payload.Arguments = arguments
+
+		transaction.Payload = payload
+
 	default:
-		return errors.New("payload is invalid")
+		return errors.New("invalid payload type")
 	}
 
 	return nil
