@@ -2,7 +2,7 @@ package address
 
 import (
 	"fmt"
-	"errors"
+	"crypto/sha256"
 
 	"github.com/btcsuite/btcd/btcutil"
 	"github.com/btcsuite/btcd/txscript"
@@ -81,8 +81,35 @@ func NewAddress(publicKeys []keys.PublicKey, numSigs int, version constant.Addre
 
 		hash = btcutil.Hash160(script)
 		
-	} else {
-		return Address{}, errors.New("Only P2PKH and P2SH hash modes are supported")
+	} else if mode == constant.HashModeP2WSH{
+		var addressPublicKeys []*btcutil.AddressPubKey
+
+		for _, publicKey := range publicKeys {
+			addressPublicKey, err := btcutil.NewAddressPubKey(publicKey.Serialize(), &chaincfg.MainNetParams)
+			if err != nil {
+				return Address{}, err
+			}
+
+			addressPublicKeys = append(addressPublicKeys, addressPublicKey)
+		}
+
+		script, err := txscript.MultiSigScript(addressPublicKeys, numSigs)
+		if err != nil {
+			return Address{}, err
+		}
+
+		scriptHash := sha256.Sum256(script)
+
+		witnessScriptBuilder := txscript.NewScriptBuilder()
+		witnessScriptBuilder.AddInt64(0)
+		witnessScriptBuilder.AddData(scriptHash[:])
+
+		witnessScript, err := witnessScriptBuilder.Script()
+		if err != nil {
+			return Address{}, err
+		}
+
+		hash = btcutil.Hash160(witnessScript)
 	}
 
 	// encoded := make([]byte, hex.EncodedLen(len(hash)))
@@ -93,4 +120,3 @@ func NewAddress(publicKeys []keys.PublicKey, numSigs int, version constant.Addre
 		Hash:    hash,
 	}, nil
 }
-

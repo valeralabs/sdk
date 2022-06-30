@@ -119,5 +119,43 @@ func TestBasicAddress(test *testing.T) {
 			test.Fatalf("Expected \"SM2R2Q8416BH23ESMDMJ13CJJS72W4GYX1WZCDM2P\", got %v", c32)
 		}
 	})
+	
+	test.Run("can create p2wsh multisig address", func(test *testing.T) {
+		decodedOne, _ := hex.DecodeString("c3e1c944086ea6d61e0b9948a62d9608018c00a67424a817f005cf6bba39ce9001")
+		privateOne, _ := keys.NewPrivateKey(decodedOne)
+		publicOne := privateOne.PublicKey()
+
+		decodedTwo, _ := hex.DecodeString("ee65f9526a229cff575fecdb2a06c565a51c0d466dbe207c6de683413259154901")
+		privateTwo, _ := keys.NewPrivateKey(decodedTwo)
+		publicTwo := privateTwo.PublicKey()
+
+		publicKeys := []keys.PublicKey{publicOne, publicTwo}
+
+		address, err := NewAddress(publicKeys, 2, constant.AddressVersionMainnetScriptHash, constant.HashModeP2WSH)
+
+		if err != nil {
+			test.Fatalf("Could not create address, err: %v", err)
+		}
+
+		c32, err = address.C32()
+		if err != nil {
+			test.Fatalf("Could not encode multsig address in c32, err: %v", err)
+		}
+
+		// Reference results taken from https://github.com/mooseman1241/stacks-reference
+
+		if c32 != "SM3QWM2SWEGNDE0R8CASEMW2PHTF58V4RVZ3NYZPZ" {
+			test.Fatalf("Expected \"SM3QWM2SWEGNDE0R8CASEMW2PHTF58V4RVZ3NYZPZ\", got %v", c32)
+		}
+
+		b58, err = address.B58()
+		if err != nil {
+			test.Fatalf("Could not encode multisig address in base 58, err: %v", err)
+		}
+
+		if b58 != "3PYuTeUQ3536cWwxHsDTJWik1DzFHJH8fR" {
+			test.Fatalf("Expected \"3PYuTeUQ3536cWwxHsDTJWik1DzFHJH8fR\" got \"%s\"", b58);
+		}
+	})
 }
 
