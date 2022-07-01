@@ -4,7 +4,8 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
-	// "sync"
+	"sync"
+	"time"
 
 	"github.com/deepmap/oapi-codegen/pkg/util"
 	"github.com/getkin/kin-openapi/openapi3"
@@ -12,6 +13,19 @@ import (
 )
 
 //go:generate git submodule update --init --recursive
+
+var colourCodes = map[string]string{
+	"reset":   "\033[0m",
+	"red":     "\033[31m",
+	"green":   "\033[32m",
+	"blue":    "\033[34m",
+	"yellow":  "\033[33m",
+	"cyan":    "\033[36m",
+	"magenta": "\033[35m",
+	"white":   "\033[37m",
+	"black":   "\033[30m",
+	"gray":    "\033[90m",
+}
 
 var (
 	output = "../api.v2.gen.go"
@@ -77,93 +91,53 @@ func main() {
 		if !strings.HasPrefix(name, "/rosetta/") {
 			for _, operation := range path.Operations() {
 				if operation != nil {
+					startTime := time.Now()
 					opIdTypeName := cleanID(operation.OperationID)
+					fmt.Printf("➤ ┌ "+string(colourCodes["blue"])+"%s\n"+string(colourCodes["reset"]), opIdTypeName)
 
 					params := Code{}
 
-					// var wg sync.WaitGroup
+					var wg sync.WaitGroup
 
-					// loop through parameters
-					for index, parameter := range operation.Parameters {
-						// wg.Add(1)
+					// parameters
+					for _, parameter := range operation.Parameters {
+						wg.Add(1)
+						parameter := parameter
 
-						// index := index
-						// parameter := parameter
-
-						// go func() {
-						// 	defer wg.Done()
-						// 	processParameter(parameter, &params, index)
-						// }()
-						val := parameter.Value
-						schema := val.Schema.Value
-
-						if schema.Type == "array" {
-							if schema.Items.Value.Enum != nil { // enum type
-								var values []string // convert to string array
-								for _, enum := range schema.Items.Value.Enum {
-									values = append(values, cleanID(enum.(string)))
-								}
-
-								// create the enum type name
-								enumTypeName := cleanID(val.Name)
-
-								enums := Code{}
-
-								for index, value := range values {
-									if index == 0 {
-										enums.add(jen.ID(value).ID(enumTypeName).Op("=").Iota())
-									} else {
-										enums.add(jen.ID(value))
-									}
-								}
-
-								params.add(
-									jen.Comment(val.Description),
-									jen.Commentf("%v", values),
-									jen.ID(cleanID(val.Name)).ID(enumTypeName),
-								)
-							}
-						} else {
-							params.add(
-								jen.Comment(val.Description),
-								jen.ID(cleanID(val.Name)).ID(typeReplace(val.Schema.Value.Type)),
-							)
-						}
-
-						fmt.Printf("Parameter %v processed\n", index)
+						go func() {
+							defer wg.Done()
+							processParameter(parameter, &params, opIdTypeName, f)
+							fmt.Printf("➤ │ Parameter `%v` processed\n", parameter.Value.Name)
+						}()
 					}
 
+					// request body
 					if operation.RequestBody != nil {
 						for _, body := range operation.RequestBody.Value.Content {
-							// fmt.Println("[")
 							for title, prop := range body.Schema.Value.Properties {
-								val := prop.Value
-								// fmt.Println(title, val)
+								wg.Add(1)
 
-								if val.Description != "" {
-									params.add(jen.Comment(val.Description))
-								}
+								title := title
+								prop := prop
 
-								// if val.Properties != nil {
-								if false {
-									props := []jen.Code{}
-
-									// for _, prop := range val.Properties {
-									// 	if
-
-									f.Type().ID(cleanID(title)).Interface(props...)
-								} else {
-									params.add(jen.ID(cleanID(title)).ID(typeReplace(val.Type)))
-								}
+								go func() {
+									defer wg.Done()
+									processRequestBodyProperty(prop, &params, title, f)
+									fmt.Printf("➤ │ Body property `%v` processed\n", title)
+								}()
 							}
-							// fmt.Println("]")
 						}
 					}
+
+					wg.Wait()
 
 					ParamsTypeName := opIdTypeName + "Params"
 
 					f.Commentf("%s defines parameters for %v", ParamsTypeName, opIdTypeName)
 					f.Type().ID(ParamsTypeName).Structure(params.Generated...)
+
+					endTime := time.Now()
+					fmt.Printf("➤ └ Completed in %v\n", endTime.Sub(startTime))
 				}
 			}
 		}
@@ -176,7 +150,7 @@ func main() {
 	}
 }
 
-func processParameter(parameter *openapi3.ParameterRef, params *Code, index int) {
+func processParameter(parameter *openapi3.ParameterRef, params *Code, opID string, f *jen.File) {
 	val := parameter.Value
 	schema := val.Schema.Value
 
@@ -187,8 +161,7 @@ func processParameter(parameter *openapi3.ParameterRef, params *Code, index int)
 				values = append(values, cleanID(enum.(string)))
 			}
 
-			// create the enum type name
-			enumTypeName := cleanID(val.Name)
+			enumTypeName := opID + cleanID(val.Name)
 
 			enums := Code{}
 
@@ -199,6 +172,9 @@ func processParameter(parameter *openapi3.ParameterRef, params *Code, index int)
 					enums.add(jen.ID(value))
 				}
 			}
+
+			f.Type().ID(enumTypeName).Int64()
+			f.Const().Definitions(enums.Generated...)
 
 			params.add(
 				jen.Comment(val.Description),
@@ -212,8 +188,27 @@ func processParameter(parameter *openapi3.ParameterRef, params *Code, index int)
 			jen.ID(cleanID(val.Name)).ID(typeReplace(val.Schema.Value.Type)),
 		)
 	}
+}
 
-	fmt.Printf("Parameter %v processed\n", index)
+func processRequestBodyProperty(prop *openapi3.SchemaRef, params *Code, title string, f *jen.File) {
+	val := prop.Value
+	// fmt.Println(title, val)
+
+	if val.Description != "" {
+		params.add(jen.Comment(val.Description))
+	}
+
+	// if val.Properties != nil {
+	if false {
+		props := []jen.Code{}
+
+		// for _, prop := range val.Properties {
+		// 	if
+
+		f.Type().ID(cleanID(title)).Interface(props...)
+	} else {
+		params.add(jen.ID(cleanID(title)).ID(typeReplace(val.Type)))
+	}
 }
 
 // get_address_mempool_transactions -> GetAddressMempoolTransactions
