@@ -362,13 +362,44 @@ func (transaction *StacksTransaction) Marshal() ([]byte, error) {
 		WriteWithLength(buffer, payload.Amount, 8)
 		WriteWithLength(buffer, []byte(payload.Memo), constant.MemoLengthBytes)
 
+		// TODO: figure out this padding
+		WriteWithLength(buffer, []byte{0x00, 0x00}, 2)
+
+	case PayloadSmartContract:
+		WriteWithLength(buffer, byte(PayloadTypeSmartContract), 1)
+
+		payload := any(transaction.Payload).(PayloadSmartContract)
+
+		name := clarity.Value{
+			Content:      []byte(payload.Name),
+			PrefixLength: 1,
+		}
+
+		raw, err := name.Marshal(false)
+
+		if err != nil {
+			return []byte{}, err
+		}
+
+		WriteWithLength(buffer, raw, 0)
+
+		body := clarity.Value{
+			Content:      []byte(payload.Body),
+			PrefixLength: 4,
+		}
+
+		raw, err = body.Marshal(false)
+
+		if err != nil {
+			return []byte{}, err
+		}
+
+		WriteWithLength(buffer, raw, 0)
+
 	default:
 		panic("TODO: handle other payloads")
 
 	}
-
-	// TODO: figure out this padding
-	WriteWithLength(buffer, []byte{0x00, 0x00}, 2)
 
 	raw := buffer.Bytes()
 
