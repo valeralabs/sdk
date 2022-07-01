@@ -104,6 +104,16 @@ func (cursor Value) Marshal(typed bool) ([]byte, error) {
 	return buffer, nil
 }
 
+func (cursor Value) Length(typed bool) int {
+	length := len(cursor.Content) + cursor.PrefixLength
+
+	if typed {
+		length += 1
+	}
+
+	return length
+}
+
 func NewValue(from []byte) Value {
 	if len(from) > constant.MaxStringLength {
 		panic("string is longer then the max length")

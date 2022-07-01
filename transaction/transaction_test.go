@@ -27,6 +27,20 @@ func TestUnmarshalTokenTransferTransaction(test *testing.T) {
 	test.Logf("got transaction %#+v\n", transaction)
 }
 
+func TestUnmarshalSmartContractTransaction(test *testing.T) {
+	var transaction StacksTransaction
+
+	// blockstack-cli publish edf9aee84d9b7abc145504dde6726c64f369d37ee34ded868fabd876c26570bc01 1 20 example demo.clar
+	// demo.clar: (print "Hello World")
+	err := transaction.Unmarshal([]byte("0000000001040015c31b8c1c11c515e244b75806bac48d1399c775000000000000001400000000000000010000a5e33acf930ec7837f24403411f53e44474ea31a5f6069f15802348d0e113b850bcf586ffc2065031c2e3948cf9e1e9f313f915c2f3305d073d722dec5e4de1303020000000001076578616d706c6500000016287072696e74202268656c6c6f20776f726c6422290a"))
+
+	if err != nil {
+		test.Fatalf("failed to unmarshal smart contract: %v", err)
+	}
+
+	test.Logf("got transaction %#+v\n", transaction)
+}
+
 func TestUnmarshalContractCallTransaction(test *testing.T) {
 	var transaction StacksTransaction
 

@@ -27,6 +27,11 @@ type PayloadTokenTransfer struct {
 	Memo    string
 }
 
+type PayloadSmartContract struct {
+	Name string
+	Body string
+}
+
 type ContractCallTransfer struct {
 	Address   address.Address
 	Function  string

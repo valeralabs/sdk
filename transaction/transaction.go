@@ -158,6 +158,39 @@ func (transaction *StacksTransaction) Unmarshal(data []byte) error {
 
 		transaction.Payload = payload
 
+	case PayloadTypeSmartContract:
+		var payload PayloadSmartContract
+
+		name := clarity.Value{
+			PrefixLength: 1,
+		}
+
+		err = name.Unmarshal(reader.Value, false)
+
+		if err != nil {
+			return errors.New("invalid contract name")
+		}
+
+		reader.Read(name.Length(false))
+
+		payload.Name = string(name.Content)
+
+		body := clarity.Value{
+			PrefixLength: 4,
+		}
+
+		err = body.Unmarshal(reader.Value, false)
+
+		if err != nil {
+			return errors.New("invalid contract body")
+		}
+
+		reader.Read(body.Length(false))
+
+		payload.Body = string(body.Content)
+
+		transaction.Payload = payload
+
 	case PayloadTypeContractCall:
 		var payload ContractCallTransfer
 
@@ -177,7 +210,7 @@ func (transaction *StacksTransaction) Unmarshal(data []byte) error {
 			return err
 		}
 
-		reader.Read(len(function.Content) + 1)
+		reader.Read(function.Length(false))
 
 		payload.Function = string(function.Content)
 
