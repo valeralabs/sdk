@@ -2,6 +2,7 @@ package constant
 
 const MaxStringLength = 128
 const DefaultPrefixLength = 4
+const MemoLengthBytes = 32
 
 type TransactionVersion byte
 

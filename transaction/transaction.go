@@ -9,6 +9,7 @@ import (
 	"unicode"
 
 	"github.com/linden/bite"
+	"github.com/valeralabs/sdk/address/c32"
 	"github.com/valeralabs/sdk/constant"
 	"github.com/valeralabs/sdk/encoding/clarity"
 )
@@ -246,6 +247,133 @@ func (transaction *StacksTransaction) Unmarshal(data []byte) error {
 	return nil
 }
 
+func WriteWithLength[T ~[]byte | ~byte | ~int](buffer *bytes.Buffer, content T, length int) {
+	before := buffer.Len()
+
+	padding := true
+
+	switch any(content).(type) {
+	case []byte:
+		buffer.Write(any(content).([]byte))
+
+	case byte:
+		buffer.WriteByte(any(content).(byte))
+
+	case int:
+		padding = false
+
+		temporary := new(bytes.Buffer)
+
+		binary.Write(temporary, binary.BigEndian, int8(any(content).(int)))
+
+		for buffer.Len()+temporary.Len() < (before + length) {
+			buffer.WriteByte(0)
+		}
+
+		buffer.Write(temporary.Bytes())
+	}
+
+	if padding == true {
+		for buffer.Len() < (before + length) {
+			buffer.WriteByte(0)
+		}
+	}
+}
+
 func (transaction *StacksTransaction) Marshal() ([]byte, error) {
-	return []byte{}, nil
+	buffer := new(bytes.Buffer)
+
+	WriteWithLength(buffer, transaction.Version, 1)
+
+	chainID := ([4]byte)(transaction.ChainID)
+	WriteWithLength(buffer, chainID[:], 4)
+
+	switch any(transaction.Authorization).(type) {
+	case StandardAuthorization[SingleSignatureSpendingCondition]:
+		condtion := any(transaction.Authorization).(StandardAuthorization[SingleSignatureSpendingCondition]).SpendingCondition
+
+		WriteWithLength(buffer, byte(0x04), 1)
+		WriteWithLength(buffer, condtion.HashMode, 1)
+
+		signer := (([20]byte)(condtion.Signer))
+		WriteWithLength(buffer, signer[:], 20)
+
+		binary.Write(buffer, binary.BigEndian, condtion.Nonce)
+		binary.Write(buffer, binary.BigEndian, condtion.Fee)
+
+		switch condtion.HashMode {
+		case constant.HashModeP2PKH, constant.HashModeP2WPKH:
+			WriteWithLength(buffer, condtion.KeyEncoding, 1)
+
+			signature := (([65]byte)(condtion.Signature))
+			WriteWithLength(buffer, signature[:], 65)
+
+		case constant.HashModeP2SH, constant.HashModeP2WSH:
+			panic("TODO: implment HashModeP2SH and HashModeP2WSH_P2SH")
+		}
+
+	default:
+		panic("TODO: implment sponsored authorization")
+	}
+
+	WriteWithLength(buffer, byte(transaction.AnchorMode), 1)
+
+	WriteWithLength(buffer, byte(transaction.PostConditionMode), 1)
+	WriteWithLength(buffer, len(transaction.PostConditions), 4)
+
+	//TODO: handle strict post-conditions
+
+	switch any(transaction.Payload).(type) {
+	case PayloadTokenTransfer:
+		WriteWithLength(buffer, byte(PayloadTypeTokenTransfer), 1)
+
+		payload := any(transaction.Payload).(PayloadTokenTransfer)
+
+		if payload.Address.Contract == "" {
+			WriteWithLength(buffer, byte(clarity.ClarityTypePrincipalStandard), 1)
+		} else {
+			WriteWithLength(buffer, byte(clarity.ClarityTypePrincipalContract), 1)
+		}
+
+		version, err := c32.ConvertVersion(payload.Address.Version)
+
+		if err != nil {
+			return []byte{}, err
+		}
+
+		WriteWithLength(buffer, byte(version), 1)
+		WriteWithLength(buffer, payload.Address.Hash, 20)
+
+		if payload.Address.Contract != "" {
+			name := clarity.Value{
+				Content:      []byte(payload.Address.Contract),
+				PrefixLength: 1,
+			}
+
+			raw, err := name.Marshal(false)
+
+			if err != nil {
+				return []byte{}, err
+			}
+
+			WriteWithLength(buffer, raw, 0)
+		}
+
+		WriteWithLength(buffer, payload.Amount, 8)
+		WriteWithLength(buffer, []byte(payload.Memo), constant.MemoLengthBytes)
+
+	default:
+		panic("TODO: handle other payloads")
+
+	}
+
+	// TODO: figure out this padding
+	WriteWithLength(buffer, []byte{0x00, 0x00}, 2)
+
+	raw := buffer.Bytes()
+
+	encoded := make([]byte, hex.EncodedLen(len(raw)))
+	hex.Encode(encoded, raw)
+
+	return encoded, nil
 }
