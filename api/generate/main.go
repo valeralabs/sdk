@@ -59,12 +59,26 @@ func (p *Code) add(code ...jen.Code) {
 	p.Generated = append(p.Generated, code...)
 }
 
+var manuallyAddedTypes = map[string]jen.Code{
+	"CallReadOnlyFunctionArguments": jen.Type().ID("CallReadOnlyFunctionArguments").Structure(
+		jen.Comment("The simulated tx-sender"),
+		jen.ID("Sender").String(),
+		jen.Comment("An array of hex serialized Clarity values"),
+		jen.ID("Arguments").Index().String(),
+	),
+}
+
 func main() {
+	fmt.Println("Loading OpenAPI 3.0 spec...")
+	rootStart := time.Now()
 	swagger, err := util.LoadSwagger(input)
 
 	if err != nil {
 		panic(err)
 	}
+	
+	fmt.Printf("Loaded API spec in %v\n", time.Since(rootStart))
+	processingStart := time.Now()
 
 	// type generation
 	f := jen.NewFile("api")
@@ -87,69 +101,110 @@ func main() {
 			}
 		}
 
-		for _, operation := range path.Operations() {
-			if operation != nil {
-				startTime := time.Now()
-				opIdTypeName := cleanID(operation.OperationID)
-				fmt.Printf("➤ ┌ "+string(colourCodes["blue"])+"%s\n"+string(colourCodes["reset"]), opIdTypeName)
+		if !strings.HasPrefix(name, "/rosetta/") {
+			for _, operation := range path.Operations() {
+				if operation != nil {
+					startTime := time.Now()
+					prefix := "➤ │ "
+					opIdTypeName := cleanID(operation.OperationID)
+					fmt.Printf("➤ ┌ "+string(colourCodes["blue"])+"%s\n"+string(colourCodes["reset"]), opIdTypeName)
 
-				params := Code{}
+					var params Code
 
-				var wg sync.WaitGroup
+					var wg sync.WaitGroup
 
-				// parameters
-				for _, parameter := range operation.Parameters {
-					wg.Add(1)
-					parameter := parameter
+					// ---- TYPES
 
-					go func() {
-						defer wg.Done()
-						processParameter(parameter, &params, opIdTypeName, f)
-						fmt.Printf("➤ │ Parameter `%v` processed\n", parameter.Value.Name)
-					}()
-				}
+					typePrefix := prefix + string(colourCodes["gray"]) + "[TYPE] " + string(colourCodes["reset"])
 
-				// request body
-				if operation.RequestBody != nil {
-					for _, body := range operation.RequestBody.Value.Content {
-						for title, prop := range body.Schema.Value.Properties {
-							wg.Add(1)
+					// parameters
+					for _, parameter := range operation.Parameters {
+						wg.Add(1)
+						parameter := parameter
 
-							title := title
-							prop := prop
+						go func() {
+							defer wg.Done()
+							var queue Code
+							processParameter(parameter, &params, opIdTypeName, f, &queue)
+							fmt.Printf(typePrefix+"Parameter `%v` processed\n", parameter.Value.Name)
+							if !parameter.Value.Required {
+								fmt.Printf(prefix + "       └ " + string(colourCodes["yellow"]) + "Optional\n" + string(colourCodes["reset"]))
+							}
+						}()
+					}
 
-							go func() {
-								defer wg.Done()
-								processRequestBodyProperty(prop, &params, title, f)
-								fmt.Printf("➤ │ Body property `%v` processed\n", title)
-							}()
+					// request body
+					if operation.RequestBody != nil {
+						for _, body := range operation.RequestBody.Value.Content {
+							for title, prop := range body.Schema.Value.Properties {
+								wg.Add(1)
+
+								title := title
+								prop := prop
+
+								go func() {
+									defer wg.Done()
+									processRequestBodyProperty(prop, &params, opIdTypeName, title, f)
+									fmt.Printf(typePrefix+"Body property `%v` processed\n", title)
+								}()
+							}
 						}
 					}
+
+					// ---- FUNCTIONS
+
+					// funcPrefix := prefix + string(colourCodes["gray"]) + "[FUNC] " + string(colourCodes["reset"])
+
+					wg.Wait()
+
+					ParamsTypeName := opIdTypeName + "Params"
+
+					f.Commentf("%s defines parameters for %v", ParamsTypeName, opIdTypeName)
+					f.Type().ID(ParamsTypeName).Structure(params.Generated...)
+
+					fmt.Printf("➤ └ Completed in %v\n", time.Since(startTime))
 				}
-
-				wg.Wait()
-
-				ParamsTypeName := opIdTypeName + "Params"
-
-				f.Commentf("%s defines parameters for %v", ParamsTypeName, opIdTypeName)
-				f.Type().ID(ParamsTypeName).Structure(params.Generated...)
-
-				endTime := time.Now()
-				fmt.Printf("➤ └ Completed in %v\n", endTime.Sub(startTime))
 			}
 		}
 	}
 
+	for _, code := range manuallyAddedTypes {
+		f.Add(code)
+	}
+
+	fmt.Printf("➤ Rendering output to %v\n", output)
 	err = f.Save(output)
 
 	if err != nil {
 		panic(err)
 	}
+
+	fmt.Printf(string(colourCodes["green"])+"Finished processing in %v\n"+string(colourCodes["reset"]), time.Since(processingStart))
 }
 
-func processParameter(parameter *openapi3.ParameterRef, params *Code, opID string, f *jen.File) {
+func processParameter(parameter *openapi3.ParameterRef, params *Code, opID string, f *jen.File, queue *Code) {
 	val := parameter.Value
 	schema := val.Schema.Value
+
+	queue.add(jen.Comment(cleanDesc(val.Description)))
+
+	if !val.Required {
+		switch schema.Type {
+		case "string":
+			queue.add(jen.Commentf("Optional. Pass an empty string to use the default value."))
+		case "integer":
+			defaultStr := "."
+			if schema.Default != nil {
+				defaultStr = fmt.Sprintf(" (%v).", schema.Default)
+			}
+			queue.add(jen.Commentf("Optional. Use `-1` to use the default value" + defaultStr))
+		case "boolean":
+			queue.add(jen.Commentf("Optional. Use `" + fmt.Sprint(schema.Default) + "` as default."))
+		}
+		if schema.Max != nil {
+			queue.add(jen.Comment(fmt.Sprintf("Max value is %v.", *schema.Max)))
+		}
+	}
 
 	if schema.Type == "array" {
 		if schema.Items.Value.Enum != nil { // enum type
@@ -160,7 +215,7 @@ func processParameter(parameter *openapi3.ParameterRef, params *Code, opID strin
 
 			enumTypeName := opID + cleanID(val.Name)
 
-			enums := Code{}
+			var enums Code
 
 			for index, value := range values {
 				if index == 0 {
@@ -173,42 +228,35 @@ func processParameter(parameter *openapi3.ParameterRef, params *Code, opID strin
 			f.Type().ID(enumTypeName).Int64()
 			f.Const().Definitions(enums.Generated...)
 
-			params.add(
-				jen.Comment(val.Description),
+			queue.add(
 				jen.Commentf("%v", values),
 				jen.ID(cleanID(val.Name)).ID(enumTypeName),
 			)
 		}
 	} else {
-		params.add(
-			jen.Comment(val.Description),
+		queue.add(
 			jen.ID(cleanID(val.Name)).ID(typeReplace(val.Schema.Value.Type)),
 		)
 	}
+
+	params.add(queue.Generated...)
 }
 
-func processRequestBodyProperty(prop *openapi3.SchemaRef, params *Code, title string, f *jen.File) {
+func processRequestBodyProperty(prop *openapi3.SchemaRef, params *Code, opID string, title string, f *jen.File) {
 	val := prop.Value
-	
-	// if val.Properties != nil {
-	if false {
-		props := []jen.Code{}
+	titlizedTitle := strings.Title(title)
 
-		// for _, prop := range val.Properties {
-		// 	if
-
-		f.Type().ID(cleanID(title)).Interface(props...)
+	// check if it's present in manually added types
+	if _, ok := manuallyAddedTypes[opID+titlizedTitle]; ok {
+		params.add(
+			jen.Comment(cleanDesc(val.Description)),
+			jen.ID(cleanID(title)).ID(opID+titlizedTitle),
+		)
 	} else {
-		if val.Description != "" {
-			params.add(
-				jen.Comment(val.Description),
-				jen.ID(cleanID(title)).ID(typeReplace(val.Type)),
-			)
-		} else {
-			params.add(
-				jen.ID(cleanID(title)).ID(typeReplace(val.Type)),
-			)
-		}
+		params.add(
+			jen.Comment(cleanDesc(val.Description)),
+			jen.ID(cleanID(title)).ID(typeReplace(val.Type)),
+		)
 	}
 }
 
@@ -240,4 +288,16 @@ func typeReplace(src string) string {
 	default:
 		return src
 	}
+}
+
+func cleanDesc(desc string) string {
+	if desc == "" {
+		return ""
+	}
+	desc = strings.Replace(desc, "\n", "", -1)
+	desc = strings.ToUpper(string(desc[0])) + desc[1:]
+	if !strings.HasSuffix(desc, ".") {
+		desc += "."
+	}
+	return desc
 }
