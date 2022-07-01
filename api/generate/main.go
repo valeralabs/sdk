@@ -4,8 +4,10 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+	// "sync"
 
 	"github.com/deepmap/oapi-codegen/pkg/util"
+	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/valeralabs/jenny/jen"
 )
 
@@ -35,6 +37,14 @@ func clean(source string) string {
 	return source
 }
 
+type Code struct {
+	Generated []jen.Code
+}
+
+func (p *Code) add(code ...jen.Code) {
+	p.Generated = append(p.Generated, code...)
+}
+
 func main() {
 	swagger, err := util.LoadSwagger(input)
 
@@ -45,11 +55,10 @@ func main() {
 	// type generation
 	f := jen.NewFile("api")
 
-	// clean up the swagger object
 	for name, path := range swagger.Paths {
 		delete(swagger.Paths, name)
-		// TODO: add enum cleaning here
 
+		// clean up the swagger object
 		if path.Parameters != nil {
 			for _, parameter := range path.Parameters {
 				parameter.Value.Name = clean(parameter.Value.Name)
@@ -64,100 +73,98 @@ func main() {
 			}
 		}
 
-		for _, operation := range path.Operations() {
-			if operation != nil {
-				typeName := cleanID(operation.OperationID)
+		// if path doesn't start with "/rosetta/", process the path
+		if !strings.HasPrefix(name, "/rosetta/") {
+			for _, operation := range path.Operations() {
+				if operation != nil {
+					opIdTypeName := cleanID(operation.OperationID)
 
-				var params []jen.Code
+					params := Code{}
 
-				// loop through parameters
-				for _, parameter := range operation.Parameters {
-					val := parameter.Value
+					// var wg sync.WaitGroup
 
-					if val.Schema.Value.Type == "array" {
-						if val.Schema.Value.Items.Value.Enum != nil {
-							// enum type
-							// convert to string array
-							var values []string
+					// loop through parameters
+					for index, parameter := range operation.Parameters {
+						// wg.Add(1)
 
-							for _, enum := range val.Schema.Value.Items.Value.Enum {
-								values = append(values, cleanID(enum.(string)))
-							}
+						// index := index
+						// parameter := parameter
 
-							typeNameIota := typeName + cleanID(val.Name)
+						// go func() {
+						// 	defer wg.Done()
+						// 	processParameter(parameter, &params, index)
+						// }()
+						val := parameter.Value
+						schema := val.Schema.Value
 
-							var enums []jen.Code
-
-							for index, value := range values {
-								if index == 0 {
-									enums = append(
-										enums,
-										jen.ID(value).ID(typeNameIota).Op("=").Iota(),
-									)
-								} else {
-									enums = append(
-										enums,
-										jen.ID(value),
-									)
+						if schema.Type == "array" {
+							if schema.Items.Value.Enum != nil { // enum type
+								var values []string // convert to string array
+								for _, enum := range schema.Items.Value.Enum {
+									values = append(values, cleanID(enum.(string)))
 								}
+
+								// create the enum type name
+								enumTypeName := cleanID(val.Name)
+
+								enums := Code{}
+
+								for index, value := range values {
+									if index == 0 {
+										enums.add(jen.ID(value).ID(enumTypeName).Op("=").Iota())
+									} else {
+										enums.add(jen.ID(value))
+									}
+								}
+
+								params.add(
+									jen.Comment(val.Description),
+									jen.Commentf("%v", values),
+									jen.ID(cleanID(val.Name)).ID(enumTypeName),
+								)
 							}
-
-							f.Type().ID(typeNameIota).Int64()
-							f.Const().Definitions(enums...)
-
-							params = append(
-								params,
+						} else {
+							params.add(
 								jen.Comment(val.Description),
-								jen.Commentf("%v", values),
-								jen.ID(cleanID(val.Name)).ID(typeNameIota),
+								jen.ID(cleanID(val.Name)).ID(typeReplace(val.Schema.Value.Type)),
 							)
 						}
-					} else {
-						params = append(
-							params,
-							jen.Comment(val.Description),
-							jen.ID(cleanID(val.Name)).ID(typeReplace(val.Schema.Value.Type)),
-						)
+
+						fmt.Printf("Parameter %v processed\n", index)
 					}
-				}
 
-				if operation.RequestBody != nil {
-					for _, body := range operation.RequestBody.Value.Content {
-						fmt.Println("[")
-						for title, prop := range body.Schema.Value.Properties {
-							val := prop.Value
-							fmt.Println(title, val)
-							
-							// if val.Properties != nil {
-							if false {
-								props := []jen.Code{}
+					if operation.RequestBody != nil {
+						for _, body := range operation.RequestBody.Value.Content {
+							// fmt.Println("[")
+							for title, prop := range body.Schema.Value.Properties {
+								val := prop.Value
+								// fmt.Println(title, val)
 
-								// for _, prop := range val.Properties {
-								// 	if 
+								if val.Description != "" {
+									params.add(jen.Comment(val.Description))
+								}
 
-								f.Type().ID(cleanID(title)).Interface(props...)
-							} else {
-								params = append(
-									params,
-									jen.ID(cleanID(title)).ID(typeReplace(val.Type)),
-								)
+								// if val.Properties != nil {
+								if false {
+									props := []jen.Code{}
+
+									// for _, prop := range val.Properties {
+									// 	if
+
+									f.Type().ID(cleanID(title)).Interface(props...)
+								} else {
+									params.add(jen.ID(cleanID(title)).ID(typeReplace(val.Type)))
+								}
 							}
-
-							if val.Description != "" {
-								params = append(
-									params,
-									jen.Comment(val.Description),
-								)
-							}
-
-
+							// fmt.Println("]")
 						}
-						fmt.Println("]")
 					}
-				}
 
-				f.Commentf("%sParams defines parameters for %v", typeName, typeName)
-				f.Type().ID(typeName + "Parameters").Structure(params...)
+					ParamsTypeName := opIdTypeName + "Params"
+
+					f.Commentf("%s defines parameters for %v", ParamsTypeName, opIdTypeName)
+					f.Type().ID(ParamsTypeName).Structure(params.Generated...)
+				}
 			}
 		}
 	}
@@ -167,6 +174,46 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+}
+
+func processParameter(parameter *openapi3.ParameterRef, params *Code, index int) {
+	val := parameter.Value
+	schema := val.Schema.Value
+
+	if schema.Type == "array" {
+		if schema.Items.Value.Enum != nil { // enum type
+			var values []string // convert to string array
+			for _, enum := range schema.Items.Value.Enum {
+				values = append(values, cleanID(enum.(string)))
+			}
+
+			// create the enum type name
+			enumTypeName := cleanID(val.Name)
+
+			enums := Code{}
+
+			for index, value := range values {
+				if index == 0 {
+					enums.add(jen.ID(value).ID(enumTypeName).Op("=").Iota())
+				} else {
+					enums.add(jen.ID(value))
+				}
+			}
+
+			params.add(
+				jen.Comment(val.Description),
+				jen.Commentf("%v", values),
+				jen.ID(cleanID(val.Name)).ID(enumTypeName),
+			)
+		}
+	} else {
+		params.add(
+			jen.Comment(val.Description),
+			jen.ID(cleanID(val.Name)).ID(typeReplace(val.Schema.Value.Type)),
+		)
+	}
+
+	fmt.Printf("Parameter %v processed\n", index)
 }
 
 // get_address_mempool_transactions -> GetAddressMempoolTransactions
