@@ -87,58 +87,55 @@ func main() {
 			}
 		}
 
-		// if path doesn't start with "/rosetta/", process the path
-		if !strings.HasPrefix(name, "/rosetta/") {
-			for _, operation := range path.Operations() {
-				if operation != nil {
-					startTime := time.Now()
-					opIdTypeName := cleanID(operation.OperationID)
-					fmt.Printf("➤ ┌ "+string(colourCodes["blue"])+"%s\n"+string(colourCodes["reset"]), opIdTypeName)
+		for _, operation := range path.Operations() {
+			if operation != nil {
+				startTime := time.Now()
+				opIdTypeName := cleanID(operation.OperationID)
+				fmt.Printf("➤ ┌ "+string(colourCodes["blue"])+"%s\n"+string(colourCodes["reset"]), opIdTypeName)
 
-					params := Code{}
+				params := Code{}
 
-					var wg sync.WaitGroup
+				var wg sync.WaitGroup
 
-					// parameters
-					for _, parameter := range operation.Parameters {
-						wg.Add(1)
-						parameter := parameter
+				// parameters
+				for _, parameter := range operation.Parameters {
+					wg.Add(1)
+					parameter := parameter
 
-						go func() {
-							defer wg.Done()
-							processParameter(parameter, &params, opIdTypeName, f)
-							fmt.Printf("➤ │ Parameter `%v` processed\n", parameter.Value.Name)
-						}()
-					}
+					go func() {
+						defer wg.Done()
+						processParameter(parameter, &params, opIdTypeName, f)
+						fmt.Printf("➤ │ Parameter `%v` processed\n", parameter.Value.Name)
+					}()
+				}
 
-					// request body
-					if operation.RequestBody != nil {
-						for _, body := range operation.RequestBody.Value.Content {
-							for title, prop := range body.Schema.Value.Properties {
-								wg.Add(1)
+				// request body
+				if operation.RequestBody != nil {
+					for _, body := range operation.RequestBody.Value.Content {
+						for title, prop := range body.Schema.Value.Properties {
+							wg.Add(1)
 
-								title := title
-								prop := prop
+							title := title
+							prop := prop
 
-								go func() {
-									defer wg.Done()
-									processRequestBodyProperty(prop, &params, title, f)
-									fmt.Printf("➤ │ Body property `%v` processed\n", title)
-								}()
-							}
+							go func() {
+								defer wg.Done()
+								processRequestBodyProperty(prop, &params, title, f)
+								fmt.Printf("➤ │ Body property `%v` processed\n", title)
+							}()
 						}
 					}
-
-					wg.Wait()
-
-					ParamsTypeName := opIdTypeName + "Params"
-
-					f.Commentf("%s defines parameters for %v", ParamsTypeName, opIdTypeName)
-					f.Type().ID(ParamsTypeName).Structure(params.Generated...)
-
-					endTime := time.Now()
-					fmt.Printf("➤ └ Completed in %v\n", endTime.Sub(startTime))
 				}
+
+				wg.Wait()
+
+				ParamsTypeName := opIdTypeName + "Params"
+
+				f.Commentf("%s defines parameters for %v", ParamsTypeName, opIdTypeName)
+				f.Type().ID(ParamsTypeName).Structure(params.Generated...)
+
+				endTime := time.Now()
+				fmt.Printf("➤ └ Completed in %v\n", endTime.Sub(startTime))
 			}
 		}
 	}
@@ -192,12 +189,7 @@ func processParameter(parameter *openapi3.ParameterRef, params *Code, opID strin
 
 func processRequestBodyProperty(prop *openapi3.SchemaRef, params *Code, title string, f *jen.File) {
 	val := prop.Value
-	// fmt.Println(title, val)
-
-	if val.Description != "" {
-		params.add(jen.Comment(val.Description))
-	}
-
+	
 	// if val.Properties != nil {
 	if false {
 		props := []jen.Code{}
@@ -207,7 +199,16 @@ func processRequestBodyProperty(prop *openapi3.SchemaRef, params *Code, title st
 
 		f.Type().ID(cleanID(title)).Interface(props...)
 	} else {
-		params.add(jen.ID(cleanID(title)).ID(typeReplace(val.Type)))
+		if val.Description != "" {
+			params.add(
+				jen.Comment(val.Description),
+				jen.ID(cleanID(title)).ID(typeReplace(val.Type)),
+			)
+		} else {
+			params.add(
+				jen.ID(cleanID(title)).ID(typeReplace(val.Type)),
+			)
+		}
 	}
 }
 
