@@ -2,54 +2,15 @@ package main
 
 import (
 	"fmt"
-	"regexp"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/deepmap/oapi-codegen/pkg/util"
-	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/valeralabs/jenny/jen"
 )
 
 //go:generate git submodule update --init --recursive
-
-var colourCodes = map[string]string{
-	"reset":   "\033[0m",
-	"red":     "\033[31m",
-	"green":   "\033[32m",
-	"blue":    "\033[34m",
-	"yellow":  "\033[33m",
-	"cyan":    "\033[36m",
-	"magenta": "\033[35m",
-	"white":   "\033[37m",
-	"black":   "\033[30m",
-	"gray":    "\033[90m",
-}
-
-var (
-	output = "../api.v2.gen.go"
-	input  = "./source/docs/openapi.yaml"
-)
-
-var URLArgumentScope = regexp.MustCompile(`{([^}]*)}`)
-var LowerCaseReplacements = regexp.MustCompile(`(?P<start>(.*(_|{)|\A))(?P<match>nft|btc|stx|api|id|tx|ft|tld|abi)(?P<end>((_|}).*|\z))`)
-
-func clean(source string) string {
-	for LowerCaseReplacements.MatchString(source) {
-		source = LowerCaseReplacements.ReplaceAllStringFunc(source, func(cursor string) string {
-			found := LowerCaseReplacements.FindStringSubmatch(cursor)
-
-			start := LowerCaseReplacements.SubexpIndex("start")
-			match := LowerCaseReplacements.SubexpIndex("match")
-			end := LowerCaseReplacements.SubexpIndex("end")
-
-			return found[start] + strings.ToUpper(found[match]) + found[end]
-		})
-	}
-
-	return source
-}
 
 type Code struct {
 	Generated []jen.Code
@@ -57,15 +18,6 @@ type Code struct {
 
 func (p *Code) add(code ...jen.Code) {
 	p.Generated = append(p.Generated, code...)
-}
-
-var manuallyAddedTypes = map[string]jen.Code{
-	"CallReadOnlyFunctionArguments": jen.Type().ID("CallReadOnlyFunctionArguments").Structure(
-		jen.Comment("The simulated tx-sender"),
-		jen.ID("Sender").String(),
-		jen.Comment("An array of hex serialized Clarity values"),
-		jen.ID("Arguments").Index().String(),
-	),
 }
 
 func main() {
@@ -124,8 +76,7 @@ func main() {
 
 						go func() {
 							defer wg.Done()
-							var queue Code
-							processParameter(parameter, &params, opIdTypeName, f, &queue)
+							processParameter(parameter, &params, opIdTypeName, f)
 							fmt.Printf(typePrefix+"Parameter `%v` processed\n", parameter.Value.Name)
 							if !parameter.Value.Required {
 								fmt.Printf(prefix + "       └ " + string(colourCodes["yellow"]) + "Optional\n" + string(colourCodes["reset"]))
@@ -151,6 +102,23 @@ func main() {
 						}
 					}
 
+					// responses
+					// responses := make(map[string]Code)
+					// for statusCode, response := range operation.Responses {
+					// 	wg.Add(1)
+
+					// 	response := response
+					// 	statusCode := statusCode
+
+					// 	go func() {
+					// 		defer wg.Done()
+					// 		var queue Code
+					// 		processResponse(response, opIdTypeName, statusCode, &queue)
+					// 		responses[statusCode] = queue
+					// 		fmt.Printf(typePrefix+"Response %v processed\n", statusCode)
+					// 	}()
+					// }
+
 					// ---- FUNCTIONS
 
 					// funcPrefix := prefix + string(colourCodes["gray"]) + "[FUNC] " + string(colourCodes["reset"])
@@ -159,8 +127,14 @@ func main() {
 
 					ParamsTypeName := opIdTypeName + "Params"
 
-					f.Commentf("%s defines parameters for %v", ParamsTypeName, opIdTypeName)
+					f.Commentf("Defines parameters for %v", opIdTypeName)
 					f.Type().ID(ParamsTypeName).Structure(params.Generated...)
+
+					// // loop through responses and add them to file
+					// for statusCode, response := range responses {
+					// 	f.Commentf("Defines a %v response for %v.", statusCode, opIdTypeName)
+					// 	f.Type().ID(opIdTypeName + statusCode + "Response").Structure(response.Generated...)
+					// }
 
 					fmt.Printf("➤ └ Completed in %v\n", time.Since(startTime))
 				}
@@ -180,124 +154,4 @@ func main() {
 	}
 
 	fmt.Printf(string(colourCodes["green"])+"Finished processing in %v\n"+string(colourCodes["reset"]), time.Since(processingStart))
-}
-
-func processParameter(parameter *openapi3.ParameterRef, params *Code, opID string, f *jen.File, queue *Code) {
-	val := parameter.Value
-	schema := val.Schema.Value
-
-	queue.add(jen.Comment(cleanDesc(val.Description)))
-
-	if !val.Required {
-		switch schema.Type {
-		case "string":
-			queue.add(jen.Commentf("Optional. Pass an empty string to use the default value."))
-		case "integer":
-			defaultStr := "."
-			if schema.Default != nil {
-				defaultStr = fmt.Sprintf(" (%v).", schema.Default)
-			}
-			queue.add(jen.Commentf("Optional. Use `-1` to use the default value" + defaultStr))
-		case "boolean":
-			queue.add(jen.Commentf("Optional. Use `" + fmt.Sprint(schema.Default) + "` as default."))
-		}
-		if schema.Max != nil {
-			queue.add(jen.Comment(fmt.Sprintf("Max value is %v.", *schema.Max)))
-		}
-	}
-
-	if schema.Type == "array" {
-		if schema.Items.Value.Enum != nil { // enum type
-			var values []string // convert to string array
-			for _, enum := range schema.Items.Value.Enum {
-				values = append(values, cleanID(enum.(string)))
-			}
-
-			enumTypeName := opID + cleanID(val.Name)
-
-			var enums Code
-
-			for index, value := range values {
-				if index == 0 {
-					enums.add(jen.ID(value).ID(enumTypeName).Op("=").Iota())
-				} else {
-					enums.add(jen.ID(value))
-				}
-			}
-
-			f.Type().ID(enumTypeName).Int64()
-			f.Const().Definitions(enums.Generated...)
-
-			queue.add(
-				jen.Commentf("%v", values),
-				jen.ID(cleanID(val.Name)).ID(enumTypeName),
-			)
-		}
-	} else {
-		queue.add(
-			jen.ID(cleanID(val.Name)).ID(typeReplace(val.Schema.Value.Type)),
-		)
-	}
-
-	params.add(queue.Generated...)
-}
-
-func processRequestBodyProperty(prop *openapi3.SchemaRef, params *Code, opID string, title string, f *jen.File) {
-	val := prop.Value
-	titlizedTitle := strings.Title(title)
-
-	// check if it's present in manually added types
-	if _, ok := manuallyAddedTypes[opID+titlizedTitle]; ok {
-		params.add(
-			jen.Comment(cleanDesc(val.Description)),
-			jen.ID(cleanID(title)).ID(opID+titlizedTitle),
-		)
-	} else {
-		params.add(
-			jen.Comment(cleanDesc(val.Description)),
-			jen.ID(cleanID(title)).ID(typeReplace(val.Type)),
-		)
-	}
-}
-
-// get_address_mempool_transactions -> GetAddressMempoolTransactions
-func cleanID(ID string) string {
-	parts := strings.Split(clean(ID), "_")
-
-	for i, part := range parts {
-		parts[i] = strings.Title(part)
-	}
-
-	return strings.Join(parts, "")
-}
-
-func typeReplace(src string) string {
-	switch src {
-	case "integer":
-		return "int"
-	case "number":
-		return "int"
-	case "string":
-		return "string"
-	case "boolean":
-		return "bool"
-	case "object":
-		return "any"
-	case "array":
-		return "any"
-	default:
-		return src
-	}
-}
-
-func cleanDesc(desc string) string {
-	if desc == "" {
-		return ""
-	}
-	desc = strings.Replace(desc, "\n", "", -1)
-	desc = strings.ToUpper(string(desc[0])) + desc[1:]
-	if !strings.HasSuffix(desc, ".") {
-		desc += "."
-	}
-	return desc
 }
