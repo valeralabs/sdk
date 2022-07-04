@@ -91,12 +91,12 @@ func processResponse(response *openapi3.ResponseRef, opID string, statusCode str
 	val := response.Value
 	respTypeName := opID + statusCode + "Response"
 
-	// loop over val.Content
 	for _, content := range val.Content {
-		// loop over schema.Value.Properties
-		for name := range content.Schema.Value.Properties {
-			// propVal := prop.Value
-			fmt.Println(name)
+		if content.Schema != nil {
+			for name := range content.Schema.Value.Properties {
+				// propVal := prop.Value
+				fmt.Println(name)
+			}
 		}
 	}
 
