@@ -87,17 +87,26 @@ func processRequestBodyProperty(prop *openapi3.SchemaRef, params *Code, opID str
 	}
 }
 
-func processResponse(response *openapi3.ResponseRef, opID string, statusCode string, queue *Code) {
+func processResponse(response *openapi3.ResponseRef, opID string, statusCode string, f *jen.File) {
 	val := response.Value
-	respTypeName := opID + cleanID(statusCode) + "Response"
+	respTypeName := opID + statusCode + "Response"
 
-	queue.add(jen.Commentf("Defines a %v response for %v.", statusCode, opID))
-
-	if val.Description != nil {
-		queue.add(jen.Comment(cleanDesc(*val.Description)))
+	// loop over val.Content
+	for _, content := range val.Content {
+		// loop over schema.Value.Properties
+		for name := range content.Schema.Value.Properties {
+			// propVal := prop.Value
+			fmt.Println(name)
+		}
 	}
 
-	queue.add(
+	descMsg := ""
+	if val.Description != nil {
+		descMsg = fmt.Sprintf(" (%v)", *val.Description)
+	}
+
+	f.Add(
+		jen.Commentf("Defines a %v%v response for %v.", statusCode, descMsg, opID),
 		jen.Type().ID(respTypeName).Structure(),
 	)
 }

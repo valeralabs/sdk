@@ -103,21 +103,18 @@ func main() {
 					}
 
 					// responses
-					// responses := make(map[string]Code)
-					// for statusCode, response := range operation.Responses {
-					// 	wg.Add(1)
+					for statusCode, response := range operation.Responses {
+						wg.Add(1)
 
-					// 	response := response
-					// 	statusCode := statusCode
+						response := response
+						statusCode := statusCode
 
-					// 	go func() {
-					// 		defer wg.Done()
-					// 		var queue Code
-					// 		processResponse(response, opIdTypeName, statusCode, &queue)
-					// 		responses[statusCode] = queue
-					// 		fmt.Printf(typePrefix+"Response %v processed\n", statusCode)
-					// 	}()
-					// }
+						go func() {
+							defer wg.Done()
+							processResponse(response, opIdTypeName, statusCode, f)
+							fmt.Printf(typePrefix+"Response %v processed\n", statusCode)
+						}()
+					}
 
 					// ---- FUNCTIONS
 
@@ -129,12 +126,6 @@ func main() {
 
 					f.Commentf("Defines parameters for %v", opIdTypeName)
 					f.Type().ID(ParamsTypeName).Structure(params.Generated...)
-
-					// // loop through responses and add them to file
-					// for statusCode, response := range responses {
-					// 	f.Commentf("Defines a %v response for %v.", statusCode, opIdTypeName)
-					// 	f.Type().ID(opIdTypeName + statusCode + "Response").Structure(response.Generated...)
-					// }
 
 					fmt.Printf("➤ └ Completed in %v\n", time.Since(startTime))
 				}
