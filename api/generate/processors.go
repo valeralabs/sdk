@@ -107,6 +107,7 @@ func processResponse(response *openapi3.ResponseRef, opID string, statusCode str
 
 	f.Add(
 		jen.Commentf("Defines a %v%v response for %v.", statusCode, descMsg, opID),
+		jen.Line(),
 		jen.Type().ID(respTypeName).Structure(),
 	)
 }
