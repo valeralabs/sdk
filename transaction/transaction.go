@@ -95,7 +95,7 @@ func (transaction *StacksTransaction) Unmarshal(data []byte) error {
 			panic("TODO: implment HashModeP2SH and HashModeP2WSH_P2SH")
 		}
 
-		transaction.Authorization = StandardAuthorization[SingleSignatureSpendingCondition]{condtion}
+		transaction.Authorization = StandardAuthorization(SingleSignatureSpendingCondition(condtion))
 	case 0x05:
 		// sponsored authorization
 		// two spending conditions.
@@ -255,25 +255,29 @@ func (transaction *StacksTransaction) Marshal() ([]byte, error) {
 	writer.WriteUint8(uint8(transaction.Version))
 	writer.Write(transaction.ChainID[:])
 
-	switch any(transaction.Authorization).(type) {
-	case StandardAuthorization[SingleSignatureSpendingCondition]:
-		condtion := any(transaction.Authorization).(StandardAuthorization[SingleSignatureSpendingCondition]).SpendingCondition
+	switch authorization := any(transaction.Authorization).(type) {
+	case StandardAuthorization:
+		switch condtion := any(authorization).(type) {
+		case SingleSignatureSpendingCondition:
+			writer.WriteUint8(uint8(0x04))
+			writer.WriteUint8(uint8(condtion.HashMode))
 
-		writer.WriteUint8(uint8(0x04))
-		writer.WriteUint8(uint8(condtion.HashMode))
+			writer.Write(condtion.Signer[:])
 
-		writer.Write(condtion.Signer[:])
+			writer.WriteUint64(condtion.Nonce)
+			writer.WriteUint64(condtion.Fee)
 
-		writer.WriteUint64(condtion.Nonce)
-		writer.WriteUint64(condtion.Fee)
+			switch condtion.HashMode {
+			case constant.HashModeP2PKH, constant.HashModeP2WPKH:
+				writer.WriteUint8(uint8(condtion.KeyEncoding))
+				writer.Write(condtion.Signature[:])
 
-		switch condtion.HashMode {
-		case constant.HashModeP2PKH, constant.HashModeP2WPKH:
-			writer.WriteUint8(uint8(condtion.KeyEncoding))
-			writer.Write(condtion.Signature[:])
+			case constant.HashModeP2SH, constant.HashModeP2WSH:
+				panic("TODO: implment HashModeP2SH and HashModeP2WSH_P2SH")
+			}
 
-		case constant.HashModeP2SH, constant.HashModeP2WSH:
-			panic("TODO: implment HashModeP2SH and HashModeP2WSH_P2SH")
+		default:
+			panic("TODO: implment sponsored authorization")
 		}
 
 	default:

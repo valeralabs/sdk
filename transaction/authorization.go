@@ -2,21 +2,11 @@ package transaction
 
 import "github.com/valeralabs/sdk/constant"
 
-type Authorization interface {
-	GetFee() int
-}
+type Authorization any
+type SpendingCondition any
 
-type StandardAuthorization[T SpendingCondition] struct {
-	SpendingCondition T
-}
-
-type SponsoredAuthorization[T SpendingCondition] struct {
-	SpendingCondition T
-}
-
-type SpendingCondition interface {
-	SingleSignatureSpendingCondition | MultipleSignatureSpendingCondition
-}
+type StandardAuthorization SpendingCondition
+type SponsoredAuthorization SpendingCondition
 
 type SingleSignatureSpendingCondition struct {
 	HashMode    constant.HashMode
@@ -40,12 +30,4 @@ type AuthorizationField struct {
 	Contents    TransactionFieldContents
 }
 
-type TransactionFieldContents interface{}
-
-func (authorization StandardAuthorization[SpendingCondition]) GetFee() int {
-	return 5000
-}
-
-func (authorization SponsoredAuthorization[SpendingCondition]) GetFee() int {
-	return 5000
-}
+type TransactionFieldContents any
