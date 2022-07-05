@@ -120,3 +120,10 @@ func NewAddress(publicKeys []keys.PublicKey, numSigs int, version constant.Addre
 		Hash:    hash,
 	}, nil
 }
+
+func NewAddressFromPublicKeyHash(hash []byte, version constant.AddressVersion) Address {
+	return Address {
+		Version: version,
+		Hash: hash,
+	}
+}

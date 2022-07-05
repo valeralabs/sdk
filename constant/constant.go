@@ -104,8 +104,3 @@ func (_type PostConditionType) Check() bool {
 	return _type >= PostConditionTypeSTX && _type <= PostConditionTypeNFT
 }
 
-type PostCondition byte
-
-func (mode PostCondition) Check() bool {
-	return true
-}

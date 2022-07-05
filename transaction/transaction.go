@@ -10,6 +10,7 @@ import (
 
 	"github.com/linden/bite"
 	"github.com/valeralabs/sdk/address/c32"
+	"github.com/valeralabs/sdk/address"
 	"github.com/valeralabs/sdk/constant"
 	"github.com/valeralabs/sdk/encoding/clarity"
 )
@@ -22,7 +23,7 @@ type StacksTransaction struct {
 	AnchorMode    constant.AnchorMode
 	// TODO: add post-conditions
 	PostConditionMode constant.PostConditionMode
-	PostConditions    []constant.PostCondition
+	PostConditions    []PostCondition
 }
 
 func HexToBytes(plain string) ([]byte, error) {
@@ -115,7 +116,10 @@ func (transaction *StacksTransaction) Unmarshal(data []byte) error {
 		return errors.New("post condition mode is invalid")
 	}
 
+
 	postConditionCount := binary.BigEndian.Uint32(reader.Read(4))
+
+	postConditions := []PostCondition{}
 
 	//TODO (Linden): post conditions
 	for index := uint32(0); index < postConditionCount; index++ {
@@ -127,15 +131,45 @@ func (transaction *StacksTransaction) Unmarshal(data []byte) error {
 
 		switch postConditionType {
 		case constant.PostConditionTypeSTX:
+			// TODO: make it actually work
+			addressHash := transaction.Authorization.GetSigner()
+			hashMode := transaction.Authorization.GetSignerHashMode()
+
+			addressVersion := HashModeToAddressVersion(hashMode, transaction.Version)
+
+			originAddress := address.NewAddressFromPublicKeyHash(addressHash[:], addressVersion)
+
+			postConditionPrincipal, err := DeserializePostConditionPrincipal(&reader, originAddress)
+			if err != nil {
+				return err
+			}
+
+			fungibleConditionCode := FungibleConditionCode(reader.ReadSingle())
+			if !fungibleConditionCode.Check() {
+				return errors.New("Fungible condition code is invalid")
+			}
+
+			amount := binary.BigEndian.Uint64(reader.Read(8))
+
+			postCondition := PostConditionSTX {
+				postConditionPrincipal: postConditionPrincipal,
+				fungibleConditionCode: fungibleConditionCode,
+				amount: amount,
+			}
+
+			postConditions = append(postConditions, PostCondition(postCondition))
 		case constant.PostConditionTypeFT:
+
 		case constant.PostConditionTypeNFT:
 		}
 	}
 
+	transaction.PostConditions = postConditions
+
 	payloadType := PayloadType(reader.ReadSingle())
 
 	if payloadType.Check() == false {
-		return errors.New("payload type is invalid")
+		return fmt.Errorf("payload type is invalid, it cannot be %v", byte(payloadType))
 	}
 
 	switch payloadType {
@@ -408,3 +442,4 @@ func (transaction *StacksTransaction) Marshal() ([]byte, error) {
 
 	return encoded, nil
 }
+
