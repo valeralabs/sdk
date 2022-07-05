@@ -32,7 +32,7 @@ type PayloadSmartContract struct {
 	Body string
 }
 
-type ContractCallTransfer struct {
+type PayloadContractCall struct {
 	Address   address.Address
 	Function  string
 	Arguments clarity.List

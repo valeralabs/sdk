@@ -5,6 +5,7 @@ import (
 	"encoding/binary"
 	"errors"
 
+	"github.com/linden/binstruct"
 	"github.com/linden/bite"
 	"github.com/valeralabs/sdk/address"
 	"github.com/valeralabs/sdk/address/c32"
@@ -71,7 +72,7 @@ func readLengthPrefix(reader *bite.Reader, total int) int {
 }
 
 func (cursor *Value) Unmarshal(raw []byte, typed bool) error {
-	reader := bite.New(raw)
+	reader := bite.NewReader(raw)
 
 	if cursor.PrefixLength == 0 {
 		cursor.PrefixLength = constant.DefaultPrefixLength
@@ -126,7 +127,7 @@ func NewValue(from []byte) Value {
 }
 
 func (list *List) Unmarshal(data []byte, typed bool) error {
-	reader := bite.New(data)
+	reader := bite.NewReader(data)
 
 	if list.PrefixLength == 0 {
 		list.PrefixLength = constant.DefaultPrefixLength
@@ -190,7 +191,7 @@ func NewList(raw [][]byte) List {
 	return list
 }
 
-func ParsePrincipal(from ClarityType, reader *bite.Reader) (address.Address, error) {
+func DecodePrincipal(from ClarityType, reader *bite.Reader) (address.Address, error) {
 	if from != ClarityTypePrincipalStandard && from != ClarityTypePrincipalContract {
 		return address.Address{}, errors.New("clarity type can only be standard or contract")
 	}
@@ -222,4 +223,32 @@ func ParsePrincipal(from ClarityType, reader *bite.Reader) (address.Address, err
 	}
 
 	return address.Address{version, hash, contract}, nil
+}
+
+func EncodePrincipal(from address.Address, writer binstruct.Writer) error {
+	version, err := c32.ConvertVersion(from.Version)
+
+	if err != nil {
+		return err
+	}
+
+	writer.WriteUint8(uint8(version))
+	writer.Write(from.Hash)
+
+	if from.Contract != "" {
+		name := Value{
+			Content:      []byte(from.Contract),
+			PrefixLength: 1,
+		}
+
+		raw, err := name.Marshal(false)
+
+		if err != nil {
+			return err
+		}
+
+		writer.Write(raw)
+	}
+
+	return nil
 }

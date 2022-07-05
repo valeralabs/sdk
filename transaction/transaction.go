@@ -8,8 +8,8 @@ import (
 	"fmt"
 	"unicode"
 
+	"github.com/linden/binstruct"
 	"github.com/linden/bite"
-	"github.com/valeralabs/sdk/address/c32"
 	"github.com/valeralabs/sdk/constant"
 	"github.com/valeralabs/sdk/encoding/clarity"
 )
@@ -50,7 +50,7 @@ func (transaction *StacksTransaction) Unmarshal(data []byte) error {
 		return errors.New("transaction is too short to be valid")
 	}
 
-	reader := bite.New(data)
+	reader := bite.NewReader(data)
 
 	transaction.Version = constant.TransactionVersion(reader.ReadSingle())
 
@@ -148,7 +148,7 @@ func (transaction *StacksTransaction) Unmarshal(data []byte) error {
 			return errors.New("address is invalid")
 		}
 
-		payload.Address, err = clarity.ParsePrincipal(clarityType, &reader)
+		payload.Address, err = clarity.DecodePrincipal(clarityType, &reader)
 
 		if err != nil {
 			return err
@@ -193,9 +193,9 @@ func (transaction *StacksTransaction) Unmarshal(data []byte) error {
 		transaction.Payload = payload
 
 	case PayloadTypeContractCall:
-		var payload ContractCallTransfer
+		var payload PayloadContractCall
 
-		payload.Address, err = clarity.ParsePrincipal(clarity.ClarityTypePrincipalContract, &reader)
+		payload.Address, err = clarity.DecodePrincipal(clarity.ClarityTypePrincipalContract, &reader)
 
 		if err != nil {
 			return err
@@ -247,66 +247,30 @@ func (transaction *StacksTransaction) Unmarshal(data []byte) error {
 	return nil
 }
 
-func WriteWithLength[T ~[]byte | ~byte | ~int](buffer *bytes.Buffer, content T, length int) {
-	before := buffer.Len()
-
-	padding := true
-
-	switch any(content).(type) {
-	case []byte:
-		buffer.Write(any(content).([]byte))
-
-	case byte:
-		buffer.WriteByte(any(content).(byte))
-
-	case int:
-		padding = false
-
-		temporary := new(bytes.Buffer)
-
-		binary.Write(temporary, binary.BigEndian, int8(any(content).(int)))
-
-		for buffer.Len()+temporary.Len() < (before + length) {
-			buffer.WriteByte(0)
-		}
-
-		buffer.Write(temporary.Bytes())
-	}
-
-	if padding == true {
-		for buffer.Len() < (before + length) {
-			buffer.WriteByte(0)
-		}
-	}
-}
-
 func (transaction *StacksTransaction) Marshal() ([]byte, error) {
-	buffer := new(bytes.Buffer)
+	var buffer bytes.Buffer
 
-	WriteWithLength(buffer, transaction.Version, 1)
+	writer := binstruct.NewWriter(&buffer, binary.BigEndian, false)
 
-	chainID := ([4]byte)(transaction.ChainID)
-	WriteWithLength(buffer, chainID[:], 4)
+	writer.WriteUint8(uint8(transaction.Version))
+	writer.Write(transaction.ChainID[:])
 
 	switch any(transaction.Authorization).(type) {
 	case StandardAuthorization[SingleSignatureSpendingCondition]:
 		condtion := any(transaction.Authorization).(StandardAuthorization[SingleSignatureSpendingCondition]).SpendingCondition
 
-		WriteWithLength(buffer, byte(0x04), 1)
-		WriteWithLength(buffer, condtion.HashMode, 1)
+		writer.WriteUint8(uint8(0x04))
+		writer.WriteUint8(uint8(condtion.HashMode))
 
-		signer := (([20]byte)(condtion.Signer))
-		WriteWithLength(buffer, signer[:], 20)
+		writer.Write(condtion.Signer[:])
 
-		binary.Write(buffer, binary.BigEndian, condtion.Nonce)
-		binary.Write(buffer, binary.BigEndian, condtion.Fee)
+		writer.WriteUint64(condtion.Nonce)
+		writer.WriteUint64(condtion.Fee)
 
 		switch condtion.HashMode {
 		case constant.HashModeP2PKH, constant.HashModeP2WPKH:
-			WriteWithLength(buffer, condtion.KeyEncoding, 1)
-
-			signature := (([65]byte)(condtion.Signature))
-			WriteWithLength(buffer, signature[:], 65)
+			writer.WriteUint8(uint8(condtion.KeyEncoding))
+			writer.Write(condtion.Signature[:])
 
 		case constant.HashModeP2SH, constant.HashModeP2WSH:
 			panic("TODO: implment HashModeP2SH and HashModeP2WSH_P2SH")
@@ -316,57 +280,44 @@ func (transaction *StacksTransaction) Marshal() ([]byte, error) {
 		panic("TODO: implment sponsored authorization")
 	}
 
-	WriteWithLength(buffer, byte(transaction.AnchorMode), 1)
+	writer.WriteUint8(uint8(transaction.AnchorMode))
 
-	WriteWithLength(buffer, byte(transaction.PostConditionMode), 1)
-	WriteWithLength(buffer, len(transaction.PostConditions), 4)
+	writer.WriteUint8(uint8(transaction.PostConditionMode))
+	writer.WriteUint32(uint32(len(transaction.PostConditions)))
 
 	//TODO: handle strict post-conditions
 
 	switch any(transaction.Payload).(type) {
 	case PayloadTokenTransfer:
-		WriteWithLength(buffer, byte(PayloadTypeTokenTransfer), 1)
+		writer.WriteUint8(uint8(PayloadTypeTokenTransfer))
 
 		payload := any(transaction.Payload).(PayloadTokenTransfer)
 
 		if payload.Address.Contract == "" {
-			WriteWithLength(buffer, byte(clarity.ClarityTypePrincipalStandard), 1)
+			writer.WriteUint8(uint8(clarity.ClarityTypePrincipalStandard))
 		} else {
-			WriteWithLength(buffer, byte(clarity.ClarityTypePrincipalContract), 1)
+			writer.WriteUint8(uint8(clarity.ClarityTypePrincipalContract))
 		}
 
-		version, err := c32.ConvertVersion(payload.Address.Version)
+		err := clarity.EncodePrincipal(payload.Address, writer)
 
 		if err != nil {
 			return []byte{}, err
 		}
 
-		WriteWithLength(buffer, byte(version), 1)
-		WriteWithLength(buffer, payload.Address.Hash, 20)
-
-		if payload.Address.Contract != "" {
-			name := clarity.Value{
-				Content:      []byte(payload.Address.Contract),
-				PrefixLength: 1,
-			}
-
-			raw, err := name.Marshal(false)
-
-			if err != nil {
-				return []byte{}, err
-			}
-
-			WriteWithLength(buffer, raw, 0)
-		}
-
-		WriteWithLength(buffer, payload.Amount, 8)
-		WriteWithLength(buffer, []byte(payload.Memo), constant.MemoLengthBytes)
+		writer.WriteUint64(uint64(payload.Amount))
 
 		// TODO: figure out this padding
-		WriteWithLength(buffer, []byte{0x00, 0x00}, 2)
+		length := writer.Len() + constant.MemoLengthBytes + 2
+
+		writer.Write([]byte(payload.Memo))
+
+		for writer.Len() < length {
+			writer.WriteByte(0x00)
+		}
 
 	case PayloadSmartContract:
-		WriteWithLength(buffer, byte(PayloadTypeSmartContract), 1)
+		writer.WriteUint8(uint8(PayloadTypeSmartContract))
 
 		payload := any(transaction.Payload).(PayloadSmartContract)
 
@@ -381,7 +332,7 @@ func (transaction *StacksTransaction) Marshal() ([]byte, error) {
 			return []byte{}, err
 		}
 
-		WriteWithLength(buffer, raw, 0)
+		writer.Write(raw)
 
 		body := clarity.Value{
 			Content:      []byte(payload.Body),
@@ -394,7 +345,39 @@ func (transaction *StacksTransaction) Marshal() ([]byte, error) {
 			return []byte{}, err
 		}
 
-		WriteWithLength(buffer, raw, 0)
+		writer.Write(raw)
+
+	case PayloadContractCall:
+		writer.WriteUint8(uint8(PayloadTypeContractCall))
+
+		payload := any(transaction.Payload).(PayloadContractCall)
+
+		err := clarity.EncodePrincipal(payload.Address, writer)
+
+		if err != nil {
+			return []byte{}, err
+		}
+
+		function := clarity.Value{
+			Content:      []byte(payload.Function),
+			PrefixLength: 1,
+		}
+
+		raw, err := function.Marshal(false)
+
+		if err != nil {
+			return []byte{}, err
+		}
+
+		writer.Write(raw)
+
+		raw, err = payload.Arguments.Marshal(true)
+
+		if err != nil {
+			return []byte{}, err
+		}
+
+		writer.Write(raw)
 
 	default:
 		panic("TODO: handle other payloads")
