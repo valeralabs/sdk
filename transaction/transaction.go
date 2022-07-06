@@ -116,12 +116,9 @@ func (transaction *StacksTransaction) Unmarshal(data []byte) error {
 		return errors.New("post condition mode is invalid")
 	}
 
-
 	postConditionCount := binary.BigEndian.Uint32(reader.Read(4))
-
 	postConditions := []PostCondition{}
 
-	//TODO (Linden): post conditions
 	for index := uint32(0); index < postConditionCount; index++ {
 		postConditionType := constant.PostConditionType(reader.ReadSingle())
 
@@ -131,123 +128,105 @@ func (transaction *StacksTransaction) Unmarshal(data []byte) error {
 
 		switch postConditionType {
 		case constant.PostConditionTypeSTX:
-			addressHash, err := GetSignerFromAuthorization(transaction.Authorization)
-			if err != nil {
-				return fmt.Errorf("Could not get signer from authorization: %v", err)
+			hash := transaction.Authorization.GetSigner()
+			mode := transaction.Authorization.GetHashMode()
+
+			version := HashModeToAddressVersion(mode, transaction.Version)
+
+			origin := address.Address{
+				Version: version,
+				Hash:    hash[:],
 			}
 
+			principal, err := DecodePostConditionPrincipal(&reader, origin)
 
-			hashMode, err := GetSignerHashModeFromAuthorization(transaction.Authorization)
-			if err != nil {
-				return fmt.Errorf("Could not get signer hash mode from transaction authorization: %v", err)
-			}
-
-			addressVersion := HashModeToAddressVersion(hashMode, transaction.Version)
-
-			originAddress := address.NewAddressFromPublicKeyHash(addressHash[:], addressVersion)
-
-			postConditionPrincipal, err := DeserializePostConditionPrincipal(&reader, originAddress)
 			if err != nil {
 				return err
 			}
 
-			fungibleConditionCode := FungibleConditionCode(reader.ReadSingle())
-			if !fungibleConditionCode.Check() {
-				return errors.New("Fungible condition code is invalid")
+			condition := FungibleConditionCode(reader.ReadSingle())
+
+			if condition.Check() == false {
+				return errors.New("fungible condition code is invalid")
 			}
 
 			amount := binary.BigEndian.Uint64(reader.Read(8))
 
-			postCondition := PostConditionSTX {
-				postConditionPrincipal: postConditionPrincipal,
-				fungibleConditionCode: fungibleConditionCode,
-				amount: amount,
-			}
+			postConditions = append(postConditions, PostConditionStacks{
+				Principal: principal,
+				Condition: condition,
+				Amount:    amount,
+			})
 
-			postConditions = append(postConditions, PostCondition(postCondition))
 		case constant.PostConditionTypeFT:
-			addressHash, err := GetSignerFromAuthorization(transaction.Authorization)
-			if err != nil {
-				return fmt.Errorf("Could not get signer from transaction authorization: %v", err)
+			hash := transaction.Authorization.GetSigner()
+			mode := transaction.Authorization.GetHashMode()
+
+			version := HashModeToAddressVersion(mode, transaction.Version)
+
+			origin := address.Address{
+				Version: version,
+				Hash:    hash[:],
 			}
 
-			hashMode, err := GetSignerHashModeFromAuthorization(transaction.Authorization)
+			principal, err := DecodePostConditionPrincipal(&reader, origin)
+
 			if err != nil {
-				return fmt.Errorf("Could not get signer hash mode from transaction authorization: %v", err)
+				return fmt.Errorf("could not deserialize post condition principal: %v", err)
 			}
 
-			addressVersion := HashModeToAddressVersion(hashMode, transaction.Version)
+			asset, err := DecodeAsset(&reader)
 
-			originAddress := address.NewAddressFromPublicKeyHash(addressHash[:], addressVersion)
-	
-			principalAddress, err := DeserializePostConditionPrincipal(&reader, originAddress)
 			if err != nil {
-				return fmt.Errorf("Could not deserialize post condition principal: %v", err)
+				return fmt.Errorf("could not deserialize asset info: %v", err)
 			}
 
-			assetInfo, err := DeserializeAssetInfo(&reader)
-			if err != nil {
-				return fmt.Errorf("Could not deserialize asset info: %v", err)
-			}
-
-			fungibleConditionCode := FungibleConditionCode(reader.ReadSingle())
-			fungibleConditionCode.Check()
+			condition := FungibleConditionCode(reader.ReadSingle())
+			condition.Check()
 
 			amount := binary.BigEndian.Uint64(reader.Read(8))
 
-			postCondition := PostConditionFungible {
-				postConditionPrincipal: principalAddress,
-				assetInfo: assetInfo,
-				fungibleConditionCode: fungibleConditionCode,
-				amount: amount,
-			}
+			postCondition := PostConditionFungible{condition, principal, amount, asset}
 
 			postConditions = append(postConditions, postCondition)
+
 		case constant.PostConditionTypeNFT:
-			addressHash, err := GetSignerFromAuthorization(transaction.Authorization)
+			hash := transaction.Authorization.GetSigner()
+			mode := transaction.Authorization.GetHashMode()
+
+			version := HashModeToAddressVersion(mode, transaction.Version)
+
+			origin := address.Address{
+				Version: version,
+				Hash:    hash[:],
+			}
+
+			principal, err := DecodePostConditionPrincipal(&reader, origin)
+
 			if err != nil {
-				return fmt.Errorf("Could not get signer from transaction authorization: %v", err)
+				return fmt.Errorf("failed to deserialize post condition principal: %v", err)
 			}
 
-			hashMode, err := GetSignerHashModeFromAuthorization(transaction.Authorization)
+			asset, err := DecodeAsset(&reader)
+
 			if err != nil {
-				return fmt.Errorf("Could not get signer hash mode from transaction authorization: %v", err)
+				return fmt.Errorf("failed to deserialize asset: %v", err)
 			}
 
-			addressVersion := HashModeToAddressVersion(hashMode, transaction.Version)
+			var value clarity.Value
 
-			originAddress := address.NewAddressFromPublicKeyHash(addressHash[:], addressVersion)
-	
-			principalAddress, err := DeserializePostConditionPrincipal(&reader, originAddress)
+			err = value.Unmarshal(reader.Value, true)
+
 			if err != nil {
-				return fmt.Errorf("Could not deserialize post condition principal: %v", err)
+				return fmt.Errorf("could not unmarshal asset value: %v", err)
 			}
 
-			assetInfo, err := DeserializeAssetInfo(&reader)
-			if err != nil {
-				return fmt.Errorf("Could not deserialize asset info: %v", err)
-			}
+			reader.Read(value.Length(true))
 
+			condition := NonFungibleConditionCode(reader.ReadSingle())
+			condition.Check()
 
-			assetName := clarity.Value{}
-			err = assetName.Unmarshal(reader.Value, true)
-			if err != nil {
-				return fmt.Errorf("could not unmarshal assetname: %v", err)
-			}
-			
-			reader.Read(assetName.Length(true));
-
-			nonFungibleConditionCode := NonFungibleConditionCode(reader.ReadSingle())
-			nonFungibleConditionCode.Check()
-
-			postCondition := PostConditionNonFungible {
-				postConditionPrincipal: principalAddress,
-				assetInfo: assetInfo,
-				assetName: assetName,
-				nonFungibleConditionCode: nonFungibleConditionCode,
-			}
-
-			postConditions = append(postConditions, postCondition)
+			postConditions = append(postConditions, PostConditionNonFungible{condition, principal, value, asset})
 		}
 	}
 
@@ -516,4 +495,3 @@ func (transaction *StacksTransaction) Marshal() ([]byte, error) {
 
 	return encoded, nil
 }
-

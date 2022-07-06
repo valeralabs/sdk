@@ -1,12 +1,12 @@
 package address
 
 import (
-	"fmt"
 	"crypto/sha256"
+	"fmt"
 
 	"github.com/btcsuite/btcd/btcutil"
-	"github.com/btcsuite/btcd/txscript"
 	"github.com/btcsuite/btcd/chaincfg"
+	"github.com/btcsuite/btcd/txscript"
 
 	"github.com/valeralabs/sdk/address/b58"
 	"github.com/valeralabs/sdk/address/c32"
@@ -80,8 +80,8 @@ func NewAddress(publicKeys []keys.PublicKey, numSigs int, version constant.Addre
 		}
 
 		hash = btcutil.Hash160(script)
-		
-	} else if mode == constant.HashModeP2WSH{
+
+	} else if mode == constant.HashModeP2WSH {
 		var addressPublicKeys []*btcutil.AddressPubKey
 
 		for _, publicKey := range publicKeys {
@@ -112,18 +112,8 @@ func NewAddress(publicKeys []keys.PublicKey, numSigs int, version constant.Addre
 		hash = btcutil.Hash160(witnessScript)
 	}
 
-	// encoded := make([]byte, hex.EncodedLen(len(hash)))
-	// hex.Encode(encoded, hash)
-
 	return Address{
 		Version: version,
 		Hash:    hash,
 	}, nil
-}
-
-func NewAddressFromPublicKeyHash(hash []byte, version constant.AddressVersion) Address {
-	return Address {
-		Version: version,
-		Hash: hash,
-	}
 }
