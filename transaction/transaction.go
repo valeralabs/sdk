@@ -204,7 +204,50 @@ func (transaction *StacksTransaction) Unmarshal(data []byte) error {
 
 			postConditions = append(postConditions, postCondition)
 		case constant.PostConditionTypeNFT:
-			panic("non fungible token post conditions are not yet implemented")
+			addressHash, err := GetSignerFromAuthorization(transaction.Authorization)
+			if err != nil {
+				return fmt.Errorf("Could not get signer from transaction authorization: %v", err)
+			}
+
+			hashMode, err := GetSignerHashModeFromAuthorization(transaction.Authorization)
+			if err != nil {
+				return fmt.Errorf("Could not get signer hash mode from transaction authorization: %v", err)
+			}
+
+			addressVersion := HashModeToAddressVersion(hashMode, transaction.Version)
+
+			originAddress := address.NewAddressFromPublicKeyHash(addressHash[:], addressVersion)
+	
+			principalAddress, err := DeserializePostConditionPrincipal(&reader, originAddress)
+			if err != nil {
+				return fmt.Errorf("Could not deserialize post condition principal: %v", err)
+			}
+
+			assetInfo, err := DeserializeAssetInfo(&reader)
+			if err != nil {
+				return fmt.Errorf("Could not deserialize asset info: %v", err)
+			}
+
+
+			assetName := clarity.Value{}
+			err = assetName.Unmarshal(reader.Value, true)
+			if err != nil {
+				return fmt.Errorf("could not unmarshal assetname: %v", err)
+			}
+			
+			reader.Read(assetName.Length(true));
+
+			nonFungibleConditionCode := NonFungibleConditionCode(reader.ReadSingle())
+			nonFungibleConditionCode.Check()
+
+			postCondition := PostConditionNonFungible {
+				postConditionPrincipal: principalAddress,
+				assetInfo: assetInfo,
+				assetName: assetName,
+				nonFungibleConditionCode: nonFungibleConditionCode,
+			}
+
+			postConditions = append(postConditions, postCondition)
 		}
 	}
 

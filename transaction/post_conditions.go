@@ -29,9 +29,12 @@ func (code FungibleConditionCode) Check() bool {
 type NonFungibleConditionCode int
 
 const (
-	NonFungibleConditionCodeSent NonFungibleConditionCode = iota + 0x10
-	NonFungibleConditionCodeNotSent
+	NonFungibleConditionCodeSent NonFungibleConditionCode = 0x10
+	NonFungibleConditionCodeNotSent = 0x11
 )
+func (code NonFungibleConditionCode) Check() bool {
+	return code == NonFungibleConditionCodeSent || code == NonFungibleConditionCodeNotSent
+}
 
 type AssetInfo struct {
 	contractAddress address.Address
@@ -55,7 +58,7 @@ type PostConditionFungible struct {
 type PostConditionNonFungible struct {
 	postConditionPrincipal address.Address
 	assetInfo AssetInfo
-	value uint64
+	assetName clarity.Value
 	nonFungibleConditionCode NonFungibleConditionCode
 }
 
@@ -93,7 +96,9 @@ func (postConditionPrincipalType PostConditionPrincipalType) Check() bool {
 
 		return principalAddress, nil
 	} else if postConditionPrincipalType == PostConditionPrincipalTypeContract {
+		fmt.Printf("adsf\n")
 		principalAddress, err := clarity.DecodePrincipal(clarity.ClarityTypePrincipalContract, reader)
+		fmt.Printf("adsf\n")
 		if err != nil {
 			return address.Address{}, err
 		}
