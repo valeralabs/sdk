@@ -93,7 +93,7 @@ func (postConditionPrincipalType PostConditionPrincipalType) Check() bool {
 
 		return principalAddress, nil
 	} else if postConditionPrincipalType == PostConditionPrincipalTypeContract {
-		principalAddress, err := clarity.ParsePrincipal(clarity.ClarityTypePrincipalContract, reader)
+		principalAddress, err := clarity.DecodePrincipal(clarity.ClarityTypePrincipalContract, reader)
 		if err != nil {
 			return address.Address{}, err
 		}
