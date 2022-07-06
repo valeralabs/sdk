@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -35,6 +36,13 @@ func main() {
 	// type generation
 	f := jen.NewFile("api")
 
+	addServers(f)
+	addCheckFunc(f)
+	f.Line()
+	addMakeGetReqFunc(f)
+	f.Line()
+	addMakePostReqFunc(f)
+
 	for name, path := range swagger.Paths {
 		delete(swagger.Paths, name)
 
@@ -54,7 +62,7 @@ func main() {
 		}
 
 		if !strings.HasPrefix(name, "/rosetta/") {
-			for _, operation := range path.Operations() {
+			for method, operation := range path.Operations() {
 				if operation != nil {
 					startTime := time.Now()
 					prefix := "➤ │ "
@@ -84,6 +92,8 @@ func main() {
 						}()
 					}
 
+					var bodyParams Code
+
 					// request body
 					if operation.RequestBody != nil {
 						for _, body := range operation.RequestBody.Value.Content {
@@ -95,7 +105,7 @@ func main() {
 
 								go func() {
 									defer wg.Done()
-									processRequestBodyProperty(prop, &params, opIdTypeName, title, f)
+									processRequestBodyProperty(prop, &bodyParams, opIdTypeName, title, f)
 									fmt.Printf(typePrefix+"Body property `%v` processed\n", title)
 								}()
 							}
@@ -120,13 +130,28 @@ func main() {
 
 					// funcPrefix := prefix + string(colourCodes["gray"]) + "[FUNC] " + string(colourCodes["reset"])
 
+					possibleStatusCodes := []int{}
+					for statusCode := range operation.Responses {
+						statusCode, _ := strconv.Atoi(statusCode)
+						possibleStatusCodes = append(possibleStatusCodes, statusCode)
+					}
+
+					switch method {
+					case "GET":
+						// GET
+					case "POST":
+						// POST
+						f.Type().ID(opIdTypeName + "Body").Structure(bodyParams.Generated...)
+					default:
+						panic(fmt.Sprintf("Unsupported method %v", method))
+					}
+
 					wg.Wait()
 
-					ParamsTypeName := opIdTypeName + "Params"
-
-					f.Commentf("Defines parameters for %v", opIdTypeName)
-					f.Type().ID(ParamsTypeName).Structure(params.Generated...)
-
+					if len(params.Generated) > 0 {
+						f.Commentf("Defines parameters for %v", opIdTypeName)
+						f.Type().ID(opIdTypeName + "Params").Structure(params.Generated...)
+					}
 					fmt.Printf("➤ └ Completed in %v\n", time.Since(startTime))
 				}
 			}

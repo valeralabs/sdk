@@ -9,10 +9,8 @@ import (
 var (
 	output = "../api.v2.gen.go"
 	input  = "./source/docs/openapi.yaml"
+	URLArgumentScope = regexp.MustCompile(`{([^}]*)}`)
 )
-
-var URLArgumentScope = regexp.MustCompile(`{([^}]*)}`)
-var LowerCaseReplacements = regexp.MustCompile(`(?P<start>(.*(_|{)|\A))(?P<match>nft|btc|stx|api|id|tx|ft|tld|abi)(?P<end>((_|}).*|\z))`)
 
 var manuallyAddedTypes = map[string]jen.Code{
 	"CallReadOnlyFunctionArguments": jen.Type().ID("CallReadOnlyFunctionArguments").Structure(

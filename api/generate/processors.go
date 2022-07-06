@@ -89,13 +89,49 @@ func processRequestBodyProperty(prop *openapi3.SchemaRef, params *Code, opID str
 
 func processResponse(response *openapi3.ResponseRef, opID string, statusCode string, f *jen.File) {
 	val := response.Value
-	respTypeName := opID + statusCode + "Response"
+
+	var respTypeName string
+	if statusCode == "200" {
+		respTypeName = opID + "Response"
+	} else {
+		respTypeName = opID + statusCode + "Error"
+	}
+
+	var props Code
 
 	for _, content := range val.Content {
 		if content.Schema != nil {
-			for name := range content.Schema.Value.Properties {
-				// propVal := prop.Value
-				fmt.Println(name)
+			for name, prop := range content.Schema.Value.Properties {
+				schema := prop.Value
+
+				if schema.Description != "" {
+					props.add(jen.Comment(cleanDesc(schema.Description)))
+				}
+
+				if schema.Type == "array" {
+					switch schema.Items.Value.Type {
+					case "string":
+						props.add(
+							jen.ID(cleanID(name)).Index().String(),
+						)
+					case "integer":
+						props.add(
+							jen.ID(cleanID(name)).Index().Int(),
+						)
+					case "boolean":
+						props.add(
+							jen.ID(cleanID(name)).Index().Bool(),
+						)
+					default:
+						props.add(
+							jen.ID(cleanID(name)).Index().Any(),
+						)
+					}
+				} else {
+					props.add(
+						jen.ID(cleanID(name)).ID(typeReplace(schema.Type)),
+					)
+				}
 			}
 		}
 	}
@@ -108,6 +144,6 @@ func processResponse(response *openapi3.ResponseRef, opID string, statusCode str
 	f.Add(
 		jen.Commentf("Defines a %v%v response for %v.", statusCode, descMsg, opID),
 		jen.Line(),
-		jen.Type().ID(respTypeName).Structure(),
+		jen.Type().ID(respTypeName).Structure(props.Generated...),
 	)
 }
