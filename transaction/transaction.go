@@ -166,8 +166,45 @@ func (transaction *StacksTransaction) Unmarshal(data []byte) error {
 
 			postConditions = append(postConditions, PostCondition(postCondition))
 		case constant.PostConditionTypeFT:
+			addressHash, err := GetSignerFromAuthorization(transaction.Authorization)
+			if err != nil {
+				return fmt.Errorf("Could not get signer from transaction authorization: %v", err)
+			}
 
+			hashMode, err := GetSignerHashModeFromAuthorization(transaction.Authorization)
+			if err != nil {
+				return fmt.Errorf("Could not get signer hash mode from transaction authorization: %v", err)
+			}
+
+			addressVersion := HashModeToAddressVersion(hashMode, transaction.Version)
+
+			originAddress := address.NewAddressFromPublicKeyHash(addressHash[:], addressVersion)
+	
+			principalAddress, err := DeserializePostConditionPrincipal(&reader, originAddress)
+			if err != nil {
+				return fmt.Errorf("Could not deserialize post condition principal: %v", err)
+			}
+
+			assetInfo, err := DeserializeAssetInfo(&reader)
+			if err != nil {
+				return fmt.Errorf("Could not deserialize asset info: %v", err)
+			}
+
+			fungibleConditionCode := FungibleConditionCode(reader.ReadSingle())
+			fungibleConditionCode.Check()
+
+			amount := binary.BigEndian.Uint64(reader.Read(8))
+
+			postCondition := PostConditionFungible {
+				postConditionPrincipal: principalAddress,
+				assetInfo: assetInfo,
+				fungibleConditionCode: fungibleConditionCode,
+				amount: amount,
+			}
+
+			postConditions = append(postConditions, postCondition)
 		case constant.PostConditionTypeNFT:
+			panic("non fungible token post conditions are not yet implemented")
 		}
 	}
 

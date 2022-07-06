@@ -104,6 +104,29 @@ func (postConditionPrincipalType PostConditionPrincipalType) Check() bool {
 	return address.Address{}, fmt.Errorf("Could not parse post condition principal")
  }
 
+ func DeserializeAssetInfo(reader *bite.Reader) (AssetInfo, error) {
+	 addressVersion, err := c32.ReverseVersion(reader.ReadSingle())
+	 if err != nil {
+		 return AssetInfo{}, fmt.Errorf("Could not deserialize post condition principal address: %v", err)
+	 }
+
+	 addressHash := reader.Read(20)
+
+	 address := address.NewAddressFromPublicKeyHash(addressHash, addressVersion)
+
+	 contractNameLength := int(reader.ReadSingle())
+	 contractName := string(reader.Read(contractNameLength))
+
+	 assetNameLength := int(reader.ReadSingle())
+	 assetName := string(reader.Read(assetNameLength))
+
+	 return AssetInfo {
+		 contractAddress: address,
+		 contractName: contractName,
+		 assetName: assetName,
+	 }, nil
+ }
+
  func HashModeToAddressVersion(hashMode constant.HashMode, transactionVersion constant.TransactionVersion) constant.AddressVersion {
 	switch transactionVersion {
 	case constant.TransactionVersionMainnet:
