@@ -8,7 +8,6 @@ import (
 	"github.com/linden/binstruct"
 	"github.com/linden/bite"
 	"github.com/valeralabs/sdk/address"
-	"github.com/valeralabs/sdk/address/c32"
 	"github.com/valeralabs/sdk/constant"
 )
 
@@ -196,7 +195,8 @@ func DecodePrincipal(from ClarityType, reader *bite.Reader) (address.Address, er
 		return address.Address{}, errors.New("clarity type can only be standard or contract")
 	}
 
-	version, err := c32.ReverseVersion(reader.ReadSingle())
+	// version, err := c32.ReverseVersion(reader.ReadSingle())
+	version, err := address.NewAddressVersionFromByte(reader.ReadSingle())
 
 	if err != nil {
 		return address.Address{}, errors.New("address version is invalid")
@@ -226,7 +226,7 @@ func DecodePrincipal(from ClarityType, reader *bite.Reader) (address.Address, er
 }
 
 func EncodePrincipal(from address.Address, writer binstruct.Writer) error {
-	version, err := c32.ConvertVersion(from.Version)
+	version, err := from.Version.GetVersionByte(address.AddressNetworkStacks)
 
 	if err != nil {
 		return err

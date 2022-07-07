@@ -1,11 +1,14 @@
 package transaction
 
-import "github.com/valeralabs/sdk/constant"
+import (
+	"github.com/valeralabs/sdk/constant"
+	"github.com/valeralabs/sdk/address"
+)
 
 type SpendingCondition interface {
 	GetKeyEncoding() constant.PublicKeyEncoding
 	GetSignature() [65]byte
-	GetHashMode() constant.HashMode
+	GetHashMode() address.HashMode
 	GetSigner() [20]byte
 }
 
@@ -25,7 +28,7 @@ type SponsoredAuthorization struct {
 type SingleSignatureSpendingCondition struct {
 	KeyEncoding constant.PublicKeyEncoding
 	Signature   [65]byte
-	HashMode    constant.HashMode
+	HashMode    address.HashMode
 	Signer      [20]byte
 	Nonce       uint64
 	Fee         uint64
@@ -62,7 +65,7 @@ func (condition SingleSignatureSpendingCondition) GetSignature() [65]byte {
 	return condition.Signature
 }
 
-func (condition SingleSignatureSpendingCondition) GetHashMode() constant.HashMode {
+func (condition SingleSignatureSpendingCondition) GetHashMode() address.HashMode {
 	return condition.HashMode
 }
 
@@ -79,8 +82,8 @@ func (condition MultipleSignatureSpendingCondition) GetSignature() [65]byte {
 	return [65]byte{}
 }
 
-func (condition MultipleSignatureSpendingCondition) GetHashMode() constant.HashMode {
-	return constant.HashMode(constant.HashModeP2SH)
+func (condition MultipleSignatureSpendingCondition) GetHashMode() address.HashMode {
+	return address.HashMode(address.HashModeP2SH)
 }
 
 func (condition MultipleSignatureSpendingCondition) GetSigner() [20]byte {

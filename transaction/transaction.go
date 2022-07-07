@@ -72,7 +72,7 @@ func (transaction *StacksTransaction) Unmarshal(data []byte) error {
 	case 0x04:
 		var condition SingleSignatureSpendingCondition
 
-		condition.HashMode = constant.HashMode(reader.ReadSingle())
+		condition.HashMode = address.HashMode(reader.ReadSingle())
 
 		if condition.HashMode.Check() == false {
 			return errors.New("authorization must be signed with either P2PKH, P2SH, P2WPKH-P2SH or P2WSH-P2SH")
@@ -83,7 +83,7 @@ func (transaction *StacksTransaction) Unmarshal(data []byte) error {
 		condition.Fee = binary.BigEndian.Uint64(reader.Read(8))
 
 		switch condition.HashMode {
-		case constant.HashModeP2PKH, constant.HashModeP2WPKH:
+		case address.HashModeP2PKH, address.HashModeP2WPKH:
 			condition.KeyEncoding = constant.PublicKeyEncoding(reader.ReadSingle())
 
 			if condition.KeyEncoding.Check() == false {
@@ -92,7 +92,7 @@ func (transaction *StacksTransaction) Unmarshal(data []byte) error {
 
 			condition.Signature = *(*[65]byte)(reader.Read(65))
 
-		case constant.HashModeP2SH, constant.HashModeP2WSH:
+		case address.HashModeP2SH, address.HashModeP2WSH:
 			panic("TODO: implement HashModeP2SH and HashModeP2WSH_P2SH")
 		}
 
@@ -132,7 +132,11 @@ func (transaction *StacksTransaction) Unmarshal(data []byte) error {
 			hash := transaction.Authorization.GetCondition().GetSigner()
 			mode := transaction.Authorization.GetCondition().GetHashMode()
 
-			version := HashModeToAddressVersion(mode, transaction.Version)
+			version, err := HashModeToAddressVersion(mode, transaction.Version)
+			if err != nil {
+				return fmt.Errorf("Could not get address version: %v", err)
+			}
+
 
 			origin := address.Address{
 				Version: version,
@@ -163,7 +167,10 @@ func (transaction *StacksTransaction) Unmarshal(data []byte) error {
 			hash := transaction.Authorization.GetCondition().GetSigner()
 			mode := transaction.Authorization.GetCondition().GetHashMode()
 
-			version := HashModeToAddressVersion(mode, transaction.Version)
+			version, err := HashModeToAddressVersion(mode, transaction.Version)
+			if err != nil {
+				return fmt.Errorf("Could not get address version: %v", err)
+			}
 
 			origin := address.Address{
 				Version: version,
@@ -195,7 +202,10 @@ func (transaction *StacksTransaction) Unmarshal(data []byte) error {
 			hash := transaction.Authorization.GetCondition().GetSigner()
 			mode := transaction.Authorization.GetCondition().GetHashMode()
 
-			version := HashModeToAddressVersion(mode, transaction.Version)
+			version, err := HashModeToAddressVersion(mode, transaction.Version)
+			if err != nil {
+				return fmt.Errorf("Could not get address version: %v", err)
+			}
 
 			origin := address.Address{
 				Version: version,
@@ -369,11 +379,11 @@ func (transaction *StacksTransaction) Marshal() ([]byte, error) {
 			writer.WriteUint64(condition.Fee)
 
 			switch condition.HashMode {
-			case constant.HashModeP2PKH, constant.HashModeP2WPKH:
+			case address.HashModeP2PKH, address.HashModeP2WPKH:
 				writer.WriteUint8(uint8(condition.KeyEncoding))
 				writer.Write(condition.Signature[:])
 
-			case constant.HashModeP2SH, constant.HashModeP2WSH:
+			case address.HashModeP2SH, address.HashModeP2WSH:
 				panic("TODO: implement HashModeP2SH and HashModeP2WSH_P2SH")
 			}
 

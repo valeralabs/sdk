@@ -4,7 +4,6 @@ import (
 	"encoding/hex"
 	"testing"
 
-	"github.com/valeralabs/sdk/constant"
 	"github.com/valeralabs/sdk/keys"
 )
 
@@ -12,9 +11,9 @@ func TestBasicAddress(test *testing.T) {
 	decoded, _ := hex.DecodeString("edf9aee84d9b7abc145504dde6726c64f369d37ee34ded868fabd876c26570bc01")
 	private, _ := keys.NewPrivateKey(decoded)
 	public := private.PublicKey()
-	version, _ := NewAddressVersion(HashModeP2PKH, AddressNetworkTypeMainnet)
+	version, _ := NewAddressVersion(AddressTypeP2PKH, AddressNetworkTypeMainnet)
 
-	user, err := NewAddress([]keys.PublicKey{public}, 1, version, constant.HashModeP2PKH)
+	user, err := NewAddress([]keys.PublicKey{public}, 1, version, HashModeP2PKH)
 
 	test.Logf("Creating address")
 
@@ -70,9 +69,9 @@ func TestBasicAddress(test *testing.T) {
 
 		publicKeys := []keys.PublicKey{publicOne, publicTwo}
 
-		version, _ := NewAddressVersion(HashModeP2SH, AddressNetworkTypeMainnet)
+		version, _ := NewAddressVersion(AddressTypeP2SH, AddressNetworkTypeMainnet)
 
-		address, err := NewAddress(publicKeys, 2, version, constant.HashModeP2SH)
+		address, err := NewAddress(publicKeys, 2, version, HashModeP2SH)
 
 		if err != nil {
 			test.Fatalf("Could not create address, err: %v", err)
@@ -101,9 +100,9 @@ func TestBasicAddress(test *testing.T) {
 
 	test.Run("can create p2wpkh address", func(test *testing.T) {
 		publicKeys := []keys.PublicKey{public}
-		version, _ := NewAddressVersion(HashModeP2WPKH, AddressNetworkTypeMainnet)
+		version, _ := NewAddressVersion(AddressTypeP2SH, AddressNetworkTypeMainnet)
 
-		address, err := NewAddress(publicKeys, 1, version, constant.HashModeP2WPKH)
+		address, err := NewAddress(publicKeys, 1, version, HashModeP2WPKH)
 		if err != nil {
 			test.Fatalf("Could not create p2wpkh address, err: %v", err)
 		}
@@ -138,9 +137,9 @@ func TestBasicAddress(test *testing.T) {
 
 		publicKeys := []keys.PublicKey{publicOne, publicTwo}
 
-		version, err := NewAddressVersion(HashModeP2WSH, AddressNetworkTypeMainnet)
+		version, err := NewAddressVersion(AddressTypeP2SH, AddressNetworkTypeMainnet)
 
-		address, err := NewAddress(publicKeys, 2, version, constant.HashModeP2WSH)
+		address, err := NewAddress(publicKeys, 2, version, HashModeP2WSH)
 
 		if err != nil {
 			test.Fatalf("Could not create address, err: %v", err)

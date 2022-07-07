@@ -118,23 +118,35 @@ func DecodeAsset(reader *bite.Reader) (Asset, error) {
 	return asset, nil
 }
 
-func HashModeToAddressVersion(hashMode constant.HashMode, transactionVersion constant.TransactionVersion) constant.AddressVersion {
+func HashModeToAddressVersion(hashMode address.HashMode, transactionVersion constant.TransactionVersion) (address.AddressVersion, error) {
+	var addressType address.AddressType
+	var networkType address.AddressNetworkType
+
 	switch transactionVersion {
 	case constant.TransactionVersionMainnet:
+		networkType = address.AddressNetworkTypeMainnet
+
 		switch hashMode {
-		case constant.HashModeP2PKH:
-			return constant.AddressVersionMainnetPublicKeyHash
+		case address.HashModeP2PKH:
+			addressType = address.AddressTypeP2PKH
 		default:
-			return constant.AddressVersionMainnetScriptHash
+			addressType = address.AddressTypeP2SH
 		}
 	case constant.TransactionVersionTestnet:
+		networkType = address.AddressNetworkTypeTestnet
+
 		switch hashMode {
-		case constant.HashModeP2PKH:
-			return constant.AddressVersionTestnetPublicKeyHash
+		case address.HashModeP2PKH:
+			addressType = address.AddressTypeP2PKH
 		default:
-			return constant.AddressVersionTestnetScriptHash
+			addressType = address.AddressTypeP2SH
 		}
 	}
 
-	return constant.AddressVersionMainnetPublicKeyHash
+	newAddress, err := address.NewAddressVersion(addressType, networkType)
+	if err != nil {
+		return address.AddressVersion{}, fmt.Errorf("Could not create address version: %v", err)
+	}
+
+	return newAddress, nil
 }
