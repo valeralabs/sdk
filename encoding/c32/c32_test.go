@@ -41,3 +41,35 @@ func TestCheckEncode(test *testing.T) {
 
 	test.Log("got checksum", string(checksum))
 }
+
+func TestDecode(test *testing.T) {
+	decoded, err := Decode([]byte("AQKFF"))
+
+	if err != nil {
+		test.Fatalf("failed to decode got %v", err)
+	}
+
+	if string(decoded) != "abcdef" {
+		test.Fatalf("expected \"abcdef\" got \"%s\"", decoded)
+	}
+
+	test.Log("got decoded", string(decoded))
+}
+
+func TestCheckDecode(test *testing.T) {
+	decoded, version, err := ChecksumDecode([]byte("P2MNDVBSG6CG3CDJRYSYR12GG7VMKHC8XMVVHEH6"))
+
+	if err != nil {
+		test.Fatalf("failed to decode got %v", err)
+	}
+
+	if string(decoded) != "a956ed79819901b1b2c7b3ec045081f749c588ed" {
+		test.Fatalf("expected \"a956ed79819901b1b2c7b3ec045081f749c588ed\" got \"%s\"", decoded)
+	}
+
+	if version != 22 {
+		test.Fatalf("expected 22 got %d", version)
+	}
+
+	test.Log("got decoded", string(decoded), version)
+}
