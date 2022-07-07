@@ -70,38 +70,39 @@ func (transaction *StacksTransaction) Unmarshal(data []byte) error {
 
 	switch authorizationType {
 	case 0x04:
-		var condtion SingleSignatureSpendingCondition
+		var condition SingleSignatureSpendingCondition
 
-		condtion.HashMode = constant.HashMode(reader.ReadSingle())
+		condition.HashMode = constant.HashMode(reader.ReadSingle())
 
-		if condtion.HashMode.Check() == false {
+		if condition.HashMode.Check() == false {
 			return errors.New("authorization must be signed with either P2PKH, P2SH, P2WPKH-P2SH or P2WSH-P2SH")
 		}
 
-		condtion.Signer = *(*[20]byte)(reader.Read(20))
-		condtion.Nonce = binary.BigEndian.Uint64(reader.Read(8))
-		condtion.Fee = binary.BigEndian.Uint64(reader.Read(8))
+		condition.Signer = *(*[20]byte)(reader.Read(20))
+		condition.Nonce = binary.BigEndian.Uint64(reader.Read(8))
+		condition.Fee = binary.BigEndian.Uint64(reader.Read(8))
 
-		switch condtion.HashMode {
+		switch condition.HashMode {
 		case constant.HashModeP2PKH, constant.HashModeP2WPKH:
-			condtion.KeyEncoding = constant.PublicKeyEncoding(reader.ReadSingle())
+			condition.KeyEncoding = constant.PublicKeyEncoding(reader.ReadSingle())
 
-			if condtion.KeyEncoding.Check() == false {
+			if condition.KeyEncoding.Check() == false {
 				return errors.New("public key encoding must be compressed or uncompressed")
 			}
 
-			condtion.Signature = *(*[65]byte)(reader.Read(65))
+			condition.Signature = *(*[65]byte)(reader.Read(65))
 
 		case constant.HashModeP2SH, constant.HashModeP2WSH:
-			panic("TODO: implment HashModeP2SH and HashModeP2WSH_P2SH")
+			panic("TODO: implement HashModeP2SH and HashModeP2WSH_P2SH")
 		}
 
-		transaction.Authorization = StandardAuthorization(SingleSignatureSpendingCondition(condtion))
+		transaction.Authorization = StandardAuthorization{SingleSignatureSpendingCondition(condition)}
+
 	case 0x05:
 		// sponsored authorization
 		// two spending conditions.
 
-		panic("TODO: implment sponsored authorization")
+		panic("TODO: implement sponsored authorization")
 	}
 
 	transaction.AnchorMode = constant.AnchorMode(reader.ReadSingle())
@@ -128,8 +129,8 @@ func (transaction *StacksTransaction) Unmarshal(data []byte) error {
 
 		switch postConditionType {
 		case constant.PostConditionTypeSTX:
-			hash := transaction.Authorization.GetSigner()
-			mode := transaction.Authorization.GetHashMode()
+			hash := transaction.Authorization.GetCondition().GetSigner()
+			mode := transaction.Authorization.GetCondition().GetHashMode()
 
 			version := HashModeToAddressVersion(mode, transaction.Version)
 
@@ -159,8 +160,8 @@ func (transaction *StacksTransaction) Unmarshal(data []byte) error {
 			})
 
 		case constant.PostConditionTypeFT:
-			hash := transaction.Authorization.GetSigner()
-			mode := transaction.Authorization.GetHashMode()
+			hash := transaction.Authorization.GetCondition().GetSigner()
+			mode := transaction.Authorization.GetCondition().GetHashMode()
 
 			version := HashModeToAddressVersion(mode, transaction.Version)
 
@@ -191,8 +192,8 @@ func (transaction *StacksTransaction) Unmarshal(data []byte) error {
 			postConditions = append(postConditions, postCondition)
 
 		case constant.PostConditionTypeNFT:
-			hash := transaction.Authorization.GetSigner()
-			mode := transaction.Authorization.GetHashMode()
+			hash := transaction.Authorization.GetCondition().GetSigner()
+			mode := transaction.Authorization.GetCondition().GetHashMode()
 
 			version := HashModeToAddressVersion(mode, transaction.Version)
 
@@ -357,31 +358,31 @@ func (transaction *StacksTransaction) Marshal() ([]byte, error) {
 
 	switch authorization := any(transaction.Authorization).(type) {
 	case StandardAuthorization:
-		switch condtion := any(authorization).(type) {
+		switch condition := any(authorization.GetCondition()).(type) {
 		case SingleSignatureSpendingCondition:
 			writer.WriteUint8(uint8(0x04))
-			writer.WriteUint8(uint8(condtion.HashMode))
+			writer.WriteUint8(uint8(condition.HashMode))
 
-			writer.Write(condtion.Signer[:])
+			writer.Write(condition.Signer[:])
 
-			writer.WriteUint64(condtion.Nonce)
-			writer.WriteUint64(condtion.Fee)
+			writer.WriteUint64(condition.Nonce)
+			writer.WriteUint64(condition.Fee)
 
-			switch condtion.HashMode {
+			switch condition.HashMode {
 			case constant.HashModeP2PKH, constant.HashModeP2WPKH:
-				writer.WriteUint8(uint8(condtion.KeyEncoding))
-				writer.Write(condtion.Signature[:])
+				writer.WriteUint8(uint8(condition.KeyEncoding))
+				writer.Write(condition.Signature[:])
 
 			case constant.HashModeP2SH, constant.HashModeP2WSH:
-				panic("TODO: implment HashModeP2SH and HashModeP2WSH_P2SH")
+				panic("TODO: implement HashModeP2SH and HashModeP2WSH_P2SH")
 			}
 
 		default:
-			panic("TODO: implment sponsored authorization")
+			panic("TODO: implement multiple spending condition")
 		}
 
 	default:
-		panic("TODO: implment sponsored authorization")
+		panic("TODO: implement sponsored authorization")
 	}
 
 	writer.WriteUint8(uint8(transaction.AnchorMode))

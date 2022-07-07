@@ -103,4 +103,3 @@ const (
 func (_type PostConditionType) Check() bool {
 	return _type >= PostConditionTypeSTX && _type <= PostConditionTypeNFT
 }
-
