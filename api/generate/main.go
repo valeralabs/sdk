@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -29,19 +28,12 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	
+
 	fmt.Printf("Loaded API spec in %v\n", time.Since(rootStart))
 	processingStart := time.Now()
 
 	// type generation
 	f := jen.NewFile("api")
-
-	addServers(f)
-	addCheckFunc(f)
-	f.Line()
-	addMakeGetReqFunc(f)
-	f.Line()
-	addMakePostReqFunc(f)
 
 	for name, path := range swagger.Paths {
 		delete(swagger.Paths, name)
@@ -130,18 +122,23 @@ func main() {
 
 					// funcPrefix := prefix + string(colourCodes["gray"]) + "[FUNC] " + string(colourCodes["reset"])
 
-					possibleStatusCodes := []int{}
+					possibleResponseTypes := []jen.Code{}
 					for statusCode := range operation.Responses {
-						statusCode, _ := strconv.Atoi(statusCode)
-						possibleStatusCodes = append(possibleStatusCodes, statusCode)
+						if statusCode == "200" {
+							possibleResponseTypes = append(possibleResponseTypes, jen.ID(opIdTypeName+"Response"))
+						}
+						//else {
+						// 	possibleResponseTypes = append(possibleResponseTypes, jen.ID(opIdTypeName + statusCode + "Error"))
+						// }
 					}
+
+					possibleResponseTypes = append(possibleResponseTypes, jen.Error())
 
 					switch method {
 					case "GET":
 						// GET
 					case "POST":
-						// POST
-						f.Type().ID(opIdTypeName + "Body").Structure(bodyParams.Generated...)
+						processPostReq(f, opIdTypeName, operation, bodyParams, name, possibleResponseTypes)
 					default:
 						panic(fmt.Sprintf("Unsupported method %v", method))
 					}
@@ -166,6 +163,7 @@ func main() {
 	err = f.Save(output)
 
 	if err != nil {
+		fmt.Println(err)
 		panic(err)
 	}
 

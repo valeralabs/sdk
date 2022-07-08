@@ -94,7 +94,8 @@ func processResponse(response *openapi3.ResponseRef, opID string, statusCode str
 	if statusCode == "200" {
 		respTypeName = opID + "Response"
 	} else {
-		respTypeName = opID + statusCode + "Error"
+		return
+		// respTypeName = opID + statusCode + "Error"
 	}
 
 	var props Code
@@ -103,6 +104,7 @@ func processResponse(response *openapi3.ResponseRef, opID string, statusCode str
 		if content.Schema != nil {
 			for name, prop := range content.Schema.Value.Properties {
 				schema := prop.Value
+				tag := map[string]string{"json": name}
 
 				if schema.Description != "" {
 					props.add(jen.Comment(cleanDesc(schema.Description)))
@@ -112,24 +114,24 @@ func processResponse(response *openapi3.ResponseRef, opID string, statusCode str
 					switch schema.Items.Value.Type {
 					case "string":
 						props.add(
-							jen.ID(cleanID(name)).Index().String(),
+							jen.ID(cleanID(name)).Index().String().Tag(tag),
 						)
 					case "integer":
 						props.add(
-							jen.ID(cleanID(name)).Index().Int(),
+							jen.ID(cleanID(name)).Index().Int().Tag(tag),
 						)
 					case "boolean":
 						props.add(
-							jen.ID(cleanID(name)).Index().Bool(),
+							jen.ID(cleanID(name)).Index().Bool().Tag(tag),
 						)
 					default:
 						props.add(
-							jen.ID(cleanID(name)).Index().Any(),
+							jen.ID(cleanID(name)).Index().Any().Tag(tag),
 						)
 					}
 				} else {
 					props.add(
-						jen.ID(cleanID(name)).ID(typeReplace(schema.Type)),
+						jen.ID(cleanID(name)).ID(typeReplace(schema.Type)).Tag(tag),
 					)
 				}
 			}
@@ -146,4 +148,120 @@ func processResponse(response *openapi3.ResponseRef, opID string, statusCode str
 		jen.Line(),
 		jen.Type().ID(respTypeName).Structure(props.Generated...),
 	)
+}
+
+func processPostReq(f *jen.File, opIdTypeName string, operation *openapi3.Operation, bodyParams Code, name string, possibleResponseTypes []jen.Code) {
+	// POST
+	f.Type().ID(opIdTypeName + "Body").Structure(bodyParams.Generated...)
+
+	var inputParams Code
+
+	inputParams.add(jen.ID("server").ID("Server"))
+
+	// if there are parameters, add them to the input params
+	if len(operation.Parameters) > 0 {
+		inputParams.add(jen.ID("params").ID(opIdTypeName + "Params"))
+	}
+	// if there is a request body, add it to the input params
+	if operation.RequestBody != nil {
+		inputParams.add(jen.ID("body").ID(opIdTypeName + "Body"))
+	}
+
+	var funcCode Code
+
+	if len(operation.Parameters) > 0 {
+		funcCode.add(
+			// url := fmt.Sprintf("%s%s", server, fillPath(name, params))
+			jen.ID("url").Op(":=").Qualified("fmt", "Sprintf").Call(
+				jen.Literal("%s%s"),
+				jen.ID("server"),
+				jen.ID("fillPath").Call(
+					jen.Literal(name),
+					jen.ID("params"),
+				),
+			),
+		)
+	} else {
+		funcCode.add(
+			// url := fmt.Sprintf("%s%s", server, name))
+			jen.ID("url").Op(":=").Qualified("fmt", "Sprintf").Call(
+				jen.Literal("%s%s"),
+				jen.ID("server"),
+				jen.Literal(name),
+			),
+		)
+	}
+
+	funcCode.add(
+		// var returnedErr error
+		jen.Var().ID("returnedErr").Error(),
+		// sendBody, _ := json.Marshal(body)
+		jen.ID("sendBody").Op(",").ID("_").Op(":=").Qualified("encoding/json", "Marshal").Call(jen.ID("body")),
+		// resp, status := makePostReq(url, string(sendBody), &returnedErr)
+		jen.ID("resp").Op(",").ID("status").Op(":=").ID("makePostReq").Call(jen.ID("url"), jen.ID("string").Call(jen.ID("sendBody")), jen.ID("&returnedErr")),
+		jen.Line(),
+		// if returnedErr != nil {
+		jen.If(jen.ID("returnedErr").Op("!=").Nil()).Block(
+			// return PostFeeTransactionResponse{}, returnedErr
+			jen.Return().ID(opIdTypeName+"Response").Block().Op(",").ID("returnedErr"),
+		),
+		jen.Line(),
+		// switch status {
+		jen.Switch(jen.ID("status")).Block(
+			// case 200:
+			jen.Case(jen.Literal(200)).Block(
+				// var respObj PostFeeTransactionResponse
+				jen.Var().ID("respObj").ID(opIdTypeName+"Response"),
+				// err := json.Unmarshal(resp, &respObj)
+				jen.ID("err").Op(":=").Qualified("encoding/json", "Unmarshal").Call(jen.ID("resp"), jen.ID("&respObj")),
+				// if err != nil {
+				// 	return respObj, err
+				// }
+				jen.If(jen.ID("err").Op("!=").Nil()).Block(
+					jen.Return().ID("respObj").Op(",").ID("err"),
+				),
+				// return respObj, nil
+				jen.Return().ID("respObj").Op(",").Nil(),
+			),
+			jen.Default().Block(
+				// var respObj struct{
+				// 	Error string `json:"error"`
+				// }
+				jen.Var().ID("respObj").Structure(
+					jen.ID("Error").String().Tag(map[string]string{"json": "error"}),
+				),
+				// err := json.Unmarshal(resp, &respObj)
+				jen.ID("err").Op(":=").Qualified("encoding/json", "Unmarshal").Call(jen.ID("resp"), jen.ID("&respObj")),
+				// if err != nil {
+				// 	return PostFeeTransactionResponse{}, err
+				// }
+				jen.If(jen.ID("err").Op("!=").Nil()).Block(
+					jen.Return().ID(opIdTypeName+"Response").Block().Op(",").ID("err"),
+				),
+				// return PostFeeTransactionResponse{}, errors.New(respObj.Error)
+				jen.Return().ID(opIdTypeName+"Response").Block().Op(",").Qualified("errors", "New").Call(jen.ID("respObj").Dot("Error")),
+			),
+		),
+	)
+
+	if (operation.Description != "") {
+		// // detect if there are references (like `transaction_payload`) and replace them with the actual values
+		// // pull each reference by backticks and replace with cleanID(reference)
+		// splitStr := strings.Split(operation.Description, "`")
+		// for i := 0; i < len(splitStr); i++ {
+		// 	if i % 2 == 0 {
+		// 		// make sure it's not surrounded by no none-whitespace characters
+		// 		if strings.TrimSpace(splitStr[i]) == "" {
+		// 			splitStr[i] = cleanID(splitStr[i])
+		// 		}
+		// 	}
+		// }
+
+		f.Comment(operation.Description)
+	}
+	f.Func().ID(funcName(opIdTypeName)).Parameters(
+		inputParams.Generated...,
+	).Parameters(possibleResponseTypes...).Block(
+		funcCode.Generated...,
+	).Line()
 }
