@@ -6,12 +6,12 @@ import (
 	"fmt"
 
 	"github.com/btcsuite/btcd/btcutil"
+	"github.com/btcsuite/btcd/btcutil/base58"
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcd/txscript"
-	"github.com/btcsuite/btcd/btcutil/base58"
 
 	"github.com/valeralabs/sdk/encoding/c32"
-	"github.com/valeralabs/sdk/keys"
+	"github.com/valeralabs/sdk/wallet/keys"
 )
 
 type Address struct {
@@ -36,7 +36,7 @@ func (address Address) C32() (string, error) {
 		return "", fmt.Errorf("Could not get version byte: %v", err)
 	}
 
-	hashAsHex:= make([]byte, hex.EncodedLen(len(address.Hash)))
+	hashAsHex := make([]byte, hex.EncodedLen(len(address.Hash)))
 	hex.Encode(hashAsHex, address.Hash)
 
 	c32AddressBytes, err := c32.ChecksumEncode(hashAsHex, versionByte)
@@ -49,7 +49,7 @@ func (address Address) C32() (string, error) {
 	if address.Contract != "" {
 		c32Address += "." + address.Contract
 	}
-	
+
 	return fmt.Sprintf("S%s", c32Address), nil
 }
 
@@ -134,9 +134,8 @@ func NewAddress(publicKeys []keys.PublicKey, numSigs int, version AddressVersion
 }
 
 func NewAddressFromPublicKeyHash(hash []byte, version AddressVersion) Address {
-	return Address {
+	return Address{
 		Version: version,
-		Hash: hash,
+		Hash:    hash,
 	}
 }
-

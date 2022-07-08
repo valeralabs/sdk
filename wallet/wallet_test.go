@@ -42,10 +42,6 @@ func TestWallet(test *testing.T) {
 			test.Fatalf("failed to derive data private key got \"%s\" expected \"%s\"", account.dataPrivateKey, ExpectedDataPrivateKey)
 		}
 
-		if string(account.stacksPrivateKey) != ExpectedStacksPrivateKey {
-			test.Fatalf("failed to derive stacks private key got \"%s\" expected \"%s\"", account.stacksPrivateKey, ExpectedStacksPrivateKey)
-		}
-
 		test.Logf("got account %+v\n", account)
 	})
 }

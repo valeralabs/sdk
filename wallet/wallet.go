@@ -8,6 +8,8 @@ import (
 	"github.com/btcsuite/btcd/btcec/v2"
 	"github.com/btcsuite/btcd/btcutil/hdkeychain"
 	"github.com/btcsuite/btcd/chaincfg"
+
+	"github.com/valeralabs/sdk/wallet/keys"
 )
 
 const HardenedOffset = 0x80000000
@@ -32,8 +34,8 @@ type Account struct {
 
 	appPrivateKey  *btcec.PrivateKey
 	dataPrivateKey []byte
-	//TODO (Linden): do we need this or can we just serialize on the fly?
-	stacksPrivateKey []byte
+
+	PrivateKey *keys.PrivateKey
 }
 
 func derive(root *hdkeychain.ExtendedKey, path []uint32) (*hdkeychain.ExtendedKey, error) {
@@ -80,25 +82,17 @@ func (account *Account) getAppPrivateKey() (*btcec.PrivateKey, error) {
 		return nil, err
 	}
 
-	return private, err
+	return private, nil
 }
 
-func (account *Account) getStacksPrivateKey() ([]byte, error) {
+func (account *Account) getPrivateKey() (*keys.PrivateKey, error) {
 	private, err := account.root.ECPrivKey()
 
 	if err != nil {
 		return nil, err
 	}
 
-	serialized := private.Serialize()
-
-	hexed := make([]byte, hex.EncodedLen(len(serialized)))
-	hex.Encode(hexed, serialized)
-
-	// we currently can only serialize compressed public keys, this indicates that.
-	hexed = append(hexed, []byte{0x30, 0x31}...)
-
-	return hexed, err
+	return &keys.PrivateKey{private, true}, nil
 }
 
 func (wallet *Wallet) getSalt() ([]byte, error) {
@@ -197,7 +191,7 @@ func (wallet *Wallet) Account(index int) (Account, error) {
 		return Account{}, err
 	}
 
-	account.stacksPrivateKey, err = account.getStacksPrivateKey()
+	account.PrivateKey, err = account.getPrivateKey()
 
 	if err != nil {
 		return Account{}, err

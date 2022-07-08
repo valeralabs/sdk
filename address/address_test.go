@@ -4,7 +4,7 @@ import (
 	"encoding/hex"
 	"testing"
 
-	"github.com/valeralabs/sdk/keys"
+	"github.com/valeralabs/sdk/wallet/keys"
 )
 
 func TestBasicAddress(test *testing.T) {
@@ -94,7 +94,7 @@ func TestBasicAddress(test *testing.T) {
 		}
 
 		if b58 != "36hNotikUFm3onF99N9bmG4EzPdn5GiiQh" {
-			test.Fatalf("Expected \"36hNotikUFm3onF99N9bmG4EzPdn5GiiQh\" got \"%s\"", b58);
+			test.Fatalf("Expected \"36hNotikUFm3onF99N9bmG4EzPdn5GiiQh\" got \"%s\"", b58)
 		}
 	})
 
@@ -125,7 +125,7 @@ func TestBasicAddress(test *testing.T) {
 			test.Fatalf("Expected \"SM2R2Q8416BH23ESMDMJ13CJJS72W4GYX1WZCDM2P\", got %v", c32)
 		}
 	})
-	
+
 	test.Run("can create p2wsh multisig address", func(test *testing.T) {
 		decodedOne, _ := hex.DecodeString("c3e1c944086ea6d61e0b9948a62d9608018c00a67424a817f005cf6bba39ce9001")
 		privateOne, _ := keys.NewPrivateKey(decodedOne)
@@ -162,8 +162,7 @@ func TestBasicAddress(test *testing.T) {
 		}
 
 		if b58 != "3PYuTeUQ3536cWwxHsDTJWik1DzFHJH8fR" {
-			test.Fatalf("Expected \"3PYuTeUQ3536cWwxHsDTJWik1DzFHJH8fR\" got \"%s\"", b58);
+			test.Fatalf("Expected \"3PYuTeUQ3536cWwxHsDTJWik1DzFHJH8fR\" got \"%s\"", b58)
 		}
 	})
 }
-
