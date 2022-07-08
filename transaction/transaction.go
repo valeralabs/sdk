@@ -137,16 +137,14 @@ func (transaction *StacksTransaction) Unmarshal(data []byte) error {
 				return fmt.Errorf("Could not get address version: %v", err)
 			}
 
-
 			origin := address.Address{
 				Version: version,
 				Hash:    hash[:],
 			}
 
 			principal, err := DecodePostConditionPrincipal(&reader, origin)
-
 			if err != nil {
-				return err
+				return fmt.Errorf("Could not decode post condition principal: %v", err)
 			}
 
 			condition := FungibleConditionCode(reader.ReadSingle())
@@ -157,7 +155,7 @@ func (transaction *StacksTransaction) Unmarshal(data []byte) error {
 
 			amount := binary.BigEndian.Uint64(reader.Read(8))
 
-			postConditions = append(postConditions, PostConditionStacks{
+			postConditions = append(postConditions, PostConditionSTX{
 				Principal: principal,
 				Condition: condition,
 				Amount:    amount,
@@ -399,6 +397,50 @@ func (transaction *StacksTransaction) Marshal() ([]byte, error) {
 
 	writer.WriteUint8(uint8(transaction.PostConditionMode))
 	writer.WriteUint32(uint32(len(transaction.PostConditions)))
+
+	for _, postCondition := range transaction.PostConditions {
+		switch any(postCondition).(type) {
+		case PostConditionSTX:
+			writer.WriteUint8(uint8(constant.PostConditionTypeSTX))
+
+			postCondition := any(postCondition).(PostConditionSTX)
+
+			postCondition.Principal.Encode(writer)
+
+			writer.WriteUint8(uint8(postCondition.Condition))
+
+			writer.WriteUint64(postCondition.Amount)
+		case PostConditionFungible:
+			writer.WriteUint8(uint8(constant.PostConditionTypeFT))
+
+			postCondition := any(postCondition).(PostConditionFungible)
+
+			postCondition.Principal.Encode(writer)
+
+			postCondition.Asset.Encode(writer)
+
+			writer.WriteUint8(uint8(postCondition.Condition))
+
+			writer.WriteUint64(postCondition.Amount)
+		case PostConditionNonFungible:
+			writer.WriteUint8(uint8(constant.PostConditionTypeNFT))
+
+			postCondition := any(postCondition).(PostConditionNonFungible)
+
+			postCondition.Principal.Encode(writer)
+
+			postCondition.Asset.Encode(writer)
+
+			valueBytes, err := postCondition.Value.Marshal(true)
+			if err != nil {
+				return []byte{}, fmt.Errorf("Could not marshal post condition value: %v", err)
+			}
+
+			writer.Write(valueBytes)
+
+			writer.WriteUint8(uint8(postCondition.Condition))
+		}
+	}
 
 	//TODO: handle strict post-conditions
 
