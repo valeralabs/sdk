@@ -5,109 +5,8 @@ import (
 )
 
 type AddressVersion struct {
-	addressType AddressType
-	networkType AddressNetworkType
-}
-
-func NewAddressVersion(addressType AddressType, networkType AddressNetworkType) (AddressVersion, error) {
-	if !addressType.Check() {
-		return AddressVersion{}, fmt.Errorf("hashMode must be between 0 and 1, not %v", addressType)
-	}
-
-	if !networkType.Check() {
-		return AddressVersion{}, fmt.Errorf("network must be between 0 and 1, not %v", networkType)
-	}
-
-	return AddressVersion {
-		addressType: addressType,
-		networkType: networkType,
-	}, nil
-}
-
-func (addressVersion AddressVersion) GetVersionByte(addressNetwork AddressNetwork) (byte, error) {
-	if !addressVersion.networkType.Check() {
-		return byte(0), fmt.Errorf("AddressNetworkType must be 0 or 1, not %v", addressVersion.networkType)
-	}
-
-	switch addressVersion.networkType {
-	case AddressNetworkTypeMainnet:
-		switch addressNetwork {
-		case AddressNetworkBitcoin:
-			switch addressVersion.addressType {
-			case AddressTypeP2PKH:
-				return byte(0), nil
-			case AddressTypeP2SH:
-				return byte(5), nil
-			}
-
-		case AddressNetworkStacks:
-			switch addressVersion.addressType {
-			case AddressTypeP2PKH:
-				return byte(22), nil
-			case AddressTypeP2SH:
-				return byte(20), nil
-			}
-		}
-	case AddressNetworkTypeTestnet:
-		switch addressNetwork {
-		case AddressNetworkBitcoin:
-			switch addressVersion.addressType {
-			case AddressTypeP2PKH:
-				return byte(111), nil
-			case AddressTypeP2SH:
-				return byte(196), nil
-			}
-
-		case AddressNetworkStacks:
-			switch addressVersion.addressType {
-			case AddressTypeP2PKH:
-				return byte(26), nil
-			case AddressTypeP2SH:
-				return byte(21), nil
-			}
-		}
-	}
-
-	return byte(0), fmt.Errorf("AddressNetworkType is invalid")
-}
-
-func NewAddressVersionFromByte(versionByte byte) (AddressVersion, error) {
-	var addressType AddressType
-	var addressNetworkType AddressNetworkType
-
-	switch versionByte {
-	case 0:
-		addressType = AddressTypeP2PKH
-		addressNetworkType = AddressNetworkTypeMainnet
-	case 5:
-		addressType = AddressTypeP2SH
-		addressNetworkType = AddressNetworkTypeMainnet
-	case 111:
-		addressType = AddressTypeP2PKH
-		addressNetworkType = AddressNetworkTypeTestnet
-	case 196:
-		addressType = AddressTypeP2SH
-		addressNetworkType = AddressNetworkTypeTestnet
-	case 22:
-		addressType = AddressTypeP2PKH
-		addressNetworkType = AddressNetworkTypeMainnet
-	case 20:
-		addressType = AddressTypeP2SH
-		addressNetworkType = AddressNetworkTypeMainnet
-	case 26:
-		addressType = AddressTypeP2PKH
-		addressNetworkType = AddressNetworkTypeTestnet
-	case 21:
-		addressType = AddressTypeP2SH
-		addressNetworkType = AddressNetworkTypeTestnet
-	}
-
-	addressVersion, err := NewAddressVersion(addressType, addressNetworkType)
-	if err != nil {
-		return AddressVersion{}, fmt.Errorf("Could not create address version: %v", err)
-	}
-
-	return addressVersion, nil
+	AddressType AddressType
+	NetworkType AddressNetworkType
 }
 
 type AddressNetwork int
@@ -154,4 +53,111 @@ const (
 
 func (addressType AddressType) Check() bool {
 	return addressType >= AddressTypeP2PKH && addressType <= AddressTypeP2SH
+}
+
+func NewAddressVersion(addressType AddressType, networkType AddressNetworkType) (AddressVersion, error) {
+	if addressType.Check() == false {
+		return AddressVersion{}, fmt.Errorf("address type must be AddressTypeP2PKH or AddressTypeP2SH got %T", addressType)
+	}
+
+	if networkType.Check() == false {
+		return AddressVersion{}, fmt.Errorf("network type must be AddressNetworkTypeMainnet or AddressNetworkTypeTestnet got %T", networkType)
+	}
+
+	return AddressVersion{
+		AddressType: addressType,
+		NetworkType: networkType,
+	}, nil
+}
+
+func (addressVersion AddressVersion) GetVersionByte(addressNetwork AddressNetwork) (byte, error) {
+	switch addressVersion.NetworkType {
+	case AddressNetworkTypeMainnet:
+		switch addressNetwork {
+		case AddressNetworkBitcoin:
+			switch addressVersion.AddressType {
+			case AddressTypeP2PKH:
+				return byte(0), nil
+
+			case AddressTypeP2SH:
+				return byte(5), nil
+			}
+
+		case AddressNetworkStacks:
+			switch addressVersion.AddressType {
+			case AddressTypeP2PKH:
+				return byte(22), nil
+
+			case AddressTypeP2SH:
+				return byte(20), nil
+			}
+		}
+	case AddressNetworkTypeTestnet:
+		switch addressNetwork {
+		case AddressNetworkBitcoin:
+			switch addressVersion.AddressType {
+			case AddressTypeP2PKH:
+				return byte(111), nil
+			case AddressTypeP2SH:
+				return byte(196), nil
+			}
+
+		case AddressNetworkStacks:
+			switch addressVersion.AddressType {
+			case AddressTypeP2PKH:
+				return byte(26), nil
+			case AddressTypeP2SH:
+				return byte(21), nil
+			}
+		}
+	}
+
+	return byte(0), fmt.Errorf("network type must be AddressNetworkTypeMainnet or AddressNetworkTypeTestnet got %T", addressVersion.NetworkType)
+}
+
+func NewAddressVersionFromByte(versionByte byte) (AddressVersion, error) {
+	var addressType AddressType
+	var addressNetworkType AddressNetworkType
+
+	switch versionByte {
+	case 0:
+		addressType = AddressTypeP2PKH
+		addressNetworkType = AddressNetworkTypeMainnet
+
+	case 5:
+		addressType = AddressTypeP2SH
+		addressNetworkType = AddressNetworkTypeMainnet
+
+	case 111:
+		addressType = AddressTypeP2PKH
+		addressNetworkType = AddressNetworkTypeTestnet
+
+	case 196:
+		addressType = AddressTypeP2SH
+		addressNetworkType = AddressNetworkTypeTestnet
+
+	case 22:
+		addressType = AddressTypeP2PKH
+		addressNetworkType = AddressNetworkTypeMainnet
+
+	case 20:
+		addressType = AddressTypeP2SH
+		addressNetworkType = AddressNetworkTypeMainnet
+
+	case 26:
+		addressType = AddressTypeP2PKH
+		addressNetworkType = AddressNetworkTypeTestnet
+
+	case 21:
+		addressType = AddressTypeP2SH
+		addressNetworkType = AddressNetworkTypeTestnet
+	}
+
+	addressVersion, err := NewAddressVersion(addressType, addressNetworkType)
+
+	if err != nil {
+		return AddressVersion{}, fmt.Errorf("Could not create address version: %v", err)
+	}
+
+	return addressVersion, nil
 }
