@@ -4,10 +4,12 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
+	"strings"
 
 	"github.com/btcsuite/btcd/btcec/v2"
 	"github.com/btcsuite/btcd/btcutil/hdkeychain"
 	"github.com/btcsuite/btcd/chaincfg"
+	"github.com/tyler-smith/go-bip39"
 
 	"github.com/valeralabs/sdk/wallet/keys"
 )
@@ -224,4 +226,39 @@ func NewWallet(seed []byte) (Wallet, error) {
 	}
 
 	return wallet, nil
+}
+
+func NewSeed(phrase []string, password string) ([]byte, error) {
+	if fits((32 * len(phrase) / 3)) == false {
+		return []byte{}, errors.New("phrase size is invalid")
+	}
+
+	return bip39.NewSeed(strings.Join(phrase, " "), password), nil
+}
+
+func NewPhrase(length int) ([]string, error) {
+	size := 32 * length / 3
+	entropy, err := bip39.NewEntropy(size)
+
+	if err != nil {
+		return []string{}, err
+	}
+
+	mnemonic, err := bip39.NewMnemonic(entropy)
+
+	if err != nil {
+		return []string{}, err
+	}
+
+	split := strings.Split(mnemonic, " ")
+
+	if len(split) != length {
+		return []string{}, errors.New("phrase did not match required length")
+	}
+
+	return split, nil
+}
+
+func fits(size int) bool {
+	return (size%32) == 0 && size >= 128 && size <= 256
 }

@@ -35,7 +35,7 @@ func TestWallet(test *testing.T) {
 		account, err := wallet.Account(1)
 
 		if err != nil {
-			panic(err)
+			test.Fatalf("failed to derive account %v", err)
 		}
 
 		if string(account.dataPrivateKey) != ExpectedDataPrivateKey {
@@ -44,4 +44,22 @@ func TestWallet(test *testing.T) {
 
 		test.Logf("got account %+v\n", account)
 	})
+}
+
+func TestPhrase(test *testing.T) {
+	phrase, err := NewPhrase(12)
+
+	if err != nil {
+		test.Fatalf("failed to generate phrase %v", err)
+	}
+
+	test.Logf("phrase %v\n", phrase)
+
+	seed, err := NewSeed(phrase, "password")
+
+	if err != nil {
+		test.Fatalf("failed to recover seed %v", err)
+	}
+
+	test.Logf("seed %v\n", seed)
 }
