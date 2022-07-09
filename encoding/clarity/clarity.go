@@ -195,8 +195,7 @@ func DecodePrincipal(from ClarityType, reader *bite.Reader) (address.Address, er
 		return address.Address{}, errors.New("clarity type can only be standard or contract")
 	}
 
-	// version, err := c32.ReverseVersion(reader.ReadSingle())
-	version, err := address.NewAddressVersionFromByte(reader.ReadSingle())
+	version, err := address.ReverseStacksVersion(reader.ReadSingle())
 
 	if err != nil {
 		return address.Address{}, errors.New("address version is invalid")
@@ -226,7 +225,7 @@ func DecodePrincipal(from ClarityType, reader *bite.Reader) (address.Address, er
 }
 
 func EncodePrincipal(from address.Address, writer binstruct.Writer) error {
-	version, err := from.Version.GetVersionByte(address.AddressNetworkStacks)
+	version, err := from.Version.StacksVersion()
 
 	if err != nil {
 		return err

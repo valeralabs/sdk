@@ -132,10 +132,13 @@ func (transaction *StacksTransaction) Unmarshal(data []byte) error {
 			hash := transaction.Authorization.GetCondition().GetSigner()
 			mode := transaction.Authorization.GetCondition().GetHashMode()
 
-			version, err := HashModeToAddressVersion(mode, transaction.Version)
-			if err != nil {
-				return fmt.Errorf("Could not get address version: %v", err)
+			network := address.NetworkMainnet
+
+			if transaction.Version == constant.TransactionVersionTestnet {
+				network = address.NetworkTestnet
 			}
+
+			version := address.AddressVersion{mode, network}
 
 			origin := address.Address{
 				Version: version,
@@ -165,10 +168,13 @@ func (transaction *StacksTransaction) Unmarshal(data []byte) error {
 			hash := transaction.Authorization.GetCondition().GetSigner()
 			mode := transaction.Authorization.GetCondition().GetHashMode()
 
-			version, err := HashModeToAddressVersion(mode, transaction.Version)
-			if err != nil {
-				return fmt.Errorf("Could not get address version: %v", err)
+			network := address.NetworkMainnet
+
+			if transaction.Version == constant.TransactionVersionTestnet {
+				network = address.NetworkTestnet
 			}
+
+			version := address.AddressVersion{mode, network}
 
 			origin := address.Address{
 				Version: version,
@@ -200,10 +206,13 @@ func (transaction *StacksTransaction) Unmarshal(data []byte) error {
 			hash := transaction.Authorization.GetCondition().GetSigner()
 			mode := transaction.Authorization.GetCondition().GetHashMode()
 
-			version, err := HashModeToAddressVersion(mode, transaction.Version)
-			if err != nil {
-				return fmt.Errorf("Could not get address version: %v", err)
+			network := address.NetworkMainnet
+
+			if transaction.Version == constant.TransactionVersionTestnet {
+				network = address.NetworkTestnet
 			}
+
+			version := address.AddressVersion{mode, network}
 
 			origin := address.Address{
 				Version: version,

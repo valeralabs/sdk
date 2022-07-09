@@ -8,7 +8,6 @@ import (
 
 	"github.com/valeralabs/sdk/address"
 	"github.com/valeralabs/sdk/wallet"
-	"github.com/valeralabs/sdk/wallet/keys"
 )
 
 var HelpMessage = strings.Join([]string{
@@ -73,8 +72,8 @@ func main() {
 		}
 
 		version := address.AddressVersion{
-			AddressType: address.AddressTypeP2PKH,
-			NetworkType: address.AddressNetworkTypeMainnet,
+			HashMode: address.HashModeP2PKH,
+			Network:  address.NetworkMainnet,
 		}
 
 		for index := 0; index < *total; index++ {
@@ -84,7 +83,7 @@ func main() {
 				panic(err)
 			}
 
-			principal, err := address.NewAddress([]keys.PublicKey{account.PrivateKey.PublicKey()}, 0, version, address.HashModeP2PKH)
+			principal, err := address.NewAddressSingleSignature(account.PrivateKey.PublicKey(), version)
 
 			if err != nil {
 				panic(err)

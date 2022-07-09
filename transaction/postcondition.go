@@ -3,10 +3,9 @@ package transaction
 import (
 	"fmt"
 
-	"github.com/linden/bite"
 	"github.com/linden/binstruct"
+	"github.com/linden/bite"
 	"github.com/valeralabs/sdk/address"
-	"github.com/valeralabs/sdk/constant"
 	"github.com/valeralabs/sdk/encoding/clarity"
 )
 
@@ -63,7 +62,7 @@ type PostConditionNonFungible struct {
 
 type PostConditionPrincipal struct {
 	Address address.Address
-	Type PostConditionPrincipalType
+	Type    PostConditionPrincipalType
 }
 
 func (principal PostConditionPrincipal) Encode(writer binstruct.Writer) {
@@ -98,9 +97,9 @@ func DecodePostConditionPrincipal(reader *bite.Reader, origin address.Address) (
 
 	switch postConditionPrincipalType {
 	case PostConditionPrincipalTypeOrigin:
-		return PostConditionPrincipal {
+		return PostConditionPrincipal{
 			Address: origin,
-			Type: PostConditionPrincipalTypeOrigin,
+			Type:    PostConditionPrincipalTypeOrigin,
 		}, nil
 
 	case PostConditionPrincipalTypeStandard:
@@ -110,9 +109,9 @@ func DecodePostConditionPrincipal(reader *bite.Reader, origin address.Address) (
 			return PostConditionPrincipal{}, err
 		}
 
-		return PostConditionPrincipal {
+		return PostConditionPrincipal{
 			Address: principal,
-			Type: PostConditionPrincipalTypeStandard,
+			Type:    PostConditionPrincipalTypeStandard,
 		}, nil
 
 	case PostConditionPrincipalTypeContract:
@@ -122,9 +121,9 @@ func DecodePostConditionPrincipal(reader *bite.Reader, origin address.Address) (
 			return PostConditionPrincipal{}, err
 		}
 
-		return PostConditionPrincipal {
+		return PostConditionPrincipal{
 			Address: principal,
-			Type: PostConditionPrincipalTypeContract,
+			Type:    PostConditionPrincipalTypeContract,
 		}, nil
 
 	default:
@@ -160,35 +159,35 @@ func (asset Asset) Encode(writer binstruct.Writer) error {
 	return nil
 }
 
-func HashModeToAddressVersion(hashMode address.HashMode, transactionVersion constant.TransactionVersion) (address.AddressVersion, error) {
-	var addressType address.AddressType
-	var networkType address.AddressNetworkType
+// func HashModeToAddressVersion(hashMode address.HashMode, transactionVersion constant.TransactionVersion) (address.AddressVersion, error) {
+// 	var addressType address.AddressType
+// 	var networkType address.AddressNetworkType
 
-	switch transactionVersion {
-	case constant.TransactionVersionMainnet:
-		networkType = address.AddressNetworkTypeMainnet
+// 	switch transactionVersion {
+// 	case constant.TransactionVersionMainnet:
+// 		networkType = address.AddressNetworkTypeMainnet
 
-		switch hashMode {
-		case address.HashModeP2PKH:
-			addressType = address.AddressTypeP2PKH
-		default:
-			addressType = address.AddressTypeP2SH
-		}
-	case constant.TransactionVersionTestnet:
-		networkType = address.AddressNetworkTypeTestnet
+// 		switch hashMode {
+// 		case address.HashModeP2PKH:
+// 			addressType = address.AddressTypeP2PKH
+// 		default:
+// 			addressType = address.AddressTypeP2SH
+// 		}
+// 	case constant.TransactionVersionTestnet:
+// 		networkType = address.AddressNetworkTypeTestnet
 
-		switch hashMode {
-		case address.HashModeP2PKH:
-			addressType = address.AddressTypeP2PKH
-		default:
-			addressType = address.AddressTypeP2SH
-		}
-	}
+// 		switch hashMode {
+// 		case address.HashModeP2PKH:
+// 			addressType = address.AddressTypeP2PKH
+// 		default:
+// 			addressType = address.AddressTypeP2SH
+// 		}
+// 	}
 
-	newAddress, err := address.NewAddressVersion(addressType, networkType)
-	if err != nil {
-		return address.AddressVersion{}, fmt.Errorf("Could not create address version: %v", err)
-	}
+// 	newAddress, err := address.NewAddressVersion(addressType, networkType)
+// 	if err != nil {
+// 		return address.AddressVersion{}, fmt.Errorf("Could not create address version: %v", err)
+// 	}
 
-	return newAddress, nil
-}
+// 	return newAddress, nil
+// }

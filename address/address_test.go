@@ -11,9 +11,9 @@ func TestBasicAddress(test *testing.T) {
 	decoded, _ := hex.DecodeString("edf9aee84d9b7abc145504dde6726c64f369d37ee34ded868fabd876c26570bc01")
 	private, _ := keys.NewPrivateKey(decoded)
 	public := private.PublicKey()
-	version, _ := NewAddressVersion(AddressTypeP2PKH, AddressNetworkTypeMainnet)
+	version := AddressVersion{HashModeP2PKH, NetworkMainnet}
 
-	user, err := NewAddress([]keys.PublicKey{public}, 1, version, HashModeP2PKH)
+	user, err := NewAddress([]keys.PublicKey{public}, 1, version)
 
 	test.Logf("Creating address")
 
@@ -69,17 +69,18 @@ func TestBasicAddress(test *testing.T) {
 
 		publicKeys := []keys.PublicKey{publicOne, publicTwo}
 
-		version, _ := NewAddressVersion(AddressTypeP2SH, AddressNetworkTypeMainnet)
+		version := AddressVersion{HashModeP2SH, NetworkMainnet}
 
-		address, err := NewAddress(publicKeys, 2, version, HashModeP2SH)
+		address, err := NewAddress(publicKeys, 2, version)
 
 		if err != nil {
-			test.Fatalf("Could not create address, err: %v", err)
+			test.Fatalf("could not encode address got: %v", err)
 		}
 
 		c32, err = address.C32()
+
 		if err != nil {
-			test.Fatalf("Could not encode multsig address in c32, err: %v", err)
+			test.Fatalf("could not encode multsig address in c32 got %v", err)
 		}
 
 		// Reference results taken from https://github.com/mooseman1241/stacks-reference
@@ -90,7 +91,7 @@ func TestBasicAddress(test *testing.T) {
 
 		b58, err = address.B58()
 		if err != nil {
-			test.Fatalf("Could not encode multisig address in base 58, err: %v", err)
+			test.Fatalf("could not encode multisig address in base 58, err: %v", err)
 		}
 
 		if b58 != "36hNotikUFm3onF99N9bmG4EzPdn5GiiQh" {
@@ -99,17 +100,18 @@ func TestBasicAddress(test *testing.T) {
 	})
 
 	test.Run("can create p2wpkh address", func(test *testing.T) {
-		publicKeys := []keys.PublicKey{public}
-		version, _ := NewAddressVersion(AddressTypeP2SH, AddressNetworkTypeMainnet)
+		version := AddressVersion{HashModeP2WPKH, NetworkMainnet}
 
-		address, err := NewAddress(publicKeys, 1, version, HashModeP2WPKH)
+		address, err := NewAddress([]keys.PublicKey{public}, 1, version)
+
 		if err != nil {
-			test.Fatalf("Could not create p2wpkh address, err: %v", err)
+			test.Fatalf("could not create p2wpkh address, err: %v", err)
 		}
 
 		b58, err = address.B58()
+
 		if err != nil {
-			test.Fatalf("Could not encode p2wpkh address in base 58, err: %v", err)
+			test.Fatalf("could not encode p2wpkh address in base 58, err: %v", err)
 		}
 
 		if b58 != "3HkX7ZVY1XQQsXM3aQSkwphQJHhppZTPj3" {
@@ -118,7 +120,7 @@ func TestBasicAddress(test *testing.T) {
 
 		c32, err = address.C32()
 		if err != nil {
-			test.Fatalf("Could not encode p2wpkh address in c32, err: %v", err)
+			test.Fatalf("could not encode p2wpkh address in c32, err: %v", err)
 		}
 
 		if c32 != "SM2R2Q8416BH23ESMDMJ13CJJS72W4GYX1WZCDM2P" {
@@ -137,17 +139,17 @@ func TestBasicAddress(test *testing.T) {
 
 		publicKeys := []keys.PublicKey{publicOne, publicTwo}
 
-		version, err := NewAddressVersion(AddressTypeP2SH, AddressNetworkTypeMainnet)
+		version := AddressVersion{HashModeP2WSH, NetworkMainnet}
 
-		address, err := NewAddress(publicKeys, 2, version, HashModeP2WSH)
+		address, err := NewAddress(publicKeys, 2, version)
 
 		if err != nil {
-			test.Fatalf("Could not create address, err: %v", err)
+			test.Fatalf("could not create address, err: %v", err)
 		}
 
 		c32, err = address.C32()
 		if err != nil {
-			test.Fatalf("Could not encode multsig address in c32, err: %v", err)
+			test.Fatalf("could not encode multsig address in c32, err: %v", err)
 		}
 
 		// Reference results taken from https://github.com/mooseman1241/stacks-reference
@@ -158,7 +160,7 @@ func TestBasicAddress(test *testing.T) {
 
 		b58, err = address.B58()
 		if err != nil {
-			test.Fatalf("Could not encode multisig address in base 58, err: %v", err)
+			test.Fatalf("could not encode multisig address in base 58, err: %v", err)
 		}
 
 		if b58 != "3PYuTeUQ3536cWwxHsDTJWik1DzFHJH8fR" {
