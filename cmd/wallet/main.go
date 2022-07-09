@@ -1,0 +1,113 @@
+package main
+
+import (
+	"flag"
+	"fmt"
+	"os"
+	"strings"
+
+	"github.com/valeralabs/sdk/address"
+	"github.com/valeralabs/sdk/wallet"
+	"github.com/valeralabs/sdk/wallet/keys"
+)
+
+var HelpMessage = strings.Join([]string{
+	"wallet (flags) [method] [arguments...]",
+	"",
+	"help\tdisplay this message",
+	"list\tlist the stacks accounts attached to a private key",
+	"",
+}, "\r\n")
+
+var HelpListMessage = strings.Join([]string{
+	"wallet list",
+	"",
+	"--mnemonic\t[seed phrase]",
+	"--total \t[total addresses]",
+	"--password\t[seed phrase password] (note: always leave blank if using hiro wallet)",
+	"",
+}, "\r\n")
+
+var mnemonic = flag.String("mnemonic", "", "")
+var password = flag.String("password", "", "")
+var total = flag.Int("total", 0, "")
+
+func init() {
+	flag.Usage = func() {
+		fmt.Println(HelpMessage)
+	}
+
+	flag.Parse()
+}
+
+func main() {
+	defer func() {
+		err := recover()
+
+		if err != nil {
+			fmt.Printf("uh-oh, error occured \"%v\" please file an issue at github.com/valeralabs/sdk\n", err)
+		}
+	}()
+
+	switch flag.Arg(0) {
+	case "list":
+		if *mnemonic == "" {
+			fmt.Println("mnemonic is required" + "\n\n" + HelpListMessage)
+			os.Exit(0)
+		}
+
+		if *total == 0 {
+			*total = 10
+		}
+
+		seed, err := wallet.NewSeed(strings.Split(*mnemonic, " "), *password)
+
+		if err != nil {
+			panic(err)
+		}
+
+		manager, err := wallet.NewWallet(seed)
+
+		if err != nil {
+			panic(err)
+		}
+
+		version := address.AddressVersion{
+			AddressType: address.AddressTypeP2PKH,
+			NetworkType: address.AddressNetworkTypeMainnet,
+		}
+
+		for index := 0; index < *total; index++ {
+			account, err := manager.Account(index)
+
+			if err != nil {
+				panic(err)
+			}
+
+			principal, err := address.NewAddress([]keys.PublicKey{account.PrivateKey.PublicKey()}, 0, version, address.HashModeP2PKH)
+
+			if err != nil {
+				panic(err)
+			}
+
+			c32, err := principal.C32()
+
+			if err != nil {
+				panic(err)
+			}
+
+			b58, err := principal.B58()
+
+			if err != nil {
+				panic(err)
+			}
+
+			fmt.Printf("c32 %s\t-   b58 %s\n", c32, b58)
+		}
+
+	default:
+		fmt.Println(HelpMessage)
+	}
+}
+
+// go run main.go --mnemonic="famous power eternal inquiry garbage sample news burger east little attitude genuine trumpet tube aunt fold run famous mercy mesh coral garlic razor aerobic" --password="password" --total 5 list
