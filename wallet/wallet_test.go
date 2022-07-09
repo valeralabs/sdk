@@ -21,12 +21,12 @@ func TestWallet(test *testing.T) {
 		test.Fatalf("failed to create wallet %v\n", err)
 	}
 
-	if string(wallet.salt) != ExpectedSalt {
-		test.Fatalf("failed to derive salt got \"%s\" expected \"%s\"", wallet.salt, ExpectedSalt)
+	if string(wallet.Salt) != ExpectedSalt {
+		test.Fatalf("failed to derive salt got \"%s\" expected \"%s\"", wallet.Salt, ExpectedSalt)
 	}
 
-	if string(wallet.configuration) != ExpectedConfiguration {
-		test.Fatalf("failed to derive configuration got \"%s\" expected \"%s\"", wallet.configuration, ExpectedConfiguration)
+	if string(wallet.Configuration) != ExpectedConfiguration {
+		test.Fatalf("failed to derive configuration got \"%s\" expected \"%s\"", wallet.Configuration, ExpectedConfiguration)
 	}
 
 	test.Logf("got wallet %+v\n", wallet)
@@ -38,8 +38,8 @@ func TestWallet(test *testing.T) {
 			test.Fatalf("failed to derive account %v", err)
 		}
 
-		if string(account.dataPrivateKey) != ExpectedDataPrivateKey {
-			test.Fatalf("failed to derive data private key got \"%s\" expected \"%s\"", account.dataPrivateKey, ExpectedDataPrivateKey)
+		if string(account.DataPrivateKey) != ExpectedDataPrivateKey {
+			test.Fatalf("failed to derive data private key got \"%s\" expected \"%s\"", account.DataPrivateKey, ExpectedDataPrivateKey)
 		}
 
 		test.Logf("got account %+v\n", account)

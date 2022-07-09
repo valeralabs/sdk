@@ -23,27 +23,27 @@ var (
 )
 
 type Wallet struct {
-	root *hdkeychain.ExtendedKey
+	Root *hdkeychain.ExtendedKey
 
-	salt          []byte
-	configuration []byte
+	Salt          []byte
+	Configuration []byte
 }
 
 type Account struct {
-	root *hdkeychain.ExtendedKey
+	Root *hdkeychain.ExtendedKey
 
-	keychain *hdkeychain.ExtendedKey
+	Keychain *hdkeychain.ExtendedKey
 
-	appPrivateKey  *btcec.PrivateKey
-	dataPrivateKey []byte
+	AppPrivateKey  *btcec.PrivateKey
+	DataPrivateKey []byte
 
 	PrivateKey *keys.PrivateKey
 }
 
-func derive(root *hdkeychain.ExtendedKey, path []uint32) (*hdkeychain.ExtendedKey, error) {
+func Derive(Root *hdkeychain.ExtendedKey, path []uint32) (*hdkeychain.ExtendedKey, error) {
 	var err error
 
-	key := root
+	key := Root
 
 	for _, cursor := range path {
 		key, err = key.Derive(cursor)
@@ -57,7 +57,7 @@ func derive(root *hdkeychain.ExtendedKey, path []uint32) (*hdkeychain.ExtendedKe
 }
 
 func (account *Account) getDataPrivateKey() ([]byte, error) {
-	private, err := account.keychain.ECPrivKey()
+	private, err := account.Keychain.ECPrivKey()
 
 	if err != nil {
 		return []byte{}, err
@@ -72,7 +72,7 @@ func (account *Account) getDataPrivateKey() ([]byte, error) {
 }
 
 func (account *Account) getAppPrivateKey() (*btcec.PrivateKey, error) {
-	key, err := derive(account.keychain, []uint32{HardenedOffset})
+	key, err := Derive(account.Keychain, []uint32{HardenedOffset})
 
 	if err != nil {
 		return nil, err
@@ -88,7 +88,7 @@ func (account *Account) getAppPrivateKey() (*btcec.PrivateKey, error) {
 }
 
 func (account *Account) getPrivateKey() (*keys.PrivateKey, error) {
-	private, err := account.root.ECPrivKey()
+	private, err := account.Root.ECPrivKey()
 
 	if err != nil {
 		return nil, err
@@ -98,7 +98,7 @@ func (account *Account) getPrivateKey() (*keys.PrivateKey, error) {
 }
 
 func (wallet *Wallet) getSalt() ([]byte, error) {
-	key, err := derive(wallet.root, DataDerivationPath)
+	key, err := Derive(wallet.Root, DataDerivationPath)
 
 	if err != nil {
 		return []byte{}, err
@@ -139,7 +139,7 @@ func (wallet *Wallet) getSalt() ([]byte, error) {
 }
 
 func (wallet *Wallet) getConfiguration() ([]byte, error) {
-	key, err := derive(wallet.root, ConfigurationDerivationPath)
+	key, err := Derive(wallet.Root, ConfigurationDerivationPath)
 
 	if err != nil {
 		return []byte{}, err
@@ -169,25 +169,25 @@ func (wallet *Wallet) Account(index int) (Account, error) {
 	var err error
 	var account Account
 
-	account.root, err = derive(wallet.root, append(AccountDerivationPath, uint32(index)))
+	account.Root, err = Derive(wallet.Root, append(AccountDerivationPath, uint32(index)))
 
 	if err != nil {
 		return Account{}, err
 	}
 
-	account.keychain, err = derive(wallet.root, append(DataDerivationPath, uint32(index+HardenedOffset)))
+	account.Keychain, err = Derive(wallet.Root, append(DataDerivationPath, uint32(index+HardenedOffset)))
 
 	if err != nil {
 		return Account{}, err
 	}
 
-	account.dataPrivateKey, err = account.getDataPrivateKey()
+	account.DataPrivateKey, err = account.getDataPrivateKey()
 
 	if err != nil {
 		return Account{}, err
 	}
 
-	account.appPrivateKey, err = account.getAppPrivateKey()
+	account.AppPrivateKey, err = account.getAppPrivateKey()
 
 	if err != nil {
 		return Account{}, err
@@ -203,23 +203,23 @@ func (wallet *Wallet) Account(index int) (Account, error) {
 }
 
 func NewWallet(seed []byte) (Wallet, error) {
-	root, err := hdkeychain.NewMaster(seed, &chaincfg.MainNetParams)
+	Root, err := hdkeychain.NewMaster(seed, &chaincfg.MainNetParams)
 
 	if err != nil {
 		return Wallet{}, err
 	}
 
 	wallet := Wallet{
-		root: root,
+		Root: Root,
 	}
 
-	wallet.salt, err = wallet.getSalt()
+	wallet.Salt, err = wallet.getSalt()
 
 	if err != nil {
 		return Wallet{}, err
 	}
 
-	wallet.configuration, err = wallet.getConfiguration()
+	wallet.Configuration, err = wallet.getConfiguration()
 
 	if err != nil {
 		return Wallet{}, err
