@@ -228,35 +228,33 @@ func NewWallet(seed []byte) (Wallet, error) {
 	return wallet, nil
 }
 
-func NewSeed(phrase []string, password string) ([]byte, error) {
-	if fits((32 * len(phrase) / 3)) == false {
+func NewSeed(phrase string, password string) ([]byte, error) {
+	if fits((32 * len(strings.Split(phrase, " ")) / 3)) == false {
 		return []byte{}, errors.New("phrase size is invalid")
 	}
 
-	return bip39.NewSeed(strings.Join(phrase, " "), password), nil
+	return bip39.NewSeed(phrase, password), nil
 }
 
-func NewPhrase(length int) ([]string, error) {
+func NewPhrase(length int) (string, error) {
 	size := 32 * length / 3
 	entropy, err := bip39.NewEntropy(size)
 
 	if err != nil {
-		return []string{}, err
+		return "", err
 	}
 
-	mnemonic, err := bip39.NewMnemonic(entropy)
+	phrase, err := bip39.NewMnemonic(entropy)
 
 	if err != nil {
-		return []string{}, err
+		return "", err
 	}
 
-	split := strings.Split(mnemonic, " ")
-
-	if len(split) != length {
-		return []string{}, errors.New("phrase did not match required length")
+	if len(strings.Split(phrase, " ")) != length {
+		return "", errors.New("phrase did not match required length")
 	}
 
-	return split, nil
+	return phrase, nil
 }
 
 func fits(size int) bool {
