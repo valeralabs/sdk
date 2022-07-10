@@ -217,7 +217,7 @@ func NewTokenTransfer(account *Account, recipient *Principal, amount int, memo s
 		return &StacksTransaction{}, errors.New("recipient is nil")
 	}
 
-	// TODO: post-conditions
+	//TODO: post-conditions
 	result := transaction.StacksTransaction{
 		Version: constant.TransactionVersionMainnet,
 		ChainID: constant.ChainIDMainnet,
@@ -225,6 +225,60 @@ func NewTokenTransfer(account *Account, recipient *Principal, amount int, memo s
 			Address: *recipient.value,
 			Amount:  amount,
 			Memo:    memo,
+		},
+		AnchorMode: constant.AnchorModeAny,
+	}
+
+	return bindStacksTransaction(result), nil
+}
+
+// Create a contract call.
+// `account`:  signing.
+// `contract`: the principal of the contract.
+// `function`: the function being called.
+func NewContractCall(account *Account, contract *Principal, function string) (*StacksTransaction, error) {
+	if account == nil {
+		return &StacksTransaction{}, errors.New("account is nil")
+	}
+
+	if contract == nil {
+		return &StacksTransaction{}, errors.New("contract is nil")
+	}
+
+	if (*contract.value).Contract == "" {
+		return &StacksTransaction{}, errors.New("contract is a standard principal not a contract principal")
+	}
+
+	//TODO: post-conditions
+	result := transaction.StacksTransaction{
+		Version: constant.TransactionVersionMainnet,
+		ChainID: constant.ChainIDMainnet,
+		Payload: transaction.PayloadContractCall{
+			Address:  *contract.value,
+			Function: function,
+		},
+		AnchorMode: constant.AnchorModeAny,
+	}
+
+	return bindStacksTransaction(result), nil
+}
+
+// Create a new contract.
+// `account`: creator of the contract.
+// `name`: the name of the contract.
+// `body`: the contract source code.
+func NewSmartContract(account *Account, name string, body string) (*StacksTransaction, error) {
+	if account == nil {
+		return &StacksTransaction{}, errors.New("account is nil")
+	}
+
+	//TODO: post-conditions
+	result := transaction.StacksTransaction{
+		Version: constant.TransactionVersionMainnet,
+		ChainID: constant.ChainIDMainnet,
+		Payload: transaction.PayloadSmartContract{
+			Name: name,
+			Body: body,
 		},
 		AnchorMode: constant.AnchorModeAny,
 	}
