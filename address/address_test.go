@@ -11,9 +11,9 @@ func TestBasicAddress(test *testing.T) {
 	decoded, _ := hex.DecodeString("edf9aee84d9b7abc145504dde6726c64f369d37ee34ded868fabd876c26570bc01")
 	private, _ := keys.NewPrivateKey(decoded)
 	public := private.PublicKey()
-	version, _ := NewAddressVersion(AddressTypeP2PKH, AddressNetworkTypeMainnet)
+	version, _ := NewAddressVersion(HashModeP2PKH, AddressNetworkTypeMainnet)
 
-	user, err := NewAddress([]keys.PublicKey{public}, 1, version, HashModeP2PKH)
+	user, err := NewAddress([]keys.PublicKey{public}, 1, version)
 
 	test.Logf("Creating address")
 
@@ -69,9 +69,9 @@ func TestBasicAddress(test *testing.T) {
 
 		publicKeys := []keys.PublicKey{publicOne, publicTwo}
 
-		version, _ := NewAddressVersion(AddressTypeP2SH, AddressNetworkTypeMainnet)
+		version, _ := NewAddressVersion(HashModeP2SH, AddressNetworkTypeMainnet)
 
-		address, err := NewAddress(publicKeys, 2, version, HashModeP2SH)
+		address, err := NewAddress(publicKeys, 2, version)
 
 		if err != nil {
 			test.Fatalf("Could not create address, err: %v", err)
@@ -100,9 +100,9 @@ func TestBasicAddress(test *testing.T) {
 
 	test.Run("can create p2wpkh address", func(test *testing.T) {
 		publicKeys := []keys.PublicKey{public}
-		version, _ := NewAddressVersion(AddressTypeP2SH, AddressNetworkTypeMainnet)
+		version, _ := NewAddressVersion(HashModeP2WPKH, AddressNetworkTypeMainnet)
 
-		address, err := NewAddress(publicKeys, 1, version, HashModeP2WPKH)
+		address, err := NewAddress(publicKeys, 1, version)
 		if err != nil {
 			test.Fatalf("Could not create p2wpkh address, err: %v", err)
 		}
@@ -137,9 +137,9 @@ func TestBasicAddress(test *testing.T) {
 
 		publicKeys := []keys.PublicKey{publicOne, publicTwo}
 
-		version, err := NewAddressVersion(AddressTypeP2SH, AddressNetworkTypeMainnet)
+		version, err := NewAddressVersion(HashModeP2WSH, AddressNetworkTypeMainnet)
 
-		address, err := NewAddress(publicKeys, 2, version, HashModeP2WSH)
+		address, err := NewAddress(publicKeys, 2, version)
 
 		if err != nil {
 			test.Fatalf("Could not create address, err: %v", err)

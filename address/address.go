@@ -53,17 +53,17 @@ func (address Address) C32() (string, error) {
 	return fmt.Sprintf("S%s", c32Address), nil
 }
 
-func NewAddress(publicKeys []keys.PublicKey, numSigs int, version AddressVersion, mode HashMode) (Address, error) {
+func NewAddress(publicKeys []keys.PublicKey, numSigs int, version AddressVersion) (Address, error) {
 	var hash []byte
 
-	if mode == HashModeP2PKH {
+	if version.hashMode == HashModeP2PKH {
 		if len(publicKeys) > 1 {
 			return Address{}, fmt.Errorf("P2PKH can only accept one public key")
 		}
 
 		hash = btcutil.Hash160(publicKeys[0].Serialize())
 
-	} else if mode == HashModeP2SH {
+	} else if version.hashMode == HashModeP2SH {
 		var addressPublicKeys []*btcutil.AddressPubKey
 
 		for _, publicKey := range publicKeys {
@@ -82,7 +82,7 @@ func NewAddress(publicKeys []keys.PublicKey, numSigs int, version AddressVersion
 
 		hash = btcutil.Hash160(script)
 
-	} else if mode == HashModeP2WPKH {
+	} else if version.hashMode == HashModeP2WPKH {
 		scriptBuilder := txscript.NewScriptBuilder()
 		scriptBuilder.AddInt64(0)
 
@@ -96,7 +96,7 @@ func NewAddress(publicKeys []keys.PublicKey, numSigs int, version AddressVersion
 
 		hash = btcutil.Hash160(script)
 
-	} else if mode == HashModeP2WSH {
+	} else if version.hashMode == HashModeP2WSH {
 		var addressPublicKeys []*btcutil.AddressPubKey
 
 		for _, publicKey := range publicKeys {
@@ -132,11 +132,3 @@ func NewAddress(publicKeys []keys.PublicKey, numSigs int, version AddressVersion
 		Hash:    hash,
 	}, nil
 }
-
-func NewAddressFromPublicKeyHash(hash []byte, version AddressVersion) Address {
-	return Address {
-		Version: version,
-		Hash: hash,
-	}
-}
-

@@ -11,6 +11,7 @@ import (
 	"github.com/linden/binstruct"
 	"github.com/linden/bite"
 	"github.com/valeralabs/sdk/address"
+	"github.com/valeralabs/sdk/keys"
 	"github.com/valeralabs/sdk/constant"
 	"github.com/valeralabs/sdk/encoding/clarity"
 )
@@ -70,33 +71,88 @@ func (transaction *StacksTransaction) Unmarshal(data []byte) error {
 
 	switch authorizationType {
 	case 0x04:
-		var condition SingleSignatureSpendingCondition
+		hashMode := address.HashMode(reader.ReadSingle())
 
-		condition.HashMode = address.HashMode(reader.ReadSingle())
+		signer := *(*[20]byte)(reader.Read(20))
 
-		if condition.HashMode.Check() == false {
-			return errors.New("authorization must be signed with either P2PKH, P2SH, P2WPKH-P2SH or P2WSH-P2SH")
-		}
+		nonce := binary.BigEndian.Uint64(reader.Read(8))
+		fee := binary.BigEndian.Uint64(reader.Read(8))
 
-		condition.Signer = *(*[20]byte)(reader.Read(20))
-		condition.Nonce = binary.BigEndian.Uint64(reader.Read(8))
-		condition.Fee = binary.BigEndian.Uint64(reader.Read(8))
-
-		switch condition.HashMode {
+		switch hashMode {
 		case address.HashModeP2PKH, address.HashModeP2WPKH:
-			condition.KeyEncoding = constant.PublicKeyEncoding(reader.ReadSingle())
+			var condition SingleSignatureSpendingCondition
+			condition.Signer = signer
+			condition.Nonce = nonce
+			condition.Fee = fee
 
+			condition.KeyEncoding = constant.PublicKeyEncoding(reader.ReadSingle())
 			if condition.KeyEncoding.Check() == false {
-				return errors.New("public key encoding must be compressed or uncompressed")
+				return fmt.Errorf("public key encoding must be compressed or uncompressed, not %v", condition.KeyEncoding)
 			}
 
 			condition.Signature = *(*[65]byte)(reader.Read(65))
 
+			transaction.Authorization = StandardAuthorization {
+				Condition: condition,
+			}
 		case address.HashModeP2SH, address.HashModeP2WSH:
-			panic("TODO: implement HashModeP2SH and HashModeP2WSH_P2SH")
+			var condition MultipleSignatureSpendingCondition
+			condition.Signer = signer
+			condition.Nonce = nonce
+			condition.Fee = fee
+
+			spendingAuthorizationFieldLen := binary.BigEndian.Uint32(reader.Read(4))
+
+			authorizationFields := []AuthorizationField{}
+
+
+					fmt.Printf("%v\n", spendingAuthorizationFieldLen)
+				fmt.Printf("asdf")
+			for index := uint32(0); index < spendingAuthorizationFieldLen; index++ {
+				fmt.Printf("asdf")
+				fieldID := reader.ReadSingle()
+				switch fieldID {
+				case 0x00, 0x01: // uncompressed public key
+					var compressed bool
+					if fieldID == 0x00 {
+						compressed = true
+					} else {
+						compressed = false
+					}
+
+					publicKeyBytes := reader.Read(33)
+
+					publicKey, err := keys.ParsePublicKey(publicKeyBytes, compressed)
+					
+					if err != nil {
+						return fmt.Errorf("Could not parse public key: %v", err)
+					}
+
+					authorizationField := AuthorizationFieldBodyPublicKey(publicKey)
+					authorizationFields = append(authorizationFields, authorizationField)
+				case 0x02, 0x03:
+					var compressed bool
+					if fieldID == 0x02 {
+						compressed = true
+					} else {
+						compressed = false
+					}
+
+					signatureBytes := *(*[65]byte)(reader.Read(65))
+
+					authorizationField := AuthorizationFieldBodyRecoverableSignature {
+						SignatureBytes: signatureBytes,
+						Compressed: compressed,
+					}
+
+					authorizationFields = append(authorizationFields, authorizationField)
+				}
+			}
+
+			condition.Fields = authorizationFields
+			condition.signaturesRequired = int(binary.BigEndian.Uint16(reader.Read(2)))
 		}
 
-		transaction.Authorization = StandardAuthorization{SingleSignatureSpendingCondition(condition)}
 
 	case 0x05:
 		// sponsored authorization
@@ -129,17 +185,9 @@ func (transaction *StacksTransaction) Unmarshal(data []byte) error {
 
 		switch postConditionType {
 		case constant.PostConditionTypeSTX:
-			hash := transaction.Authorization.GetCondition().GetSigner()
-			mode := transaction.Authorization.GetCondition().GetHashMode()
-
-			version, err := HashModeToAddressVersion(mode, transaction.Version)
+			origin, err := transaction.GetOriginAddress()
 			if err != nil {
-				return fmt.Errorf("Could not get address version: %v", err)
-			}
-
-			origin := address.Address{
-				Version: version,
-				Hash:    hash[:],
+				return fmt.Errorf("Could not get transaction origin address: %v", err)
 			}
 
 			principal, err := DecodePostConditionPrincipal(&reader, origin)
@@ -162,17 +210,9 @@ func (transaction *StacksTransaction) Unmarshal(data []byte) error {
 			})
 
 		case constant.PostConditionTypeFT:
-			hash := transaction.Authorization.GetCondition().GetSigner()
-			mode := transaction.Authorization.GetCondition().GetHashMode()
-
-			version, err := HashModeToAddressVersion(mode, transaction.Version)
+			origin, err := transaction.GetOriginAddress()
 			if err != nil {
-				return fmt.Errorf("Could not get address version: %v", err)
-			}
-
-			origin := address.Address{
-				Version: version,
-				Hash:    hash[:],
+				return fmt.Errorf("Could not get transaction origin address: %v", err)
 			}
 
 			principal, err := DecodePostConditionPrincipal(&reader, origin)
@@ -197,17 +237,9 @@ func (transaction *StacksTransaction) Unmarshal(data []byte) error {
 			postConditions = append(postConditions, postCondition)
 
 		case constant.PostConditionTypeNFT:
-			hash := transaction.Authorization.GetCondition().GetSigner()
-			mode := transaction.Authorization.GetCondition().GetHashMode()
-
-			version, err := HashModeToAddressVersion(mode, transaction.Version)
+			origin, err := transaction.GetOriginAddress()
 			if err != nil {
-				return fmt.Errorf("Could not get address version: %v", err)
-			}
-
-			origin := address.Address{
-				Version: version,
-				Hash:    hash[:],
+				return fmt.Errorf("Could not get transaction origin address: %v", err)
 			}
 
 			principal, err := DecodePostConditionPrincipal(&reader, origin)
@@ -547,4 +579,28 @@ func (transaction *StacksTransaction) Marshal() ([]byte, error) {
 	hex.Encode(encoded, raw)
 
 	return encoded, nil
+}
+
+func (transaction StacksTransaction) GetOriginAddress() (address.Address, error) {
+	hash := transaction.Authorization.GetCondition().GetSigner()
+	mode := transaction.Authorization.GetCondition().GetHashMode()
+
+	var networkType address.AddressNetworkType
+
+	switch transaction.Version {
+	case constant.TransactionVersionMainnet:
+		networkType = address.AddressNetworkTypeMainnet
+	case constant.TransactionVersionTestnet:
+		networkType = address.AddressNetworkTypeTestnet
+	}
+
+	version, err := address.NewAddressVersion(mode, networkType)
+	if err != nil {
+		return address.Address{}, fmt.Errorf("Could not get address version: %v", err)
+	}
+
+	return address.Address{
+		Version: version,
+		Hash:    hash[:],
+	}, nil
 }

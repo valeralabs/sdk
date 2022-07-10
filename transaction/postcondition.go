@@ -6,7 +6,6 @@ import (
 	"github.com/linden/bite"
 	"github.com/linden/binstruct"
 	"github.com/valeralabs/sdk/address"
-	"github.com/valeralabs/sdk/constant"
 	"github.com/valeralabs/sdk/encoding/clarity"
 )
 
@@ -158,37 +157,4 @@ func (asset Asset) Encode(writer binstruct.Writer) error {
 	writer.Write([]byte(asset.Name))
 
 	return nil
-}
-
-func HashModeToAddressVersion(hashMode address.HashMode, transactionVersion constant.TransactionVersion) (address.AddressVersion, error) {
-	var addressType address.AddressType
-	var networkType address.AddressNetworkType
-
-	switch transactionVersion {
-	case constant.TransactionVersionMainnet:
-		networkType = address.AddressNetworkTypeMainnet
-
-		switch hashMode {
-		case address.HashModeP2PKH:
-			addressType = address.AddressTypeP2PKH
-		default:
-			addressType = address.AddressTypeP2SH
-		}
-	case constant.TransactionVersionTestnet:
-		networkType = address.AddressNetworkTypeTestnet
-
-		switch hashMode {
-		case address.HashModeP2PKH:
-			addressType = address.AddressTypeP2PKH
-		default:
-			addressType = address.AddressTypeP2SH
-		}
-	}
-
-	newAddress, err := address.NewAddressVersion(addressType, networkType)
-	if err != nil {
-		return address.AddressVersion{}, fmt.Errorf("Could not create address version: %v", err)
-	}
-
-	return newAddress, nil
 }

@@ -17,6 +17,9 @@ var (
 
 	// blockstack-cli contract-call edf9aee84d9b7abc145504dde6726c64f369d37ee34ded868fabd876c26570bc01 1 10 SP3TZ3NY4GB3E3Y1K1D40BHE07P20KMS4A8YC4QRJ demo example -e \"example\"
 	ExampleContractCall = []byte("0000000001040015c31b8c1c11c515e244b75806bac48d1399c775000000000000000a000000000000000100015eb19a8598f72ac81fa96cb11c59edac0620236f534f7bff2363c413e099a4ea630f2cdc53cc28810e969bb1a4003d1b34ee6dfca7f87fe44ac81563a37abbb10302000000000216f5f1d7c482c6e1f8330b4805c5c03d8409d324520464656d6f076578616d706c65000000010d000000076578616d706c65")
+
+	// taken from https://github.com/mooseman1241/stacks-reference
+	ExampleMultisigTokenTransfer = []byte("0000000001040136ea1027edcc9e8b003bedf483c24e91830e48bc000000000000000000000000000000000000000000020302000000000005160000000000000000000000000000000000000000000000000000003200000000000000000000000000000000000000000000000000000000000000000000")
 )
 
 func TestTokenTransfer(test *testing.T) {
@@ -119,4 +122,23 @@ func TestContractCall(test *testing.T) {
 
 		test.Logf("marshaled %s\n", plain)
 	})
+}
+
+func TestMultisigTransaction(test *testing.T) {
+	var transaction StacksTransaction
+
+	err := transaction.Unmarshal(ExampleMultisigTokenTransfer)
+
+	if err != nil {
+		test.Fatalf("failed to unmarshal transaction: %v", err)
+	}
+
+	switch any(transaction.Authorization.GetCondition()).(type) {
+	case SingleSignatureSpendingCondition:
+		test.Fatalf("Transaction should have a MultipleSignatureSpendingCondition")
+	case MultipleSignatureSpendingCondition:
+		condition := any(transaction.Authorization.GetCondition()).(MultipleSignatureSpendingCondition)
+
+		test.Logf("%v\n", condition)
+	}
 }

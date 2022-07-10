@@ -3,6 +3,7 @@ package transaction
 import (
 	"github.com/valeralabs/sdk/constant"
 	"github.com/valeralabs/sdk/address"
+	"github.com/valeralabs/sdk/keys"
 )
 
 type SpendingCondition interface {
@@ -42,12 +43,14 @@ type MultipleSignatureSpendingCondition struct {
 	signaturesRequired int
 }
 
-type AuthorizationField struct {
-	KeyEncoding constant.PublicKeyEncoding
-	Contents    TransactionFieldContents
-}
+type AuthorizationField any
 
-type TransactionFieldContents any
+type AuthorizationFieldBodyPublicKey keys.PublicKey
+
+type AuthorizationFieldBodyRecoverableSignature struct {
+	SignatureBytes [65]byte
+	Compressed bool
+}
 
 func (authorization StandardAuthorization) GetCondition() SpendingCondition {
 	return authorization.Condition

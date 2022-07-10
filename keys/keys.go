@@ -2,6 +2,7 @@ package keys
 
 import (
 	"errors"
+	"fmt"
 	"github.com/decred/dcrd/dcrec/secp256k1/v4"
 )
 
@@ -21,6 +22,18 @@ func (key PublicKey) Serialize() []byte {
 	} else {
 		return key.Value.SerializeUncompressed()
 	}
+}
+
+func ParsePublicKey(bytes []byte, compressed bool) (PublicKey, error) {
+	value, err := secp256k1.ParsePubKey(bytes)
+	if err != nil {
+		return PublicKey{}, fmt.Errorf("Could not parse public key: %v", err)
+	}
+
+	return PublicKey {
+		Value: value,
+		Compressed: compressed,
+	}, nil
 }
 
 func (key PrivateKey) PublicKey() PublicKey {
