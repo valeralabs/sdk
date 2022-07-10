@@ -28,15 +28,6 @@ type StacksTransaction struct {
 	PostConditions    []PostCondition
 }
 
-func HexToBytes(plain string) ([]byte, error) {
-	// if starts with 0x, remove it
-	if plain[:2] == "0x" {
-		plain = plain[2:]
-	}
-
-	return hex.DecodeString(plain)
-}
-
 func (transaction *StacksTransaction) Unmarshal(data []byte) error {
 	decoded := make([]byte, hex.DecodedLen(len(data)))
 
@@ -61,8 +52,7 @@ func (transaction *StacksTransaction) Unmarshal(data []byte) error {
 		return errors.New("transaction version is invalid")
 	}
 
-	// TODO (Linden): change when Go hits 1.19 (https://stackoverflow.com/a/67199587)
-	transaction.ChainID = constant.ChainID(*(*[4]byte)(reader.Read(4)))
+	transaction.ChainID = constant.ChainID(binary.BigEndian.Uint32(reader.Read(4)))
 
 	if transaction.ChainID.Check() == false {
 		return errors.New("transaction chainID is invalid")
@@ -373,7 +363,7 @@ func (transaction *StacksTransaction) Marshal() ([]byte, error) {
 	writer := binstruct.NewWriter(&buffer, binary.BigEndian, false)
 
 	writer.WriteUint8(uint8(transaction.Version))
-	writer.Write(transaction.ChainID[:])
+	writer.WriteUint32(uint32(transaction.ChainID))
 
 	switch authorization := any(transaction.Authorization).(type) {
 	case StandardAuthorization:
