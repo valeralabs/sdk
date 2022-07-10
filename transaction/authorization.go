@@ -10,6 +10,9 @@ type SpendingCondition interface {
 	GetSignature() [65]byte
 	GetHashMode() address.HashMode
 	GetSigner() [20]byte
+	GetNonce() uint64
+	GetFee() uint64
+	Clear()
 }
 
 type Authorization interface {
@@ -73,6 +76,20 @@ func (condition SingleSignatureSpendingCondition) GetSigner() [20]byte {
 	return condition.Signer
 }
 
+func (condition SingleSignatureSpendingCondition) GetFee() uint64 {
+	return condition.Fee
+}
+
+func (condition SingleSignatureSpendingCondition) GetNonce() uint64 {
+	return condition.Nonce
+}
+
+func (condition SingleSignatureSpendingCondition) Clear() {
+	condition.Fee = 0
+	condition.Nonce = 0
+	condition.Signature = [65]byte{}
+}
+
 //TODO(MooseMan): implement multiple-signature
 func (condition MultipleSignatureSpendingCondition) GetKeyEncoding() constant.PublicKeyEncoding {
 	return constant.PublicKeyEncoding(0)
@@ -88,4 +105,19 @@ func (condition MultipleSignatureSpendingCondition) GetHashMode() address.HashMo
 
 func (condition MultipleSignatureSpendingCondition) GetSigner() [20]byte {
 	return condition.Signer
+}
+
+func (condition MultipleSignatureSpendingCondition) GetFee() uint64 {
+	return condition.Fee
+}
+
+func (condition MultipleSignatureSpendingCondition) GetNonce() uint64 {
+	return condition.Nonce
+}
+
+func (condition MultipleSignatureSpendingCondition) Clear() {
+	condition.Fee = 0
+	condition.Nonce = 0
+
+	panic("TODO: Implement multiple signature spending condition clearing")
 }

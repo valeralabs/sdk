@@ -19,13 +19,13 @@ func (version TransactionVersion) Check() bool {
 	return false
 }
 
-type ChainID [4]byte
+type ChainID int
 
 var (
-	// stacks 2.0 was 0x00000000
-	// stacks 2.05 started a soft fork using 0x00000001
-	ChainIDMainnet = ChainID([4]byte{00, 00, 00, 01})
-	ChainIDTestnet = ChainID([4]byte{80, 00, 00, 00})
+    // stacks 2.0 was 0x00000000
+    // stacks 2.05 started a soft fork using 0x00000001
+    ChainIDMainnet ChainID = 0x00000001
+    ChainIDTestnet ChainID = 0x80000000
 )
 
 func (chainID ChainID) Check() bool {

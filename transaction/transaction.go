@@ -8,9 +8,11 @@ import (
 	"fmt"
 	"unicode"
 
+	"github.com/btcsuite/btcd/btcutil"
 	"github.com/linden/binstruct"
 	"github.com/linden/bite"
 	"github.com/valeralabs/sdk/address"
+	"github.com/valeralabs/sdk/wallet/keys"
 	"github.com/valeralabs/sdk/constant"
 	"github.com/valeralabs/sdk/encoding/clarity"
 )
@@ -546,4 +548,47 @@ func (transaction *StacksTransaction) Marshal() ([]byte, error) {
 	hex.Encode(encoded, raw)
 
 	return encoded, nil
+}
+
+func (transaction StacksTransaction) AddSpendingCondition() error {
+	panic("TODO: finish AddSpendingCondition function")
+}
+
+func (transaction StacksTransaction) Sign(privateKey keys.PrivateKey, addressVersion address.AddressVersion) error {
+
+	// publicKey := privateKey.PublicKey()
+	// spendingConditionAddress, err := address.NewAddressSingleSignature(publicKey, addressVersion)
+	// if err != nil {
+	// 	return fmt.Errorf("Could not create address: %v", err)
+	// }
+
+	transactionBytes, err := transaction.Marshal()
+	if err != nil {
+		return fmt.Errorf("Could not marshal transaction: %v", err)
+	}
+	
+	initialSighash := btcutil.Hash160(transactionBytes)
+
+	spendingCondition := transaction.Authorization.GetCondition()
+
+	spendingCondition.Clear()
+
+	feeBytes := make([]byte, 8)
+	binary.BigEndian.PutUint64(feeBytes, spendingCondition.GetFee())
+
+	nonceBytes := make([]byte, 8)
+	binary.BigEndian.PutUint64(nonceBytes, spendingCondition.GetNonce())
+
+	// TODO: add sponsored support
+	toHashPresignSighash := append(initialSighash, 0x04)
+	toHashPresignSighash = append(toHashPresignSighash, feeBytes...)
+	toHashPresignSighash = append(toHashPresignSighash, nonceBytes...)
+
+	presignSigHash := btcutil.Hash160(toHashPresignSighash)
+
+	// temporary, needs to be replaced with a recoverable signature
+
+	
+
+	panic("TODO: Implement signing")
 }
