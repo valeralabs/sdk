@@ -59,7 +59,7 @@ func main() {
 			*total = 10
 		}
 
-		seed, err := wallet.NewSeed(strings.Split(*mnemonic, " "), *password)
+		seed, err := wallet.NewSeed(*mnemonic, *password)
 
 		if err != nil {
 			panic(err)
