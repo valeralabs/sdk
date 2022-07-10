@@ -5,9 +5,13 @@ package ValeraSDK
 //go:generate go run golang.org/x/mobile/cmd/gomobile bind --target=macos .
 
 import (
+	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/valeralabs/sdk/address"
+	"github.com/valeralabs/sdk/constant"
+	"github.com/valeralabs/sdk/encoding/c32"
 	"github.com/valeralabs/sdk/transaction"
 	"github.com/valeralabs/sdk/wallet"
 )
@@ -22,8 +26,24 @@ type Account struct {
 	value *wallet.Account
 }
 
+// Wrapper around [address.Address].
+type Principal struct {
+	value *address.Address
+}
+
+// Wrapper around [transaction.Payload].
+type Payload struct {
+	value *transaction.Payload
+}
+
 // Wrapper around [transaction.StacksTransaction].
 type StacksTransaction struct {
+	Version    int
+	ChainID    int
+	AnchorMode int
+
+	Payload *Payload
+
 	value *transaction.StacksTransaction
 }
 
@@ -57,7 +77,7 @@ func NewPhrase(length int) (string, error) {
 }
 
 // Derive a Stacks account from a [Wallet], index starting at 0.
-func (wallet *Wallet) DeriveAccount(index int) (*Account, error) {
+func (wallet *Wallet) Account(index int) (*Account, error) {
 	cursor := *wallet.value
 
 	account, err := cursor.Account(index)
@@ -74,32 +94,24 @@ func (wallet *Wallet) Raw() string {
 	return fmt.Sprintf("%#+v\n", *wallet.value)
 }
 
-func (account *Account) deriveAddress() (address.Address, error) {
-	cursor := *account.value
-
+func (account *Account) Principal() (*Principal, error) {
 	version := address.AddressVersion{
 		HashMode: address.HashModeP2PKH,
 		Network:  address.NetworkMainnet,
 	}
 
-	principal, err := address.NewAddressSingleSignature(cursor.PrivateKey.PublicKey(), version)
+	principal, err := address.NewAddressSingleSignature((*account.value).PrivateKey.PublicKey(), version)
 
 	if err != nil {
-		return address.Address{}, err
+		return &Principal{}, err
 	}
 
-	return principal, nil
+	return &Principal{&principal}, nil
 }
 
-// Derive a Stacks address (C32) from a [Account].
-func (account *Account) DeriveStacksAddress() (string, error) {
-	principal, err := account.deriveAddress()
-
-	if err != nil {
-		return "", err
-	}
-
-	c32, err := principal.C32()
+// Derive a Stacks address (C32) from a [Principal].
+func (principal *Principal) Stacks() (string, error) {
+	c32, err := (*principal.value).C32()
 
 	if err != nil {
 		return "", err
@@ -108,15 +120,9 @@ func (account *Account) DeriveStacksAddress() (string, error) {
 	return c32, nil
 }
 
-// Derive a bitcoin address (B58) from a [Account].
-func (account *Account) DeriveBitcoinAddress() (string, error) {
-	principal, err := account.deriveAddress()
-
-	if err != nil {
-		return "", err
-	}
-
-	b58, err := principal.B58()
+// Derive a bitcoin address (B58) from a [Principal].
+func (principal *Principal) Bitcoin() (string, error) {
+	b58, err := (*principal.value).B58()
 
 	if err != nil {
 		return "", err
@@ -125,9 +131,52 @@ func (account *Account) DeriveBitcoinAddress() (string, error) {
 	return b58, nil
 }
 
+// Create a principal from a Stacks (c32) address.
+func NewPrincipal(value string) (*Principal, error) {
+	var principal address.Address
+	var err error
+
+	split := strings.Split(value, ".")
+	value = split[0]
+
+	if len(split) > 1 {
+		principal.Contract = split[1]
+	}
+
+	raw := []byte(value)
+	raw = raw[1:]
+
+	var version byte
+
+	principal.Hash, version, err = c32.ChecksumDecode(raw)
+
+	if err != nil {
+		return &Principal{}, err
+	}
+
+	principal.Version, err = address.ReverseStacksVersion(version)
+
+	if err != nil {
+		return &Principal{}, err
+	}
+
+	return &Principal{&principal}, nil
+}
+
 // Get underlying Account as a String.
 func (account *Account) Raw() string {
 	return fmt.Sprintf("%#+v\n", *account.value)
+}
+
+func bindStacksTransaction(from transaction.StacksTransaction) *StacksTransaction {
+	return &StacksTransaction{
+		Version:    int(from.Version),
+		ChainID:    int(from.ChainID),
+		AnchorMode: int(from.AnchorMode),
+
+		Payload: &Payload{&from.Payload},
+		value:   &from,
+	}
 }
 
 // Parse a Stacks Transaction (hex encoded).
@@ -140,10 +189,45 @@ func ParseStacksTransaction(raw string) (*StacksTransaction, error) {
 		return &StacksTransaction{}, err
 	}
 
-	return &StacksTransaction{&cursor}, nil
+	return bindStacksTransaction(cursor), nil
 }
 
 // Get the underlying Stacks transaction as a String.
 func (cursor *StacksTransaction) Raw() string {
 	return fmt.Sprintf("%#+v\n", *cursor.value)
+}
+
+// Encode a Stacks Transaction.
+func (cursor *StacksTransaction) Encode() (string, error) {
+	encoded, err := (*cursor.value).Marshal()
+	return string(encoded), err
+}
+
+// Create a token transfer.
+// `account`: source of funds and signing.
+// `recipient`: the destination of the funds can be a standard or contract principal.
+// `amount`: total uSTX sent.
+// `memo`: optional arbitrary info.
+func NewTokenTransfer(account *Account, recipient *Principal, amount int, memo string) (*StacksTransaction, error) {
+	if account == nil {
+		return &StacksTransaction{}, errors.New("account is nil")
+	}
+
+	if recipient == nil {
+		return &StacksTransaction{}, errors.New("recipient is nil")
+	}
+
+	// TODO: post-conditions
+	result := transaction.StacksTransaction{
+		Version: constant.TransactionVersionMainnet,
+		ChainID: constant.ChainIDMainnet,
+		Payload: transaction.PayloadTokenTransfer{
+			Address: *recipient.value,
+			Amount:  amount,
+			Memo:    memo,
+		},
+		AnchorMode: constant.AnchorModeAny,
+	}
+
+	return bindStacksTransaction(result), nil
 }
