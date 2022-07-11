@@ -46,14 +46,14 @@ type PostConditionSTX struct {
 	Amount    uint64
 }
 
-type PostConditionFungible struct {
+type PostConditionFT struct {
 	Condition FungibleConditionCode
 	Principal PostConditionPrincipal
 	Amount    uint64
 	Asset     Asset
 }
 
-type PostConditionNonFungible struct {
+type PostConditionNFT struct {
 	Condition NonFungibleConditionCode
 	Principal PostConditionPrincipal
 	Value     clarity.Value
@@ -69,13 +69,13 @@ func (principal PostConditionPrincipal) Encode(writer binstruct.Writer) {
 	switch principal.Type {
 	case PostConditionPrincipalTypeOrigin:
 		writer.WriteUint8(uint8(PostConditionPrincipalTypeOrigin))
+
 	case PostConditionPrincipalTypeStandard:
 		writer.WriteUint8(uint8(PostConditionPrincipalTypeStandard))
-
 		clarity.EncodePrincipal(principal.Address, writer)
+
 	case PostConditionPrincipalTypeContract:
 		writer.WriteUint8(uint8(PostConditionPrincipalTypeContract))
-
 		clarity.EncodePrincipal(principal.Address, writer)
 	}
 }

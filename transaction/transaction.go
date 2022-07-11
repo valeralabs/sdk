@@ -2,9 +2,9 @@ package transaction
 
 import (
 	"bytes"
+	"crypto/sha512"
 	"encoding/binary"
 	"encoding/hex"
-	"crypto/sha512"
 	"errors"
 	"fmt"
 	"unicode"
@@ -13,9 +13,9 @@ import (
 	"github.com/linden/binstruct"
 	"github.com/linden/bite"
 	"github.com/valeralabs/sdk/address"
-	"github.com/valeralabs/sdk/wallet/keys"
 	"github.com/valeralabs/sdk/constant"
 	"github.com/valeralabs/sdk/encoding/clarity"
+	"github.com/valeralabs/sdk/wallet/keys"
 )
 
 type StacksTransaction struct {
@@ -191,7 +191,7 @@ func (transaction *StacksTransaction) Unmarshal(data []byte) error {
 
 			amount := binary.BigEndian.Uint64(reader.Read(8))
 
-			postCondition := PostConditionFungible{condition, principal, amount, asset}
+			postCondition := PostConditionFT{condition, principal, amount, asset}
 
 			postConditions = append(postConditions, postCondition)
 
@@ -237,7 +237,7 @@ func (transaction *StacksTransaction) Unmarshal(data []byte) error {
 			condition := NonFungibleConditionCode(reader.ReadSingle())
 			condition.Check()
 
-			postConditions = append(postConditions, PostConditionNonFungible{condition, principal, value, asset})
+			postConditions = append(postConditions, PostConditionNFT{condition, principal, value, asset})
 		}
 	}
 
@@ -412,10 +412,11 @@ func (transaction *StacksTransaction) Marshal() ([]byte, error) {
 			writer.WriteUint8(uint8(postCondition.Condition))
 
 			writer.WriteUint64(postCondition.Amount)
-		case PostConditionFungible:
+
+		case PostConditionFT:
 			writer.WriteUint8(uint8(constant.PostConditionTypeFT))
 
-			postCondition := any(postCondition).(PostConditionFungible)
+			postCondition := any(postCondition).(PostConditionFT)
 
 			postCondition.Principal.Encode(writer)
 
@@ -424,10 +425,11 @@ func (transaction *StacksTransaction) Marshal() ([]byte, error) {
 			writer.WriteUint8(uint8(postCondition.Condition))
 
 			writer.WriteUint64(postCondition.Amount)
-		case PostConditionNonFungible:
+
+		case PostConditionNFT:
 			writer.WriteUint8(uint8(constant.PostConditionTypeNFT))
 
-			postCondition := any(postCondition).(PostConditionNonFungible)
+			postCondition := any(postCondition).(PostConditionNFT)
 
 			postCondition.Principal.Encode(writer)
 
@@ -558,7 +560,7 @@ func (transaction StacksTransaction) AddSpendingCondition() error {
 func (transaction StacksTransaction) Sign(privateKey keys.PrivateKey, addressVersion address.AddressVersion) error {
 	transactionWithClearedSpendingCondition := transaction
 	clearedSpendingCondition := transactionWithClearedSpendingCondition.Authorization.GetCondition().Cleared()
-	authorization := StandardAuthorization { Condition: clearedSpendingCondition, }
+	authorization := StandardAuthorization{Condition: clearedSpendingCondition}
 	transactionWithClearedSpendingCondition.Authorization = authorization
 
 	transactionHexBytes, err := transactionWithClearedSpendingCondition.Marshal()
@@ -590,7 +592,6 @@ func (transaction StacksTransaction) Sign(privateKey keys.PrivateKey, addressVer
 	preSignSigHashLengthed := sha512.Sum512_256(toHashPresignSighash)
 	preSignSigHash := preSignSigHashLengthed[:]
 
-
 	signatureNonLength, err := secp256k1.Sign(preSignSigHash, privateKey.Serialize())
 	if err != nil {
 		return fmt.Errorf("Could not presign-sighash: %v", err)
@@ -599,7 +600,7 @@ func (transaction StacksTransaction) Sign(privateKey keys.PrivateKey, addressVer
 	signature := *(*[65]byte)(signatureNonLength)
 
 	var publicKeyEncoding constant.PublicKeyEncoding
-	
+
 	switch privateKey.Compressed {
 	case true:
 		publicKeyEncoding = constant.PubKeyEncodingCompressed
@@ -610,7 +611,7 @@ func (transaction StacksTransaction) Sign(privateKey keys.PrivateKey, addressVer
 	newCondition := transaction.Authorization.GetCondition()
 	newCondition = newCondition.WithAddedSignature(signature, publicKeyEncoding)
 
-	newAuthorization := StandardAuthorization { Condition: newCondition }
+	newAuthorization := StandardAuthorization{Condition: newCondition}
 
 	transaction.Authorization = newAuthorization
 

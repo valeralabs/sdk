@@ -357,7 +357,7 @@ func (condition *PostCondition) AddSTX(code int, amount int, principal *Principa
 // `amount`: total uSTX
 // `principal`: the destination (or if nil origin is assumed)
 // `asset`: name of the token
-func (condition *PostCondition) AddFungible(code int, amount int, principal *Principal, asset string) error {
+func (condition *PostCondition) AddFT(code int, amount int, principal *Principal, asset string) error {
 	if code < 1 || code > 5 {
 		return errors.New("code is invalid")
 	}
@@ -374,7 +374,7 @@ func (condition *PostCondition) AddFungible(code int, amount int, principal *Pri
 		return errors.New("origin principal is not allowed")
 	}
 
-	*condition.value = append(*condition.value, transaction.PostConditionFungible{
+	*condition.value = append(*condition.value, transaction.PostConditionFT{
 		Condition: transaction.FungibleConditionCode(code),
 		Principal: conditionPrincipal(principal),
 		Amount:    uint64(amount),
