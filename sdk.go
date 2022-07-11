@@ -43,9 +43,9 @@ type PostCondition struct {
 
 // Wrapper around [transaction.StacksTransaction].
 type StacksTransaction struct {
-	Version    int
-	ChainID    int
-	AnchorMode int
+	Version    string
+	ChainID    string
+	AnchorMode string
 
 	Payload *Payload
 
@@ -175,9 +175,9 @@ func (account *Account) Raw() string {
 
 func bind(from transaction.StacksTransaction) *StacksTransaction {
 	return &StacksTransaction{
-		Version:    int(from.Version),
-		ChainID:    int(from.ChainID),
-		AnchorMode: int(from.AnchorMode),
+		Version:    from.Version.String(),
+		ChainID:    from.ChainID.String(),
+		AnchorMode: from.AnchorMode.String(),
 
 		Payload: &Payload{&from.Payload},
 		value:   &from,
@@ -221,9 +221,9 @@ func create(payload transaction.Payload, conditions *PostCondition, strict bool)
 	}
 
 	if strict == true {
-		result.PostConditionMode = constant.PostConditionModeStrict
+		result.PostConditionMode = transaction.PostConditionModeStrict
 	} else {
-		result.PostConditionMode = constant.PostConditionModeLoose
+		result.PostConditionMode = transaction.PostConditionModeLoose
 	}
 
 	return result

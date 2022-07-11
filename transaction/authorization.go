@@ -1,8 +1,8 @@
 package transaction
 
 import (
-	"github.com/valeralabs/sdk/constant"
 	"github.com/valeralabs/sdk/address"
+	"github.com/valeralabs/sdk/constant"
 )
 
 type SpendingCondition interface {

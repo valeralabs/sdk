@@ -25,7 +25,7 @@ type StacksTransaction struct {
 	Authorization Authorization
 	AnchorMode    constant.AnchorMode
 	// TODO: add post-conditions
-	PostConditionMode constant.PostConditionMode
+	PostConditionMode PostConditionMode
 	PostConditions    []PostCondition
 }
 
@@ -104,7 +104,7 @@ func (transaction *StacksTransaction) Unmarshal(data []byte) error {
 		return errors.New("anchor mode is invalid")
 	}
 
-	transaction.PostConditionMode = constant.PostConditionMode(reader.ReadSingle())
+	transaction.PostConditionMode = PostConditionMode(reader.ReadSingle())
 
 	if transaction.PostConditionMode.Check() == false {
 		return errors.New("post condition mode is invalid")
@@ -114,14 +114,14 @@ func (transaction *StacksTransaction) Unmarshal(data []byte) error {
 	postConditions := []PostCondition{}
 
 	for index := uint32(0); index < postConditionCount; index++ {
-		postConditionType := constant.PostConditionType(reader.ReadSingle())
+		postConditionType := PostConditionType(reader.ReadSingle())
 
 		if postConditionType.Check() == false {
 			return fmt.Errorf("post condition %d is not valid", index)
 		}
 
 		switch postConditionType {
-		case constant.PostConditionTypeSTX:
+		case PostConditionTypeSTX:
 			hash := transaction.Authorization.GetCondition().GetSigner()
 			mode := transaction.Authorization.GetCondition().GetHashMode()
 
@@ -157,7 +157,7 @@ func (transaction *StacksTransaction) Unmarshal(data []byte) error {
 				Amount:    amount,
 			})
 
-		case constant.PostConditionTypeFT:
+		case PostConditionTypeFT:
 			hash := transaction.Authorization.GetCondition().GetSigner()
 			mode := transaction.Authorization.GetCondition().GetHashMode()
 
@@ -195,7 +195,7 @@ func (transaction *StacksTransaction) Unmarshal(data []byte) error {
 
 			postConditions = append(postConditions, postCondition)
 
-		case constant.PostConditionTypeNFT:
+		case PostConditionTypeNFT:
 			hash := transaction.Authorization.GetCondition().GetSigner()
 			mode := transaction.Authorization.GetCondition().GetHashMode()
 
@@ -403,7 +403,7 @@ func (transaction *StacksTransaction) Marshal() ([]byte, error) {
 	for _, postCondition := range transaction.PostConditions {
 		switch any(postCondition).(type) {
 		case PostConditionSTX:
-			writer.WriteUint8(uint8(constant.PostConditionTypeSTX))
+			writer.WriteUint8(uint8(PostConditionTypeSTX))
 
 			postCondition := any(postCondition).(PostConditionSTX)
 
@@ -414,7 +414,7 @@ func (transaction *StacksTransaction) Marshal() ([]byte, error) {
 			writer.WriteUint64(postCondition.Amount)
 
 		case PostConditionFT:
-			writer.WriteUint8(uint8(constant.PostConditionTypeFT))
+			writer.WriteUint8(uint8(PostConditionTypeFT))
 
 			postCondition := any(postCondition).(PostConditionFT)
 
@@ -427,7 +427,7 @@ func (transaction *StacksTransaction) Marshal() ([]byte, error) {
 			writer.WriteUint64(postCondition.Amount)
 
 		case PostConditionNFT:
-			writer.WriteUint8(uint8(constant.PostConditionTypeNFT))
+			writer.WriteUint8(uint8(PostConditionTypeNFT))
 
 			postCondition := any(postCondition).(PostConditionNFT)
 
@@ -603,9 +603,9 @@ func (transaction StacksTransaction) Sign(privateKey keys.PrivateKey, addressVer
 
 	switch privateKey.Compressed {
 	case true:
-		publicKeyEncoding = constant.PubKeyEncodingCompressed
+		publicKeyEncoding = constant.PublicKeyEncodingCompressed
 	case false:
-		publicKeyEncoding = constant.PubKeyEncodingUncompressed
+		publicKeyEncoding = constant.PublicKeyEncodingUncompressed
 	}
 
 	newCondition := transaction.Authorization.GetCondition()

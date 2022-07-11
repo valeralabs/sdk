@@ -9,7 +9,33 @@ import (
 	"github.com/valeralabs/sdk/encoding/clarity"
 )
 
+//go:generate go run golang.org/x/tools/cmd/stringer@latest -type=PostConditionMode,PostConditionType,FungibleConditionCode,NonFungibleConditionCode -output=postcondition_string.go
+
 type PostCondition any
+
+type PostConditionMode byte
+
+const (
+	PostConditionModeLoose PostConditionMode = iota + 1
+	PostConditionModeStrict
+)
+
+func (mode PostConditionMode) Check() bool {
+	return mode == PostConditionModeLoose || mode == PostConditionModeStrict
+}
+
+type PostConditionType byte
+
+const (
+	PostConditionTypeSTX PostConditionType = iota
+	PostConditionTypeFT
+	PostConditionTypeNFT
+)
+
+func (_type PostConditionType) Check() bool {
+	return _type >= PostConditionTypeSTX && _type <= PostConditionTypeNFT
+}
+
 type FungibleConditionCode int
 
 const (

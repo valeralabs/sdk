@@ -5,6 +5,8 @@ import (
 	"github.com/valeralabs/sdk/encoding/clarity"
 )
 
+//go:generate go run golang.org/x/tools/cmd/stringer@latest -type=PayloadType -output=payload_string.go
+
 type PayloadType byte
 
 const (

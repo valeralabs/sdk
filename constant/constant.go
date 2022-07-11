@@ -1,5 +1,7 @@
 package constant
 
+//go:generate go run golang.org/x/tools/cmd/stringer@latest -type=ChainID,TransactionVersion,AnchorMode,PublicKeyEncoding -output=constant_string.go
+
 const MaxStringLength = 128
 const DefaultPrefixLength = 4
 const MemoLengthBytes = 32
@@ -21,11 +23,11 @@ func (version TransactionVersion) Check() bool {
 
 type ChainID int
 
-var (
-    // stacks 2.0 was 0x00000000
-    // stacks 2.05 started a soft fork using 0x00000001
-    ChainIDMainnet ChainID = 0x00000001
-    ChainIDTestnet ChainID = 0x80000000
+const (
+	// stacks 2.0 was 0x00000000
+	// stacks 2.05 started a soft fork using 0x00000001
+	ChainIDMainnet ChainID = 0x00000001
+	ChainIDTestnet ChainID = 0x80000000
 )
 
 func (chainID ChainID) Check() bool {
@@ -47,59 +49,10 @@ func (mode AnchorMode) Check() bool {
 type PublicKeyEncoding byte
 
 const (
-	PubKeyEncodingCompressed PublicKeyEncoding = iota
-	PubKeyEncodingUncompressed
+	PublicKeyEncodingCompressed PublicKeyEncoding = iota
+	PublicKeyEncodingUncompressed
 )
 
 func (encoding PublicKeyEncoding) Check() bool {
-	return encoding == PubKeyEncodingCompressed || encoding == PubKeyEncodingUncompressed
-}
-
-type AddressVersion int
-
-const (
-	AddressVersionMainnetPublicKeyHash AddressVersion = iota
-	AddressVersionTestnetPublicKeyHash
-	AddressVersionMainnetScriptHash
-	AddressVersionTestnetScriptHash
-)
-
-func (version AddressVersion) Check() bool {
-	return version >= AddressVersionMainnetPublicKeyHash && version <= AddressVersionTestnetScriptHash
-}
-
-type HashMode byte
-
-const (
-	HashModeP2PKH HashMode = iota
-	HashModeP2SH
-	HashModeP2WPKH
-	HashModeP2WSH
-)
-
-func (mode HashMode) Check() bool {
-	return mode >= HashModeP2PKH && mode <= HashModeP2WSH
-}
-
-type PostConditionMode byte
-
-const (
-	PostConditionModeLoose PostConditionMode = iota + 1
-	PostConditionModeStrict
-)
-
-func (mode PostConditionMode) Check() bool {
-	return mode == PostConditionModeLoose || mode == PostConditionModeStrict
-}
-
-type PostConditionType byte
-
-const (
-	PostConditionTypeSTX PostConditionType = iota
-	PostConditionTypeFT
-	PostConditionTypeNFT
-)
-
-func (_type PostConditionType) Check() bool {
-	return _type >= PostConditionTypeSTX && _type <= PostConditionTypeNFT
+	return encoding == PublicKeyEncodingCompressed || encoding == PublicKeyEncodingUncompressed
 }

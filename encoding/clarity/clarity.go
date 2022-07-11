@@ -11,6 +11,8 @@ import (
 	"github.com/valeralabs/sdk/constant"
 )
 
+//go:generate go run golang.org/x/tools/cmd/stringer@latest -type=ClarityType -output=clarity_string.go
+
 type ClarityType byte
 
 const (
