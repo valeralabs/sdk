@@ -208,6 +208,31 @@ func (cursor *StacksTransaction) Encode() (string, error) {
 	return string(encoded), err
 }
 
+// Sign a Stacks Transaction.
+// `account`: the account used to sign the transaction.
+func (stacks *StacksTransaction) Sign(account *Account) error {
+	if account == nil {
+		return errors.New("account is nil")
+	}
+
+	if stacks == nil {
+		return errors.New("stacks is nil")
+	}
+
+	version := address.AddressVersion{
+		HashMode: address.HashModeP2PKH,
+		Network:  address.NetworkMainnet,
+	}
+
+	err := (*stacks.value).Sign(*account.value.PrivateKey, version)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func create(payload transaction.Payload, conditions *PostCondition, strict bool) transaction.StacksTransaction {
 	result := transaction.StacksTransaction{
 		Version:    constant.TransactionVersionMainnet,
