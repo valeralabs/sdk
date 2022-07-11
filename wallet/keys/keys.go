@@ -27,6 +27,10 @@ func (key PrivateKey) PublicKey() PublicKey {
 	return PublicKey{key.Value.PubKey(), key.Compressed}
 }
 
+func (key PrivateKey) Serialize() []byte {
+	return key.Value.Serialize()
+}
+
 func NewPrivateKey(raw []byte) (PrivateKey, error) {
 	compressed := false
 

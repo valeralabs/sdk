@@ -4,11 +4,12 @@ import (
 	"bytes"
 	"encoding/binary"
 	"encoding/hex"
+	"crypto/sha512"
 	"errors"
 	"fmt"
 	"unicode"
 
-	"github.com/btcsuite/btcd/btcutil"
+	"github.com/ethereum/go-ethereum/crypto/secp256k1"
 	"github.com/linden/binstruct"
 	"github.com/linden/bite"
 	"github.com/valeralabs/sdk/address"
@@ -555,40 +556,63 @@ func (transaction StacksTransaction) AddSpendingCondition() error {
 }
 
 func (transaction StacksTransaction) Sign(privateKey keys.PrivateKey, addressVersion address.AddressVersion) error {
+	transactionWithClearedSpendingCondition := transaction
+	clearedSpendingCondition := transactionWithClearedSpendingCondition.Authorization.GetCondition().Cleared()
+	authorization := StandardAuthorization { Condition: clearedSpendingCondition, }
+	transactionWithClearedSpendingCondition.Authorization = authorization
 
-	// publicKey := privateKey.PublicKey()
-	// spendingConditionAddress, err := address.NewAddressSingleSignature(publicKey, addressVersion)
-	// if err != nil {
-	// 	return fmt.Errorf("Could not create address: %v", err)
-	// }
-
-	transactionBytes, err := transaction.Marshal()
+	transactionHexBytes, err := transactionWithClearedSpendingCondition.Marshal()
 	if err != nil {
 		return fmt.Errorf("Could not marshal transaction: %v", err)
 	}
-	
-	initialSighash := btcutil.Hash160(transactionBytes)
 
-	spendingCondition := transaction.Authorization.GetCondition()
+	transactionBytes, err := hex.DecodeString(string(transactionHexBytes))
+	if err != nil {
+		return fmt.Errorf("Could not hex decode trasaction with cleared spending condition: %v", err)
+	}
 
-	spendingCondition.Clear()
+	initialSighashLengthed := sha512.Sum512_256(transactionBytes)
+	initialSighash := initialSighashLengthed[:]
 
+	fee := transaction.Authorization.GetCondition().GetFee()
 	feeBytes := make([]byte, 8)
-	binary.BigEndian.PutUint64(feeBytes, spendingCondition.GetFee())
+	binary.BigEndian.PutUint64(feeBytes, fee)
 
+	nonce := transaction.Authorization.GetCondition().GetNonce()
 	nonceBytes := make([]byte, 8)
-	binary.BigEndian.PutUint64(nonceBytes, spendingCondition.GetNonce())
+	binary.BigEndian.PutUint64(nonceBytes, nonce)
 
 	// TODO: add sponsored support
 	toHashPresignSighash := append(initialSighash, 0x04)
 	toHashPresignSighash = append(toHashPresignSighash, feeBytes...)
 	toHashPresignSighash = append(toHashPresignSighash, nonceBytes...)
 
-	presignSigHash := btcutil.Hash160(toHashPresignSighash)
+	preSignSigHashLengthed := sha512.Sum512_256(toHashPresignSighash)
+	preSignSigHash := preSignSigHashLengthed[:]
 
-	// temporary, needs to be replaced with a recoverable signature
 
+	signatureNonLength, err := secp256k1.Sign(preSignSigHash, privateKey.Serialize())
+	if err != nil {
+		return fmt.Errorf("Could not presign-sighash: %v", err)
+	}
+
+	signature := *(*[65]byte)(signatureNonLength)
+
+	var publicKeyEncoding constant.PublicKeyEncoding
 	
+	switch privateKey.Compressed {
+	case true:
+		publicKeyEncoding = constant.PubKeyEncodingCompressed
+	case false:
+		publicKeyEncoding = constant.PubKeyEncodingUncompressed
+	}
 
-	panic("TODO: Implement signing")
+	newCondition := transaction.Authorization.GetCondition()
+	newCondition = newCondition.WithAddedSignature(signature, publicKeyEncoding)
+
+	newAuthorization := StandardAuthorization { Condition: newCondition }
+
+	transaction.Authorization = newAuthorization
+
+	return nil
 }
