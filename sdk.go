@@ -36,6 +36,11 @@ type Payload struct {
 	value *transaction.Payload
 }
 
+// Wrapper around [transaction.Payload].
+type PostCondition struct {
+	value *[]transaction.PostCondition
+}
+
 // Wrapper around [transaction.StacksTransaction].
 type StacksTransaction struct {
 	Version    int
@@ -168,7 +173,7 @@ func (account *Account) Raw() string {
 	return fmt.Sprintf("%#+v\n", *account.value)
 }
 
-func bindStacksTransaction(from transaction.StacksTransaction) *StacksTransaction {
+func bind(from transaction.StacksTransaction) *StacksTransaction {
 	return &StacksTransaction{
 		Version:    int(from.Version),
 		ChainID:    int(from.ChainID),
@@ -189,7 +194,7 @@ func ParseStacksTransaction(raw string) (*StacksTransaction, error) {
 		return &StacksTransaction{}, err
 	}
 
-	return bindStacksTransaction(cursor), nil
+	return bind(cursor), nil
 }
 
 // Get the underlying Stacks transaction as a String.
@@ -203,12 +208,35 @@ func (cursor *StacksTransaction) Encode() (string, error) {
 	return string(encoded), err
 }
 
+func create(payload transaction.Payload, conditions *PostCondition, strict bool) transaction.StacksTransaction {
+	result := transaction.StacksTransaction{
+		Version:    constant.TransactionVersionMainnet,
+		ChainID:    constant.ChainIDMainnet,
+		Payload:    payload,
+		AnchorMode: constant.AnchorModeAny,
+	}
+
+	if conditions != nil {
+		result.PostConditions = *conditions.value
+	}
+
+	if strict == true {
+		result.PostConditionMode = constant.PostConditionModeStrict
+	} else {
+		result.PostConditionMode = constant.PostConditionModeLoose
+	}
+
+	return result
+}
+
 // Create a token transfer.
 // `account`: source of funds and signing.
 // `recipient`: the destination of the funds can be a standard or contract principal.
 // `amount`: total uSTX sent.
 // `memo`: optional arbitrary info.
-func NewTokenTransfer(account *Account, recipient *Principal, amount int, memo string) (*StacksTransaction, error) {
+// `conditions`: the post-conditions.
+// `strict`: has to follow post-condtions.
+func NewTokenTransfer(account *Account, recipient *Principal, amount int, memo string, conditions *PostCondition, strict bool) (*StacksTransaction, error) {
 	if account == nil {
 		return &StacksTransaction{}, errors.New("account is nil")
 	}
@@ -217,26 +245,22 @@ func NewTokenTransfer(account *Account, recipient *Principal, amount int, memo s
 		return &StacksTransaction{}, errors.New("recipient is nil")
 	}
 
-	//TODO: post-conditions
-	result := transaction.StacksTransaction{
-		Version: constant.TransactionVersionMainnet,
-		ChainID: constant.ChainIDMainnet,
-		Payload: transaction.PayloadTokenTransfer{
-			Address: *recipient.value,
-			Amount:  amount,
-			Memo:    memo,
-		},
-		AnchorMode: constant.AnchorModeAny,
+	payload := transaction.PayloadTokenTransfer{
+		Address: *recipient.value,
+		Amount:  amount,
+		Memo:    memo,
 	}
 
-	return bindStacksTransaction(result), nil
+	return bind(create(payload, conditions, strict)), nil
 }
 
 // Create a contract call.
 // `account`:  signing.
 // `contract`: the principal of the contract.
 // `function`: the function being called.
-func NewContractCall(account *Account, contract *Principal, function string) (*StacksTransaction, error) {
+// `conditions`: the post-conditions.
+// `strict`: has to follow post-condtions.
+func NewContractCall(account *Account, contract *Principal, function string, conditions *PostCondition, strict bool) (*StacksTransaction, error) {
 	if account == nil {
 		return &StacksTransaction{}, errors.New("account is nil")
 	}
@@ -249,39 +273,124 @@ func NewContractCall(account *Account, contract *Principal, function string) (*S
 		return &StacksTransaction{}, errors.New("contract is a standard principal not a contract principal")
 	}
 
-	//TODO: post-conditions
-	result := transaction.StacksTransaction{
-		Version: constant.TransactionVersionMainnet,
-		ChainID: constant.ChainIDMainnet,
-		Payload: transaction.PayloadContractCall{
-			Address:  *contract.value,
-			Function: function,
-		},
-		AnchorMode: constant.AnchorModeAny,
+	payload := transaction.PayloadContractCall{
+		Address:  *contract.value,
+		Function: function,
 	}
 
-	return bindStacksTransaction(result), nil
+	return bind(create(payload, conditions, strict)), nil
 }
 
 // Create a new contract.
 // `account`: creator of the contract.
 // `name`: the name of the contract.
 // `body`: the contract source code.
-func NewSmartContract(account *Account, name string, body string) (*StacksTransaction, error) {
+// `conditions`: the post-conditions.
+// `strict`: has to follow post-condtions.
+func NewSmartContract(account *Account, name string, body string, conditions *PostCondition, strict bool) (*StacksTransaction, error) {
 	if account == nil {
 		return &StacksTransaction{}, errors.New("account is nil")
 	}
 
-	//TODO: post-conditions
-	result := transaction.StacksTransaction{
-		Version: constant.TransactionVersionMainnet,
-		ChainID: constant.ChainIDMainnet,
-		Payload: transaction.PayloadSmartContract{
-			Name: name,
-			Body: body,
-		},
-		AnchorMode: constant.AnchorModeAny,
+	payload := transaction.PayloadSmartContract{
+		Name: name,
+		Body: body,
 	}
 
-	return bindStacksTransaction(result), nil
+	return bind(create(payload, conditions, strict)), nil
+}
+
+func conditionPrincipal(from *Principal) transaction.PostConditionPrincipal {
+	var result transaction.PostConditionPrincipal
+
+	result.Type = transaction.PostConditionPrincipalTypeOrigin
+
+	if from != nil {
+		value := *from.value
+
+		if value.Contract != "" {
+			result.Type = transaction.PostConditionPrincipalTypeContract
+		} else {
+			result.Type = transaction.PostConditionPrincipalTypeStandard
+		}
+
+		result.Address = value
+	}
+
+	return result
+}
+
+// Add a STX PostCondition.
+// `code`:
+// 		1 is ==
+// 		2 is >
+// 		3 is >=
+// 		4 is <
+// 		5 is <=
+// `amount`: total uSTX
+// `principal`: the destination (or if nil origin is assumed)
+func (condition *PostCondition) AddSTX(code int, amount int, principal *Principal) error {
+	if code < 1 || code > 5 {
+		return errors.New("code is invalid")
+	}
+
+	if amount < 0 {
+		return errors.New("amount must be > 0")
+	}
+
+	*condition.value = append(*condition.value, transaction.PostConditionSTX{
+		Condition: transaction.FungibleConditionCode(code),
+		Principal: conditionPrincipal(principal),
+		Amount:    uint64(amount),
+	})
+
+	return nil
+}
+
+// Add a FT PostCondition.
+// `code`:
+// 		1 is ==
+// 		2 is >
+// 		3 is >=
+// 		4 is <
+// 		5 is <=
+// `amount`: total uSTX
+// `principal`: the destination (or if nil origin is assumed)
+// `asset`: name of the token
+func (condition *PostCondition) AddFungible(code int, amount int, principal *Principal, asset string) error {
+	if code < 1 || code > 5 {
+		return errors.New("code is invalid")
+	}
+
+	if amount < 0 {
+		return errors.New("amount must be > 0")
+	}
+
+	if asset == "" {
+		return errors.New("asset is required")
+	}
+
+	if principal == nil {
+		return errors.New("origin principal is not allowed")
+	}
+
+	*condition.value = append(*condition.value, transaction.PostConditionFungible{
+		Condition: transaction.FungibleConditionCode(code),
+		Principal: conditionPrincipal(principal),
+		Amount:    uint64(amount),
+		Asset: transaction.Asset{
+			Address: *principal.value,
+			Name:    asset,
+		},
+	})
+
+	return nil
+}
+
+func (condition *PostCondition) Raw() string {
+	return fmt.Sprintf("%#+v\n", *condition.value)
+}
+
+func NewPostCondition() *PostCondition {
+	return &PostCondition{&[]transaction.PostCondition{}}
 }
