@@ -557,10 +557,9 @@ func (transaction StacksTransaction) AddSpendingCondition() error {
 	panic("TODO: finish AddSpendingCondition function")
 }
 
-func (transaction StacksTransaction) Sign(privateKey keys.PrivateKey, addressVersion address.AddressVersion) error {
-	transaction.Authorization = StandardAuthorization{
-		Condition: transaction.Authorization.GetCondition().Cleared(),
-	}
+// TODO: add sponsored and multiple signature support
+func (transaction *StacksTransaction) Sign(privateKey keys.PrivateKey, addressVersion address.AddressVersion) error {
+	transaction.Authorization = StandardAuthorization{SingleSignatureSpendingCondition{}}
 
 	marshaled, err := transaction.Marshal()
 
@@ -579,7 +578,6 @@ func (transaction StacksTransaction) Sign(privateKey keys.PrivateKey, addressVer
 	fee := transaction.Authorization.GetCondition().GetFee()
 	nonce := transaction.Authorization.GetCondition().GetNonce()
 
-	// TODO: add sponsored support
 	writer.Write(initial[:])
 	writer.WriteByte(0x04)
 	writer.WriteUint64(uint64(fee))
