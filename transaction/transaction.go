@@ -558,62 +558,52 @@ func (transaction StacksTransaction) AddSpendingCondition() error {
 }
 
 func (transaction StacksTransaction) Sign(privateKey keys.PrivateKey, addressVersion address.AddressVersion) error {
-	transactionWithClearedSpendingCondition := transaction
-	clearedSpendingCondition := transactionWithClearedSpendingCondition.Authorization.GetCondition().Cleared()
-	authorization := StandardAuthorization{Condition: clearedSpendingCondition}
-	transactionWithClearedSpendingCondition.Authorization = authorization
-
-	transactionHexBytes, err := transactionWithClearedSpendingCondition.Marshal()
-	if err != nil {
-		return fmt.Errorf("Could not marshal transaction: %v", err)
+	transaction.Authorization = StandardAuthorization{
+		Condition: transaction.Authorization.GetCondition().Cleared(),
 	}
 
-	transactionBytes, err := hex.DecodeString(string(transactionHexBytes))
+	marshaled, err := transaction.Marshal()
+
 	if err != nil {
-		return fmt.Errorf("Could not hex decode trasaction with cleared spending condition: %v", err)
+		return fmt.Errorf("could not marshal transaction: %v", err)
 	}
 
-	initialSighashLengthed := sha512.Sum512_256(transactionBytes)
-	initialSighash := initialSighashLengthed[:]
+	content := make([]byte, hex.EncodedLen(len(marshaled)))
+	hex.Encode(content, marshaled)
+
+	var buffer bytes.Buffer
+	writer := binstruct.NewWriter(&buffer, binary.BigEndian, false)
+
+	initial := sha512.Sum512_256(content)
 
 	fee := transaction.Authorization.GetCondition().GetFee()
-	feeBytes := make([]byte, 8)
-	binary.BigEndian.PutUint64(feeBytes, fee)
-
 	nonce := transaction.Authorization.GetCondition().GetNonce()
-	nonceBytes := make([]byte, 8)
-	binary.BigEndian.PutUint64(nonceBytes, nonce)
 
 	// TODO: add sponsored support
-	toHashPresignSighash := append(initialSighash, 0x04)
-	toHashPresignSighash = append(toHashPresignSighash, feeBytes...)
-	toHashPresignSighash = append(toHashPresignSighash, nonceBytes...)
+	writer.Write(initial[:])
+	writer.WriteByte(0x04)
+	writer.WriteUint64(uint64(fee))
+	writer.WriteUint64(uint64(nonce))
 
-	preSignSigHashLengthed := sha512.Sum512_256(toHashPresignSighash)
-	preSignSigHash := preSignSigHashLengthed[:]
+	hash := sha512.Sum512_256(buffer.Bytes())
 
-	signatureNonLength, err := secp256k1.Sign(preSignSigHash, privateKey.Serialize())
+	signature, err := secp256k1.Sign(hash[:], privateKey.Serialize())
+
 	if err != nil {
-		return fmt.Errorf("Could not presign-sighash: %v", err)
+		return fmt.Errorf("could not presign-sighash: %v", err)
 	}
 
-	signature := *(*[65]byte)(signatureNonLength)
+	var encoding constant.PublicKeyEncoding
 
-	var publicKeyEncoding constant.PublicKeyEncoding
-
-	switch privateKey.Compressed {
-	case true:
-		publicKeyEncoding = constant.PublicKeyEncodingCompressed
-	case false:
-		publicKeyEncoding = constant.PublicKeyEncodingUncompressed
+	if privateKey.Compressed == true {
+		encoding = constant.PublicKeyEncodingCompressed
+	} else {
+		encoding = constant.PublicKeyEncodingUncompressed
 	}
 
-	newCondition := transaction.Authorization.GetCondition()
-	newCondition = newCondition.WithAddedSignature(signature, publicKeyEncoding)
-
-	newAuthorization := StandardAuthorization{Condition: newCondition}
-
-	transaction.Authorization = newAuthorization
+	transaction.Authorization = StandardAuthorization{
+		Condition: transaction.Authorization.GetCondition().WithAddedSignature(*(*[65]byte)(signature), encoding),
+	}
 
 	return nil
 }

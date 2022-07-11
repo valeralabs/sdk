@@ -5,9 +5,9 @@ import (
 	"encoding/hex"
 	"testing"
 
+	"github.com/valeralabs/sdk/address"
 	"github.com/valeralabs/sdk/constant"
 	"github.com/valeralabs/sdk/wallet/keys"
-	"github.com/valeralabs/sdk/address"
 )
 
 var (
@@ -124,33 +124,40 @@ func TestContractCall(test *testing.T) {
 	})
 }
 
-func TestSigningTransaction(test *testing.T) {
+func TestSigning(test *testing.T) {
 	var transaction StacksTransaction
+
 	transaction.Unmarshal(ExampleTokenTransfer)
 
-	privateKeyBytes, err := hex.DecodeString("edf9aee84d9b7abc145504dde6726c64f369d37ee34ded868fabd876c26570bc01")
+	decoded, err := hex.DecodeString("edf9aee84d9b7abc145504dde6726c64f369d37ee34ded868fabd876c26570bc01")
+
 	if err != nil {
-		test.Fatalf("Could not decode private key hex: %v", err)
+		test.Fatalf("could not decode private key hex: %v", err)
 	}
 
-	privateKey, err := keys.NewPrivateKey(privateKeyBytes)
+	key, err := keys.NewPrivateKey(decoded)
+
 	if err != nil {
-		test.Fatalf("Could not create private key: %v", err)
+		test.Fatalf("could not create private key: %v", err)
 	}
 
-	addressVersion := address.AddressVersion { address.HashModeP2PKH, address.NetworkMainnet }
+	version := address.AddressVersion{address.HashModeP2PKH, address.NetworkMainnet}
 
-	err = transaction.Sign(privateKey, addressVersion)
+	err = transaction.Sign(key, version)
+
 	if err != nil {
-		test.Fatalf("Could not sign transaction: %v", err)
+		test.Fatalf("could not sign transaction: %v", err)
 	}
 
-	transactionBytes, err := transaction.Marshal()
+	decoded, err = transaction.Marshal()
+
 	if err != nil {
-		test.Fatalf("Could not marshal transaction: %v", err)
+		test.Fatalf("could not marshal transaction: %v", err)
 	}
 
-	if !bytes.Equal(transactionBytes, ExampleTokenTransfer) {
-		test.Fatalf("Signed transaction is not the same as unsigned transaction")
+	if bytes.Equal(decoded, ExampleTokenTransfer) == false {
+		test.Fatalf("signed transaction is not the same as unsigned transaction")
 	}
+
+	test.Logf("got signed transaction %#+v\n", transaction)
 }
