@@ -13,10 +13,10 @@ import (
 type Server string
 
 const (
-	ValeraMainnet Server = "mn.stx.valera.sh"
-	ValeraTestnet Server = "tn.stx.valera.sh"
-	HiroMainnet   Server = "stacks-node-api.mainnet.stacks.co"
-	HiroTestnet   Server = "stacks-node-api.testnet.stacks.co"
+	ValeraMainnet Server = "https://mn.stx.valera.sh"
+	ValeraTestnet Server = "https://tn.stx.valera.sh"
+	HiroMainnet   Server = "https://stacks-node-api.mainnet.stacks.co"
+	HiroTestnet   Server = "https://stacks-node-api.testnet.stacks.co"
 )
 
 func check(err error, save *error) {
@@ -59,20 +59,8 @@ func fillPath(path string, object interface{}) string {
 	objectMap := structs.Map(object)
 
 	for key, value := range objectMap {
-		// check if value is default value
-		switch value.(type) {
-		case string:
-			if value == "" {
-				continue
-			}
-		case int:
-			if value == -1 {
-				continue
-			}
-		case bool:
-			if value == false {
-				continue
-			}
+		if value == nil {
+			continue
 		}
 
 		target := "{" + reverseCleanID(key) + "}"

@@ -41,18 +41,13 @@ func TestFillPath(t *testing.T) {
 		{
 			"/extended/v1/contract/{contract_id}/events",
 			GetContractEventsByIDParams{
-				Limit: -1, // optional
 				ContractID: "contract.contract",
-				Unanchored: false, // optional
-				Offset: -1, // optional
 			},
 			"/extended/v1/contract/contract.contract/events",
 		},
 		{
 			"/extended/v1/contract/by_trait",
 			GetContractsByTraitParams{
-				Limit: 10, // optional
-				Offset: -1, // optional
 				TraitABI: "insert trait here", 
 			},
 			"/extended/v1/contract/by_trait?limit=10&trait_abi=insert+trait+here",

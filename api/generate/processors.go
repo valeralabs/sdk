@@ -16,18 +16,11 @@ func processParameter(parameter *openapi3.ParameterRef, params *Code, opID strin
 	queue.add(jen.Comment(cleanDesc(val.Description)))
 
 	if !val.Required {
-		switch schema.Type {
-		case "string":
-			queue.add(jen.Commentf("Optional. Pass an empty string to use the default value."))
-		case "integer":
-			defaultStr := "."
+		defaultStr := ""
 			if schema.Default != nil {
-				defaultStr = fmt.Sprintf(" (%v).", schema.Default)
+				defaultStr = fmt.Sprintf("The default value is %v.", schema.Default)
 			}
-			queue.add(jen.Commentf("Optional. Use `-1` to use the default value" + defaultStr))
-		case "boolean":
-			queue.add(jen.Commentf("Optional. Use `" + fmt.Sprint(schema.Default) + "` as default."))
-		}
+			queue.add(jen.Commentf("Optional. " + defaultStr))
 		if schema.Max != nil {
 			queue.add(jen.Comment(fmt.Sprintf("Max value is %v.", *schema.Max)))
 		}
@@ -87,7 +80,7 @@ func processRequestBodyProperty(prop *openapi3.SchemaRef, params *Code, opID str
 	}
 }
 
-func processResponse(response *openapi3.ResponseRef, opID string, statusCode string, f *jen.File) {
+func processResponse(response *openapi3.ResponseRef, opID string, statusCode string, f *jen.File, addedSchemas *map[string]bool) {
 	val := response.Value
 
 	var respTypeName string
@@ -102,52 +95,60 @@ func processResponse(response *openapi3.ResponseRef, opID string, statusCode str
 
 	for _, content := range val.Content {
 		if content.Schema != nil {
-			for name, prop := range content.Schema.Value.Properties {
-				schema := prop.Value
-				tag := map[string]string{"json": name}
-
-				if schema.Description != "" {
-					props.add(jen.Comment(cleanDesc(schema.Description)))
-				}
-
-				if schema.Type == "array" {
-					switch schema.Items.Value.Type {
-					case "string":
+			if !addedSchemas[content.Schema.Value.Title] {
+				respTypeName = content.Schema.Value.Title
+				for name, prop := range content.Schema.Value.Properties {
+					schema := prop.Value
+					tag := map[string]string{"json": name}
+	
+					if schema.Description != "" {
+						props.add(jen.Comment(cleanDesc(schema.Description)))
+					}
+	
+					if schema.Type == "array" {
+						switch schema.Items.Value.Type {
+						case "string":
+							props.add(
+								jen.ID(cleanID(name)).Index().String().Tag(tag),
+							)
+						case "integer":
+							props.add(
+								jen.ID(cleanID(name)).Index().Int().Tag(tag),
+							)
+						case "boolean":
+							props.add(
+								jen.ID(cleanID(name)).Index().Bool().Tag(tag),
+							)
+						default:
+							props.add(
+								jen.ID(cleanID(name)).Index().Any().Tag(tag),
+							)
+						}
+					} else {
 						props.add(
-							jen.ID(cleanID(name)).Index().String().Tag(tag),
-						)
-					case "integer":
-						props.add(
-							jen.ID(cleanID(name)).Index().Int().Tag(tag),
-						)
-					case "boolean":
-						props.add(
-							jen.ID(cleanID(name)).Index().Bool().Tag(tag),
-						)
-					default:
-						props.add(
-							jen.ID(cleanID(name)).Index().Any().Tag(tag),
+							jen.ID(cleanID(name)).ID(typeReplace(schema.Type)).Tag(tag),
 						)
 					}
-				} else {
-					props.add(
-						jen.ID(cleanID(name)).ID(typeReplace(schema.Type)).Tag(tag),
-					)
 				}
+
+				descMsg := ""
+				if val.Description != nil {
+					descMsg = fmt.Sprintf(" (%v)", *val.Description)
+				}
+
+				f.Add(
+					jen.Commentf("Defines a %v%v response for %v.", statusCode, descMsg, opID),
+					jen.Line(),
+					jen.Type().ID(respTypeName).Structure(props.Generated...),
+				)
+				addedSchemas[content.Schema.Value.Title] = true
 			}
 		}
 	}
+}
 
-	descMsg := ""
-	if val.Description != nil {
-		descMsg = fmt.Sprintf(" (%v)", *val.Description)
-	}
+func processTopLevelSchema(schema *openapi3.Schema, f *jen.File) {
 
-	f.Add(
-		jen.Commentf("Defines a %v%v response for %v.", statusCode, descMsg, opID),
-		jen.Line(),
-		jen.Type().ID(respTypeName).Structure(props.Generated...),
-	)
 }
 
 func processPostReq(f *jen.File, opIdTypeName string, operation *openapi3.Operation, bodyParams Code, name string, possibleResponseTypes []jen.Code) {
@@ -259,7 +260,122 @@ func processPostReq(f *jen.File, opIdTypeName string, operation *openapi3.Operat
 
 		f.Comment(operation.Description)
 	}
-	f.Func().ID(funcName(opIdTypeName)).Parameters(
+	f.Func().ID(opIdTypeName).Parameters(
+		inputParams.Generated...,
+	).Parameters(possibleResponseTypes...).Block(
+		funcCode.Generated...,
+	).Line()
+}
+
+func processGetReq(f *jen.File, opIdTypeName string, operation *openapi3.Operation, name string, possibleResponseTypes []jen.Code) {
+	// GET
+
+	var inputParams Code
+
+	inputParams.add(jen.ID("server").ID("Server"))
+
+	if opIdTypeName == "GetBlockByHeight" {
+		for _, param := range operation.Parameters {
+			fmt.Println(param)
+		}
+	}
+
+	// if there are parameters, add them to the input params
+	if len(operation.Parameters) > 0 {
+		inputParams.add(jen.ID("params").ID(opIdTypeName + "Params"))
+	}
+
+	var funcCode Code
+
+	if len(operation.Parameters) > 0 {
+		funcCode.add(
+			// url := fmt.Sprintf("%s%s", server, fillPath(name, params))
+			jen.ID("url").Op(":=").Qualified("fmt", "Sprintf").Call(
+				jen.Literal("%s%s"),
+				jen.ID("server"),
+				jen.ID("fillPath").Call(
+					jen.Literal(name),
+					jen.ID("params"),
+				),
+			),
+		)
+	} else {
+		funcCode.add(
+			// url := fmt.Sprintf("%s%s", server, name))
+			jen.ID("url").Op(":=").Qualified("fmt", "Sprintf").Call(
+				jen.Literal("%s%s"),
+				jen.ID("server"),
+				jen.Literal(name),
+			),
+		)
+	}
+
+	funcCode.add(
+		// var returnedErr error
+		jen.Var().ID("returnedErr").Error(),
+		// resp, status := makePostReq(url, &returnedErr)
+		jen.ID("resp").Op(",").ID("status").Op(":=").ID("makeGetReq").Call(jen.ID("url"), jen.ID("&returnedErr")),
+		jen.Line(),
+		// if returnedErr != nil {
+		jen.If(jen.ID("returnedErr").Op("!=").Nil()).Block(
+			// return PostFeeTransactionResponse{}, returnedErr
+			jen.Return().ID(opIdTypeName+"Response").Block().Op(",").ID("returnedErr"),
+		),
+		jen.Line(),
+		// switch status {
+		jen.Switch(jen.ID("status")).Block(
+			// case 200:
+			jen.Case(jen.Literal(200)).Block(
+				// var respObj PostFeeTransactionResponse
+				jen.Var().ID("respObj").ID(opIdTypeName+"Response"),
+				// err := json.Unmarshal(resp, &respObj)
+				jen.ID("err").Op(":=").Qualified("encoding/json", "Unmarshal").Call(jen.ID("resp"), jen.ID("&respObj")),
+				// if err != nil {
+				// 	return respObj, err
+				// }
+				jen.If(jen.ID("err").Op("!=").Nil()).Block(
+					jen.Return().ID("respObj").Op(",").ID("err"),
+				),
+				// return respObj, nil
+				jen.Return().ID("respObj").Op(",").Nil(),
+			),
+			jen.Default().Block(
+				// var respObj struct{
+				// 	Error string `json:"error"`
+				// }
+				jen.Var().ID("respObj").Structure(
+					jen.ID("Error").String().Tag(map[string]string{"json": "error"}),
+				),
+				// err := json.Unmarshal(resp, &respObj)
+				jen.ID("err").Op(":=").Qualified("encoding/json", "Unmarshal").Call(jen.ID("resp"), jen.ID("&respObj")),
+				// if err != nil {
+				// 	return PostFeeTransactionResponse{}, err
+				// }
+				jen.If(jen.ID("err").Op("!=").Nil()).Block(
+					jen.Return().ID(opIdTypeName+"Response").Block().Op(",").ID("err"),
+				),
+				// return PostFeeTransactionResponse{}, errors.New(respObj.Error)
+				jen.Return().ID(opIdTypeName+"Response").Block().Op(",").Qualified("errors", "New").Call(jen.ID("respObj").Dot("Error")),
+			),
+		),
+	)
+
+	if (operation.Description != "") {
+		// // detect if there are references (like `transaction_payload`) and replace them with the actual values
+		// // pull each reference by backticks and replace with cleanID(reference)
+		// splitStr := strings.Split(operation.Description, "`")
+		// for i := 0; i < len(splitStr); i++ {
+		// 	if i % 2 == 0 {
+		// 		// make sure it's not surrounded by no none-whitespace characters
+		// 		if strings.TrimSpace(splitStr[i]) == "" {
+		// 			splitStr[i] = cleanID(splitStr[i])
+		// 		}
+		// 	}
+		// }
+
+		f.Comment(operation.Description)
+	}
+	f.Func().ID(opIdTypeName).Parameters(
 		inputParams.Generated...,
 	).Parameters(possibleResponseTypes...).Block(
 		funcCode.Generated...,

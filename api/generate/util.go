@@ -5,8 +5,9 @@ import (
 	"strings"
 )
 
+var LowerCaseReplacements = regexp.MustCompile(`(?P<start>(.*(_|{)|\A))(?P<match>iso|nft|btc|stx|api|id|tx|ft|tld|abi|txid)(?P<end>((_|}).*|\z))`)
+
 func clean(source string) string {
-var LowerCaseReplacements = regexp.MustCompile(`(?P<start>(.*(_|{)|\A))(?P<match>nft|btc|stx|api|id|tx|ft|tld|abi)(?P<end>((_|}).*|\z))`)
 	for LowerCaseReplacements.MatchString(source) {
 		source = LowerCaseReplacements.ReplaceAllStringFunc(source, func(cursor string) string {
 			found := LowerCaseReplacements.FindStringSubmatch(cursor)
@@ -30,7 +31,7 @@ func cleanID(ID string) string {
 		parts[i] = strings.Title(part)
 	}
 
-	return strings.Join(parts, "")
+	return clean(strings.Join(parts, ""))
 }
 
 func typeReplace(src string) string {
@@ -61,10 +62,5 @@ func cleanDesc(desc string) string {
 	if !strings.HasSuffix(desc, ".") {
 		desc += "."
 	}
-	return desc
-}
-
-func funcName(src string) string {
-	// change first letter to lowercase
-	return strings.ToLower(string(src[0])) + src[1:]
+	return clean(desc)
 }

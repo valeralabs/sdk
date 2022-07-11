@@ -8,6 +8,7 @@ import (
 
 	"github.com/deepmap/oapi-codegen/pkg/util"
 	"github.com/valeralabs/jenny/jen"
+	"github.com/valeralabs/sdk/api"
 )
 
 //go:generate git submodule update --init --recursive
@@ -19,6 +20,11 @@ type Code struct {
 func (p *Code) add(code ...jen.Code) {
 	p.Generated = append(p.Generated, code...)
 }
+
+type TopLevelSchemas map[string]bool
+
+func (t *TopLevelSchemas) process(schema string) {
+
 
 func main() {
 	fmt.Println("Loading OpenAPI 3.0 spec...")
@@ -35,8 +41,18 @@ func main() {
 	// type generation
 	f := jen.NewFile("api")
 
+	addedSchemas := make(map[string]bool)
+
+	func isInAddedSchemas(key string) bool {
+		if addedSchemas == nil {
+			return false
+		}
+		_, ok := addedSchemas[key]
+		return ok
+	}
+
 	for name, path := range swagger.Paths {
-		delete(swagger.Paths, name)
+		// delete(swagger.Paths, name)
 
 		// clean up the swagger object
 		if path.Parameters != nil {
@@ -64,6 +80,7 @@ func main() {
 					var params Code
 
 					var wg sync.WaitGroup
+					
 
 					// ---- TYPES
 
@@ -71,6 +88,7 @@ func main() {
 
 					// parameters
 					for _, parameter := range operation.Parameters {
+						fmt.Println(prefix+parameter.Value.Name)
 						wg.Add(1)
 						parameter := parameter
 
@@ -136,7 +154,7 @@ func main() {
 
 					switch method {
 					case "GET":
-						// GET
+						processGetReq(f, opIdTypeName, operation, name, possibleResponseTypes)
 					case "POST":
 						processPostReq(f, opIdTypeName, operation, bodyParams, name, possibleResponseTypes)
 					default:
@@ -159,6 +177,18 @@ func main() {
 		f.Add(code)
 	}
 
+	// log all paths with operations that have 0 parameters
+	for name, path := range swagger.Paths {
+		for _, operation := range path.Operations() {
+			if operation != nil {
+				if len(operation.Parameters) == 0 {
+					fmt.Printf("➤ ┌ %v\n", len(operation.Parameters))
+					fmt.Printf("➤ └ %v\n", name)
+				}
+			}
+		}
+	}
+
 	fmt.Printf("➤ Rendering output to %v\n", output)
 	err = f.Save(output)
 
@@ -168,4 +198,20 @@ func main() {
 	}
 
 	fmt.Printf(string(colourCodes["green"])+"Finished processing in %v\n"+string(colourCodes["reset"]), time.Since(processingStart))
+
+	params := api.GetBlockListParams{}
+
+	server := api.HiroMainnet
+
+	resp, err := api.GetBlockList(server, params)
+
+	if err != nil {
+		fmt.Println(err)
+		panic(err)
+	} else {
+		fmt.Println(len(resp.Results))
+		for _, block := range resp.Results {
+			fmt.Println(block)
+		}
+	}
 }
