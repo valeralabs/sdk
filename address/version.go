@@ -2,6 +2,8 @@ package address
 
 import "errors"
 
+//go:generate go run golang.org/x/tools/cmd/stringer@latest -type=Network,HashMode -output=version_string.go
+
 type AddressVersion struct {
 	HashMode HashMode
 	Network  Network
