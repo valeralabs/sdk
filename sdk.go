@@ -12,6 +12,7 @@ import (
 	"github.com/valeralabs/sdk/address"
 	"github.com/valeralabs/sdk/constant"
 	"github.com/valeralabs/sdk/encoding/c32"
+	"github.com/valeralabs/sdk/encoding/clarity"
 	"github.com/valeralabs/sdk/transaction"
 	"github.com/valeralabs/sdk/wallet"
 )
@@ -50,6 +51,16 @@ type StacksTransaction struct {
 	Payload *Payload
 
 	value *transaction.StacksTransaction
+}
+
+// Wrapper around [encoding/clarity.Value].
+type ClarityValue struct {
+	value *clarity.Value
+}
+
+// Wrapper around [encoding/clarity.List].
+type ClarityList struct {
+	value *clarity.List
 }
 
 // Derive a wallet from your mnemonic seed phrase with the option of using a password.
@@ -255,17 +266,12 @@ func create(payload transaction.Payload, conditions *PostCondition, strict bool)
 }
 
 // Create a token transfer.
-// `account`: source of funds and signing.
 // `recipient`: the destination of the funds can be a standard or contract principal.
 // `amount`: total uSTX sent.
 // `memo`: optional arbitrary info.
 // `conditions`: the post-conditions.
 // `strict`: has to follow post-condtions.
-func NewTokenTransfer(account *Account, recipient *Principal, amount int, memo string, conditions *PostCondition, strict bool) (*StacksTransaction, error) {
-	if account == nil {
-		return &StacksTransaction{}, errors.New("account is nil")
-	}
-
+func NewTokenTransfer(recipient *Principal, amount int, memo string, conditions *PostCondition, strict bool) (*StacksTransaction, error) {
 	if recipient == nil {
 		return &StacksTransaction{}, errors.New("recipient is nil")
 	}
@@ -280,16 +286,12 @@ func NewTokenTransfer(account *Account, recipient *Principal, amount int, memo s
 }
 
 // Create a contract call.
-// `account`:  signing.
 // `contract`: the principal of the contract.
 // `function`: the function being called.
+// `arguments`: arguments as a `ClarityList` or nil.
 // `conditions`: the post-conditions.
 // `strict`: has to follow post-condtions.
-func NewContractCall(account *Account, contract *Principal, function string, conditions *PostCondition, strict bool) (*StacksTransaction, error) {
-	if account == nil {
-		return &StacksTransaction{}, errors.New("account is nil")
-	}
-
+func NewContractCall(contract *Principal, function string, arguments *ClarityList, conditions *PostCondition, strict bool) (*StacksTransaction, error) {
 	if contract == nil {
 		return &StacksTransaction{}, errors.New("contract is nil")
 	}
@@ -298,9 +300,14 @@ func NewContractCall(account *Account, contract *Principal, function string, con
 		return &StacksTransaction{}, errors.New("contract is a standard principal not a contract principal")
 	}
 
+	if arguments == nil {
+		*arguments.value = clarity.List{}
+	}
+
 	payload := transaction.PayloadContractCall{
-		Address:  *contract.value,
-		Function: function,
+		Address:   *contract.value,
+		Function:  function,
+		Arguments: *arguments.value,
 	}
 
 	return bind(create(payload, conditions, strict)), nil
@@ -312,11 +319,7 @@ func NewContractCall(account *Account, contract *Principal, function string, con
 // `body`: the contract source code.
 // `conditions`: the post-conditions.
 // `strict`: has to follow post-condtions.
-func NewSmartContract(account *Account, name string, body string, conditions *PostCondition, strict bool) (*StacksTransaction, error) {
-	if account == nil {
-		return &StacksTransaction{}, errors.New("account is nil")
-	}
-
+func NewSmartContract(name string, body string, conditions *PostCondition, strict bool) (*StacksTransaction, error) {
 	payload := transaction.PayloadSmartContract{
 		Name: name,
 		Body: body,
@@ -418,4 +421,50 @@ func (condition *PostCondition) Raw() string {
 
 func NewPostCondition() *PostCondition {
 	return &PostCondition{&[]transaction.PostCondition{}}
+}
+
+func (value *ClarityValue) Raw() string {
+	return fmt.Sprintf("%#+v\n", *value.value)
+}
+
+func NewClarityValue(prefix int, base int, content string) (*ClarityValue, error) {
+	if prefix < 0 {
+		prefix = constant.DefaultPrefixLength
+	}
+
+	typed := clarity.ClarityType(base)
+
+	if typed.Check() == false {
+		return &ClarityValue{}, errors.New("base is not a clarity type")
+	}
+
+	return &ClarityValue{&clarity.Value{
+		Type:         typed,
+		Content:      []byte(content),
+		PrefixLength: prefix,
+	}}, nil
+
+}
+
+func (list *ClarityList) Add(value *ClarityValue) {
+	list.value.Content = append(list.value.Content, *value.value)
+}
+
+func (list *ClarityList) Raw() string {
+	return fmt.Sprintf("%#+v\n", *list.value)
+}
+
+func NewClarityList(prefix int, sub int) *ClarityList {
+	if prefix == 0 {
+		prefix = constant.DefaultPrefixLength
+	}
+
+	if sub == 0 {
+		sub = constant.DefaultPrefixLength
+	}
+
+	return &ClarityList{&clarity.List{
+		PrefixLength:    prefix,
+		SubPrefixLength: sub,
+	}}
 }
