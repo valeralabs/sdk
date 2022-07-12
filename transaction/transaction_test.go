@@ -155,8 +155,8 @@ func TestSigning(test *testing.T) {
 		test.Fatalf("could not marshal transaction: %v", err)
 	}
 
-	if bytes.Equal(decoded, ExampleTokenTransfer) == false {
-		test.Fatalf("signed transaction is not the same as unsigned transaction")
+	if bytes.Equal(decoded, ExampleTokenTransfer) == true {
+		test.Fatalf("signed transaction is the same as unsigned transaction")
 	}
 
 	test.Logf("got signed transaction %#+v\n", transaction)

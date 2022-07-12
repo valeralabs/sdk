@@ -85,8 +85,9 @@ func (condition SingleSignatureSpendingCondition) GetNonce() uint64 {
 }
 
 func (condition SingleSignatureSpendingCondition) WithAddedSignature(signature [65]byte, publicKeyEncoding constant.PublicKeyEncoding) SpendingCondition {
-	condition.Signature = [65]byte{}
+	condition.Signature = signature
 	condition.KeyEncoding = publicKeyEncoding
+
 	return condition
 }
 
