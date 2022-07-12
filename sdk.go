@@ -230,12 +230,7 @@ func (stacks *StacksTransaction) Sign(account *Account) error {
 		return errors.New("stacks is nil")
 	}
 
-	version := address.AddressVersion{
-		HashMode: address.HashModeP2PKH,
-		Network:  address.NetworkMainnet,
-	}
-
-	err := (*stacks.value).Sign(*account.value.PrivateKey, version)
+	err := (*stacks.value).Sign(*account.value.PrivateKey)
 
 	if err != nil {
 		return err

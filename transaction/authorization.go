@@ -8,11 +8,11 @@ import (
 type SpendingCondition interface {
 	GetKeyEncoding() constant.PublicKeyEncoding
 	GetSignature() [65]byte
+	SetSignature([65]byte, [20]byte, constant.PublicKeyEncoding) SpendingCondition
 	GetHashMode() address.HashMode
 	GetSigner() [20]byte
 	GetNonce() uint64
 	GetFee() uint64
-	WithAddedSignature(signature [65]byte, publicKeyEncoding constant.PublicKeyEncoding) SpendingCondition
 }
 
 type Authorization interface {
@@ -84,9 +84,10 @@ func (condition SingleSignatureSpendingCondition) GetNonce() uint64 {
 	return condition.Nonce
 }
 
-func (condition SingleSignatureSpendingCondition) WithAddedSignature(signature [65]byte, publicKeyEncoding constant.PublicKeyEncoding) SpendingCondition {
+func (condition SingleSignatureSpendingCondition) SetSignature(signature [65]byte, signer [20]byte, encoding constant.PublicKeyEncoding) SpendingCondition {
+	condition.Signer = signer
 	condition.Signature = signature
-	condition.KeyEncoding = publicKeyEncoding
+	condition.KeyEncoding = encoding
 
 	return condition
 }
@@ -116,6 +117,6 @@ func (condition MultipleSignatureSpendingCondition) GetNonce() uint64 {
 	return condition.Nonce
 }
 
-func (condition MultipleSignatureSpendingCondition) WithAddedSignature(signature [65]byte, publicKeyEncoding constant.PublicKeyEncoding) MultipleSignatureSpendingCondition {
+func (condition MultipleSignatureSpendingCondition) SetSignature(signature [65]byte, signer [20]byte, publicKeyEncoding constant.PublicKeyEncoding) SpendingCondition {
 	panic("TODO: Implement multiple signature spending condition adding signatures")
 }

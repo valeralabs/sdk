@@ -558,7 +558,7 @@ func (transaction StacksTransaction) AddSpendingCondition() error {
 }
 
 // TODO: add sponsored and multiple signature support
-func (transaction *StacksTransaction) Sign(privateKey keys.PrivateKey, addressVersion address.AddressVersion) error {
+func (transaction *StacksTransaction) Sign(private keys.PrivateKey) error {
 	transaction.Authorization = StandardAuthorization{SingleSignatureSpendingCondition{}}
 
 	marshaled, err := transaction.Marshal()
@@ -585,23 +585,16 @@ func (transaction *StacksTransaction) Sign(privateKey keys.PrivateKey, addressVe
 
 	hash := sha512.Sum512_256(buffer.Bytes())
 
-	signature, err := secp256k1.Sign(hash[:], privateKey.Serialize())
+	signature, err := secp256k1.Sign(hash[:], private.Serialize())
 
 	if err != nil {
 		return fmt.Errorf("could not presign-sighash: %v", err)
 	}
 
-	var encoding constant.PublicKeyEncoding
+	condition := transaction.Authorization.GetCondition()
+	condition = condition.SetSignature(*(*[65]byte)(signature), *(*[20]byte)(private.PublicKey().Serialize()), constant.PublicKeyEncodingCompressed)
 
-	if privateKey.Compressed == true {
-		encoding = constant.PublicKeyEncodingCompressed
-	} else {
-		encoding = constant.PublicKeyEncodingUncompressed
-	}
-
-	transaction.Authorization = StandardAuthorization{
-		Condition: transaction.Authorization.GetCondition().WithAddedSignature(*(*[65]byte)(signature), encoding),
-	}
+	transaction.Authorization = StandardAuthorization{condition}
 
 	return nil
 }

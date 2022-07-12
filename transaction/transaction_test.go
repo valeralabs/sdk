@@ -5,7 +5,6 @@ import (
 	"encoding/hex"
 	"testing"
 
-	"github.com/valeralabs/sdk/address"
 	"github.com/valeralabs/sdk/constant"
 	"github.com/valeralabs/sdk/wallet/keys"
 )
@@ -141,9 +140,7 @@ func TestSigning(test *testing.T) {
 		test.Fatalf("could not create private key: %v", err)
 	}
 
-	version := address.AddressVersion{address.HashModeP2PKH, address.NetworkMainnet}
-
-	err = transaction.Sign(key, version)
+	err = transaction.Sign(key)
 
 	if err != nil {
 		test.Fatalf("could not sign transaction: %v", err)
