@@ -1,0 +1,708 @@
+Loading OpenAPI 3.0 spec...
+Loaded API spec in 346.338708ms
+➤ ┌ [34mGetBurnchainRewardSlotHoldersByAddress
+[0m➤ │ address
+➤ │ limit
+➤ │ offset
+➤ │ [90m[TYPE] [0mParameter `limit` processed
+➤ │        └ [33mOptional
+[0m➤ │ [90m[TYPE] [0mParameter `address` processed
+➤ │ [90m[FUNC] [0mGET request processed
+➤ │ [90m[TYPE] [0mParameter `offset` processed
+➤ │        └ [33mOptional
+[0m➤ │ [90m[TYPE] [0mResponse 200 processed
+➤ └ Completed in 269µs
+➤ ┌ [34mGetBurnchainRewardListByAddress
+[0m➤ │ address
+➤ │ limit
+➤ │ offset
+➤ │ [90m[TYPE] [0mParameter `address` processed
+➤ │ [90m[FUNC] [0mGET request processed
+➤ │ [90m[TYPE] [0mParameter `limit` processed
+➤ │        └ [33mOptional
+[0m➤ │ [90m[TYPE] [0mParameter `offset` processed
+➤ │        └ [33mOptional
+[0m➤ │ [90m[TYPE] [0mResponse 200 processed
+➤ └ Completed in 113.625µs
+➤ ┌ [34mGetUnanchoredTxs
+[0m➤ │ [90m[FUNC] [0mGET request processed
+➤ │ [90m[TYPE] [0mResponse 200 processed
+➤ └ Completed in 79.709µs
+➤ ┌ [34mSearchByID
+[0m➤ │ id
+➤ │ include_metadata
+➤ │ [90m[FUNC] [0mGET request processed
+➤ │ [90m[TYPE] [0mParameter `id` processed
+➤ │ [90m[TYPE] [0mResponse 200 processed
+➤ │ [90m[TYPE] [0mResponse 404 processed
+➤ │ [90m[TYPE] [0mParameter `include_metadata` processed
+➤ │        └ [33mOptional
+[0m➤ └ Completed in 92.458µs
+➤ ┌ [34mGetNFTHistory
+[0m➤ │ asset_identifier
+➤ │ value
+➤ │ limit
+➤ │ offset
+➤ │ unanchored
+➤ │ tx_metadata
+➤ │ [90m[TYPE] [0mParameter `limit` processed
+➤ │ [90m[TYPE] [0mParameter `unanchored` processed
+➤ │        └ [33mOptional
+[0m➤ │ [90m[FUNC] [0mGET request processed
+➤ │ [90m[TYPE] [0mParameter `asset_identifier` processed
+➤ │ [90m[TYPE] [0mParameter `value` processed
+➤ │        └ [33mOptional
+[0m➤ │ [90m[TYPE] [0mParameter `tx_metadata` processed
+➤ │        └ [33mOptional
+[0m➤ │ [90m[TYPE] [0mResponse 200 processed
+➤ │ [90m[TYPE] [0mParameter `offset` processed
+➤ │        └ [33mOptional
+[0m➤ └ Completed in 162.834µs
+➤ ┌ [34mGetAccountInfo
+[0m➤ │ principal
+➤ │ proof
+➤ │ tip
+➤ │ [90m[FUNC] [0mGET request processed
+➤ │ [90m[TYPE] [0mParameter `proof` processed
+➤ │        └ [33mOptional
+[0m➤ │ [90m[TYPE] [0mParameter `tip` processed
+➤ │        └ [33mOptional
+[0m➤ │ [90m[TYPE] [0mResponse 200 processed
+➤ │ [90m[TYPE] [0mParameter `principal` processed
+➤ └ Completed in 116.583µs
+➤ ┌ [34mGetAccountInbound
+[0m➤ │ principal
+➤ │ limit
+➤ │ offset
+➤ │ height
+➤ │ unanchored
+➤ │ until_block
+➤ │ [90m[TYPE] [0mParameter `limit` processed
+➤ │        └ [33mOptional
+[0m➤ │ [90m[TYPE] [0mParameter `height` processed
+➤ │        └ [33mOptional
+[0m➤ │ [90m[TYPE] [0mParameter `principal` processed
+➤ │ [90m[TYPE] [0mParameter `until_block` processed
+➤ │        └ [33mOptional
+[0m➤ │ [90m[FUNC] [0mGET request processed
+➤ │ [90m[TYPE] [0mResponse 200 processed
+➤ │ [90m[TYPE] [0mParameter `unanchored` processed
+➤ │        └ [33mOptional
+[0m➤ │ [90m[TYPE] [0mParameter `offset` processed
+➤ │        └ [33mOptional
+[0m➤ └ Completed in 152.833µs
+➤ ┌ [34mRunFaucetBTC
+[0m➤ │ [90m[TYPE] [0mResponse 200 processed
+➤ │ [90m[TYPE] [0mResponse 500 processed
+➤ │ [90m[FUNC] [0mPOST request processed
+➤ │ [90m[TYPE] [0mBody property `address` processed
+➤ └ Completed in 87.5µs
+➤ ┌ [34mRunFaucetSTX
+[0m➤ │ [90m[FUNC] [0mPOST request processed
+➤ │ [90m[TYPE] [0mBody property `stacking` processed
+➤ │ [90m[TYPE] [0mResponse 200 processed
+➤ │ [90m[TYPE] [0mResponse 500 processed
+➤ │ [90m[TYPE] [0mBody property `address` processed
+➤ └ Completed in 61µs
+➤ ┌ [34mGetTotalSTXSupplyLegacyFormat
+[0m➤ │ height
+➤ │ [90m[FUNC] [0mGET request processed
+➤ │ [90m[TYPE] [0mParameter `height` processed
+➤ │        └ [33mOptional
+[0m➤ │ [90m[TYPE] [0mResponse 200 processed
+➤ └ Completed in 119.958µs
+➤ ┌ [34mGetDroppedMempoolTransactionList
+[0m➤ │ limit
+➤ │ offset
+➤ │ [90m[TYPE] [0mParameter `limit` processed
+➤ │        └ [33mOptional
+[0m➤ │ [90m[FUNC] [0mGET request processed
+➤ │ [90m[TYPE] [0mParameter `offset` processed
+➤ │        └ [33mOptional
+[0m➤ │ [90m[TYPE] [0mResponse 200 processed
+➤ └ Completed in 89.333µs
+➤ ┌ [34mGetAllNames
+[0m➤ │ page
+➤ │ [90m[FUNC] [0mGET request processed
+➤ │ [90m[TYPE] [0mResponse 400 processed
+➤ │ [90m[TYPE] [0mResponse 200 processed
+➤ │ [90m[TYPE] [0mParameter `page` processed
+➤ └ Completed in 72.959µs
+➤ ┌ [34mGetContractSource
+[0m➤ │ [90m[FUNC] [0mGET request processed
+➤ │ [90m[TYPE] [0mResponse 200 processed
+➤ └ Completed in 47.625µs
+➤ ┌ [34mGetContractInterface
+[0m➤ │ [90m[FUNC] [0mGET request processed
+➤ │ [90m[TYPE] [0mResponse 200 processed
+➤ └ Completed in 89.708µs
+➤ ┌ [34mGetAccountNonces
+[0m➤ │ principal
+➤ │ block_height
+➤ │ block_hash
+➤ │ [90m[FUNC] [0mGET request processed
+➤ │ [90m[TYPE] [0mParameter `principal` processed
+➤ │ [90m[TYPE] [0mParameter `block_hash` processed
+➤ │        └ [33mOptional
+[0m➤ │ [90m[TYPE] [0mParameter `block_height` processed
+➤ │        └ [33mOptional
+[0m➤ │ [90m[TYPE] [0mResponse 200 processed
+➤ └ Completed in 112.541µs
+➤ ┌ [34mGetBlockByBurnBlockHash
+[0m➤ │ [90m[FUNC] [0mGET request processed
+➤ │ [90m[TYPE] [0mResponse 404 processed
+➤ │ [90m[TYPE] [0mResponse 200 processed
+➤ └ Completed in 139.792µs
+➤ ┌ [34mGetBlockByBurnBlockHeight
+[0m➤ │ [90m[FUNC] [0mGET request processed
+➤ │ [90m[TYPE] [0mResponse 200 processed
+➤ │ [90m[TYPE] [0mResponse 404 processed
+➤ └ Completed in 39.583µs
+➤ ┌ [34mGetSTXSupplyTotalSupplyPlain
+[0m➤ │ [90m[TYPE] [0mResponse 200 processed
+➤ │ [90m[FUNC] [0mGET request processed
+➤ └ Completed in 49.958µs
+➤ ┌ [34mGetTransactionsByBlockHeight
+[0m➤ │ height
+➤ │ limit
+➤ │ offset
+➤ │ unanchored
+➤ │ [90m[TYPE] [0mParameter `limit` processed
+➤ │        └ [33mOptional
+[0m➤ │ [90m[TYPE] [0mParameter `offset` processed
+➤ │        └ [33mOptional
+[0m➤ │ [90m[TYPE] [0mParameter `height` processed
+➤ │ [90m[TYPE] [0mParameter `unanchored` processed
+➤ │        └ [33mOptional
+[0m➤ │ [90m[TYPE] [0mResponse 200 processed
+➤ │ [90m[FUNC] [0mGET request processed
+➤ └ Completed in 113.959µs
+➤ ┌ [34mGetTransactionByID
+[0m➤ │ [90m[FUNC] [0mGET request processed
+➤ │ [90m[TYPE] [0mResponse 200 processed
+➤ │ [90m[TYPE] [0mResponse 404 processed
+➤ └ Completed in 49.833µs
+➤ ┌ [34mGetBurnchainRewardsTotalByAddress
+[0m➤ │ address
+➤ │ [90m[FUNC] [0mGET request processed
+➤ │ [90m[TYPE] [0mParameter `address` processed
+➤ │ [90m[TYPE] [0mResponse 200 processed
+➤ └ Completed in 80.375µs
+➤ ┌ [34mGetContractFTMetadata
+[0m➤ │ contractId
+➤ │ [90m[FUNC] [0mGET request processed
+➤ │ [90m[TYPE] [0mParameter `contractId` processed
+➤ │ [90m[TYPE] [0mResponse 200 processed
+➤ └ Completed in 108.041µs
+➤ ┌ [34mGetHistoricalZoneFile
+[0m➤ │ name
+➤ │ zoneFileHash
+➤ │ [90m[FUNC] [0mGET request processed
+➤ │ [90m[TYPE] [0mParameter `name` processed
+➤ │ [90m[TYPE] [0mParameter `zoneFileHash` processed
+➤ │ [90m[TYPE] [0mResponse 400 processed
+➤ │ [90m[TYPE] [0mResponse 200 processed
+➤ │ [90m[TYPE] [0mResponse 404 processed
+➤ └ Completed in 82µs
+➤ ┌ [34mGetNamespacePrice
+[0m➤ │ tld
+➤ │ [90m[TYPE] [0mParameter `tld` processed
+➤ │ [90m[TYPE] [0mResponse 200 processed
+➤ │ [90m[FUNC] [0mGET request processed
+➤ └ Completed in 49.834µs
+➤ ┌ [34mCallReadOnlyFunction
+[0m➤ │ contract_address
+➤ │ contract_name
+➤ │ function_name
+➤ │ tip
+➤ │ [90m[TYPE] [0mParameter `contract_address` processed
+➤ │ [90m[TYPE] [0mParameter `contract_name` processed
+➤ │ [90m[TYPE] [0mParameter `function_name` processed
+➤ │ [90m[TYPE] [0mBody property `sender` processed
+➤ │ [90m[TYPE] [0mBody property `arguments` processed
+➤ │ [90m[TYPE] [0mResponse 200 processed
+➤ │ [90m[FUNC] [0mPOST request processed
+➤ │ [90m[TYPE] [0mParameter `tip` processed
+➤ │        └ [33mOptional
+[0m➤ └ Completed in 89.708µs
+➤ ┌ [34mGetAccountAssets
+[0m➤ │ principal
+➤ │ limit
+➤ │ offset
+➤ │ unanchored
+➤ │ until_block
+➤ │ [90m[TYPE] [0mParameter `offset` processed
+➤ │        └ [33mOptional
+[0m➤ │ [90m[TYPE] [0mParameter `principal` processed
+➤ │ [90m[FUNC] [0mGET request processed
+➤ │ [90m[TYPE] [0mParameter `unanchored` processed
+➤ │        └ [33mOptional
+[0m➤ │ [90m[TYPE] [0mParameter `until_block` processed
+➤ │        └ [33mOptional
+[0m➤ │ [90m[TYPE] [0mParameter `limit` processed
+➤ │        └ [33mOptional
+[0m➤ │ [90m[TYPE] [0mResponse 200 processed
+➤ └ Completed in 285.958µs
+➤ ┌ [34mGetBlockByHeight
+[0m➤ │ [90m[FUNC] [0mGET request processed
+➤ │ [90m[TYPE] [0mResponse 200 processed
+➤ │ [90m[TYPE] [0mResponse 404 processed
+➤ └ Completed in 71.584µs
+➤ ┌ [34mGetNetworkBlockTimeByNetwork
+[0m➤ │ network
+➤ │ [90m[FUNC] [0mGET request processed
+➤ │ [90m[TYPE] [0mParameter `network` processed
+➤ │ [90m[TYPE] [0mResponse 200 processed
+➤ └ Completed in 75.458µs
+➤ ┌ [34mGetPoxInfo
+[0m➤ │ [90m[FUNC] [0mGET request processed
+➤ │ [90m[TYPE] [0mResponse 200 processed
+➤ └ Completed in 109.25µs
+➤ ┌ [34mGetBlockByHash
+[0m➤ │ [90m[FUNC] [0mGET request processed
+➤ │ [90m[TYPE] [0mResponse 200 processed
+➤ │ [90m[TYPE] [0mResponse 404 processed
+➤ └ Completed in 62.041µs
+➤ ┌ [34mGetStatus
+[0m➤ │ [90m[FUNC] [0mGET request processed
+➤ │ [90m[TYPE] [0mResponse 200 processed
+➤ └ Completed in 83.125µs
+➤ ┌ [34mGetNFTHoldings
+[0m➤ │ principal
+➤ │ asset_identifiers
+➤ │ limit
+➤ │ offset
+➤ │ unanchored
+➤ │ tx_metadata
+➤ │ [90m[FUNC] [0mGET request processed
+➤ │ [90m[TYPE] [0mParameter `principal` processed
+➤ │ [90m[TYPE] [0mParameter `asset_identifiers` processed
+➤ │        └ [33mOptional
+[0m➤ │ [90m[TYPE] [0mParameter `limit` processed
+➤ │        └ [33mOptional
+[0m➤ │ [90m[TYPE] [0mParameter `offset` processed
+➤ │        └ [33mOptional
+[0m➤ │ [90m[TYPE] [0mParameter `unanchored` processed
+➤ │        └ [33mOptional
+[0m➤ │ [90m[TYPE] [0mParameter `tx_metadata` processed
+➤ │        └ [33mOptional
+[0m➤ │ [90m[TYPE] [0mResponse 200 processed
+➤ └ Completed in 249.375µs
+➤ ┌ [34mGetTransactionList
+[0m➤ │ limit
+➤ │ offset
+➤ │ type
+➤ │ unanchored
+➤ │ [90m[FUNC] [0mGET request processed
+➤ │ [90m[TYPE] [0mParameter `limit` processed
+➤ │        └ [33mOptional
+[0m➤ │ [90m[TYPE] [0mParameter `offset` processed
+➤ │        └ [33mOptional
+[0m➤ │ [90m[TYPE] [0mParameter `type` processed
+➤ │        └ [33mOptional
+[0m➤ │ [90m[TYPE] [0mParameter `unanchored` processed
+➤ │        └ [33mOptional
+[0m➤ │ [90m[TYPE] [0mResponse 200 processed
+➤ └ Completed in 173.291µs
+➤ ┌ [34mPostFeeTransaction
+[0m➤ │ [90m[FUNC] [0mPOST request processed
+➤ │ [90m[TYPE] [0mBody property `estimated_len` processed
+➤ │ [90m[TYPE] [0mBody property `transaction_payload` processed
+➤ │ [90m[TYPE] [0mResponse 200 processed
+➤ └ Completed in 143.333µs
+➤ ┌ [34mGetAccountTransactions
+[0m➤ │ principal
+➤ │ limit
+➤ │ offset
+➤ │ height
+➤ │ unanchored
+➤ │ until_block
+➤ │ [90m[TYPE] [0mParameter `principal` processed
+➤ │ [90m[TYPE] [0mParameter `unanchored` processed
+➤ │        └ [33mOptional
+[0m➤ │ [90m[TYPE] [0mParameter `offset` processed
+➤ │        └ [33mOptional
+[0m➤ │ [90m[TYPE] [0mParameter `until_block` processed
+➤ │        └ [33mOptional
+[0m➤ │ [90m[TYPE] [0mResponse 200 processed
+➤ │ [90m[TYPE] [0mParameter `limit` processed
+➤ │        └ [33mOptional
+[0m➤ │ [90m[TYPE] [0mParameter `height` processed
+➤ │        └ [33mOptional
+[0m➤ │ [90m[FUNC] [0mGET request processed
+➤ └ Completed in 197.458µs
+➤ ┌ [34mGetContractsByTrait
+[0m➤ │ trait_abi
+➤ │ limit
+➤ │ offset
+➤ │ [90m[FUNC] [0mGET request processed
+➤ │ [90m[TYPE] [0mParameter `trait_abi` processed
+➤ │ [90m[TYPE] [0mParameter `limit` processed
+➤ │        └ [33mOptional
+[0m➤ │ [90m[TYPE] [0mParameter `offset` processed
+➤ │        └ [33mOptional
+[0m➤ │ [90m[TYPE] [0mResponse 200 processed
+➤ └ Completed in 151.083µs
+➤ ┌ [34mGetContractEventsByID
+[0m➤ │ contract_id
+➤ │ limit
+➤ │ offset
+➤ │ unanchored
+➤ │ [90m[FUNC] [0mGET request processed
+➤ │ [90m[TYPE] [0mParameter `offset` processed
+➤ │        └ [33mOptional
+[0m➤ │ [90m[TYPE] [0mParameter `unanchored` processed
+➤ │        └ [33mOptional
+[0m➤ │ [90m[TYPE] [0mParameter `limit` processed
+➤ │        └ [33mOptional
+[0m➤ │ [90m[TYPE] [0mParameter `contract_id` processed
+➤ │ [90m[TYPE] [0mResponse 200 processed
+➤ └ Completed in 278.167µs
+➤ ┌ [34mGetTransactionsByBlockHash
+[0m➤ │ block_hash
+➤ │ limit
+➤ │ offset
+➤ │ [90m[TYPE] [0mParameter `limit` processed
+➤ │        └ [33mOptional
+[0m➤ │ [90m[TYPE] [0mParameter `offset` processed
+➤ │        └ [33mOptional
+[0m➤ │ [90m[FUNC] [0mGET request processed
+➤ │ [90m[TYPE] [0mResponse 200 processed
+➤ │ [90m[TYPE] [0mParameter `block_hash` processed
+➤ └ Completed in 117.542µs
+➤ ┌ [34mFetchSubdomainsListForName
+[0m➤ │ name
+➤ │ [90m[FUNC] [0mGET request processed
+➤ │ [90m[TYPE] [0mParameter `name` processed
+➤ │ [90m[TYPE] [0mResponse 200 processed
+➤ └ Completed in 51.25µs
+➤ ┌ [34mFetchZoneFile
+[0m➤ │ name
+➤ │ [90m[TYPE] [0mResponse 200 processed
+➤ │ [90m[FUNC] [0mGET request processed
+➤ │ [90m[TYPE] [0mParameter `name` processed
+➤ │ [90m[TYPE] [0mResponse 400 processed
+➤ │ [90m[TYPE] [0mResponse 404 processed
+➤ └ Completed in 62.959µs
+➤ ┌ [34mGetAccountSTXBalance
+[0m➤ │ principal
+➤ │ unanchored
+➤ │ until_block
+➤ │ [90m[TYPE] [0mParameter `principal` processed
+➤ │ [90m[FUNC] [0mGET request processed
+➤ │ [90m[TYPE] [0mParameter `unanchored` processed
+➤ │        └ [33mOptional
+[0m➤ │ [90m[TYPE] [0mParameter `until_block` processed
+➤ │        └ [33mOptional
+[0m➤ │ [90m[TYPE] [0mResponse 200 processed
+➤ └ Completed in 131.334µs
+➤ ┌ [34mGetFilteredEvents
+[0m➤ │ tx_id
+➤ │ address
+➤ │ limit
+➤ │ offset
+➤ │ [90m[TYPE] [0mParameter `address` processed
+➤ │        └ [33mOptional
+[0m➤ │ [90m[TYPE] [0mParameter `tx_id` processed
+➤ │        └ [33mOptional
+[0m➤ │ [90m[TYPE] [0mParameter `offset` processed
+➤ │        └ [33mOptional
+[0m➤ │ [90m[TYPE] [0mParameter `limit` processed
+➤ │        └ [33mOptional
+[0m➤ │ type
+➤ │ [90m[FUNC] [0mGET request processed
+➤ │ [90m[TYPE] [0mResponse 200 processed
+➤ │ [90m[TYPE] [0mParameter `type` processed
+➤ │        └ [33mOptional
+[0m➤ └ Completed in 162.042µs
+➤ ┌ [34mGetMempoolTransactionList
+[0m➤ │ sender_address
+➤ │ recipient_address
+➤ │ address
+➤ │ limit
+➤ │ offset
+➤ │ unanchored
+➤ │ [90m[TYPE] [0mParameter `recipient_address` processed
+➤ │        └ [33mOptional
+[0m➤ │ [90m[TYPE] [0mParameter `offset` processed
+➤ │        └ [33mOptional
+[0m➤ │ [90m[FUNC] [0mGET request processed
+➤ │ [90m[TYPE] [0mParameter `address` processed
+➤ │        └ [33mOptional
+[0m➤ │ [90m[TYPE] [0mParameter `unanchored` processed
+➤ │        └ [33mOptional
+[0m➤ │ [90m[TYPE] [0mParameter `limit` processed
+➤ │        └ [33mOptional
+[0m➤ │ [90m[TYPE] [0mResponse 200 processed
+➤ │ [90m[TYPE] [0mParameter `sender_address` processed
+➤ │        └ [33mOptional
+[0m➤ └ Completed in 198.042µs
+➤ ┌ [34mGetBurnchainRewardList
+[0m➤ │ limit
+➤ │ offset
+➤ │ [90m[TYPE] [0mParameter `limit` processed
+➤ │        └ [33mOptional
+[0m➤ │ [90m[TYPE] [0mResponse 200 processed
+➤ │ [90m[FUNC] [0mGET request processed
+➤ │ [90m[TYPE] [0mParameter `offset` processed
+➤ │        └ [33mOptional
+[0m➤ └ Completed in 86.458µs
+➤ ┌ [34mGetRawTransactionByID
+[0m➤ │ [90m[FUNC] [0mGET request processed
+➤ │ [90m[TYPE] [0mResponse 404 processed
+➤ │ [90m[TYPE] [0mResponse 200 processed
+➤ └ Completed in 70.458µs
+➤ ┌ [34mGetFeeTransfer
+[0m➤ │ [90m[FUNC] [0mGET request processed
+➤ │ [90m[TYPE] [0mResponse 200 processed
+➤ └ Completed in 48.167µs
+➤ ┌ [34mGetSingleTransactionWithTransfers
+[0m➤ │ principal
+➤ │ tx_id
+➤ │ [90m[FUNC] [0mGET request processed
+➤ │ [90m[TYPE] [0mParameter `principal` processed
+➤ │ [90m[TYPE] [0mResponse 404 processed
+➤ │ [90m[TYPE] [0mParameter `tx_id` processed
+➤ │ [90m[TYPE] [0mResponse 200 processed
+➤ └ Completed in 159.417µs
+➤ ┌ [34mGetTXListDetails
+[0m➤ │ [90m[TYPE] [0mResponse 404 processed
+➤ │ [90m[TYPE] [0mResponse 200 processed
+➤ │ [90m[FUNC] [0mGET request processed
+➤ └ Completed in 51.583µs
+➤ ┌ [34mGetAccountNFT
+[0m➤ │ principal
+➤ │ limit
+➤ │ offset
+➤ │ unanchored
+➤ │ until_block
+➤ │ [90m[TYPE] [0mParameter `offset` processed
+➤ │        └ [33mOptional
+[0m➤ │ [90m[FUNC] [0mGET request processed
+➤ │ [90m[TYPE] [0mParameter `until_block` processed
+➤ │        └ [33mOptional
+[0m➤ │ [90m[TYPE] [0mParameter `limit` processed
+➤ │        └ [33mOptional
+[0m➤ │ [90m[TYPE] [0mParameter `unanchored` processed
+➤ │        └ [33mOptional
+[0m➤ │ [90m[TYPE] [0mParameter `principal` processed
+➤ │ [90m[TYPE] [0mResponse 200 processed
+➤ └ Completed in 121.209µs
+➤ ┌ [34mFetchFeeRate
+[0m➤ │ [90m[TYPE] [0mBody property `transaction` processed
+➤ │ [90m[FUNC] [0mPOST request processed
+➤ │ [90m[TYPE] [0mResponse 200 processed
+➤ └ Completed in 57.875µs
+➤ ┌ [34mGetSTXSupply
+[0m➤ │ height
+➤ │ [90m[FUNC] [0mGET request processed
+➤ │ [90m[TYPE] [0mParameter `height` processed
+➤ │        └ [33mOptional
+[0m➤ │ [90m[TYPE] [0mResponse 200 processed
+➤ └ Completed in 87.625µs
+➤ ┌ [34mGetContractNFTMetadata
+[0m➤ │ contractId
+➤ │ [90m[FUNC] [0mGET request processed
+➤ │ [90m[TYPE] [0mParameter `contractId` processed
+➤ │ [90m[TYPE] [0mResponse 200 processed
+➤ └ Completed in 163.875µs
+➤ ┌ [34mGetNamespaceNames
+[0m➤ │ tld
+➤ │ page
+➤ │ [90m[TYPE] [0mParameter `tld` processed
+➤ │ [90m[FUNC] [0mGET request processed
+➤ │ [90m[TYPE] [0mResponse 200 processed
+➤ │ [90m[TYPE] [0mResponse 400 processed
+➤ │ [90m[TYPE] [0mResponse 404 processed
+➤ │ [90m[TYPE] [0mParameter `page` processed
+➤ └ Completed in 98.416µs
+➤ ┌ [34mGetNetworkBlockTimes
+[0m➤ │ [90m[FUNC] [0mGET request processed
+➤ │ [90m[TYPE] [0mResponse 200 processed
+➤ └ Completed in 76.291µs
+➤ ┌ [34mGetMicroblockByHash
+[0m➤ │ [90m[FUNC] [0mGET request processed
+➤ │ [90m[TYPE] [0mResponse 404 processed
+➤ │ [90m[TYPE] [0mResponse 200 processed
+➤ └ Completed in 111.958µs
+➤ ┌ [34mGetSTXSupplyCirculatingPlain
+[0m➤ │ [90m[TYPE] [0mResponse 200 processed
+➤ │ [90m[FUNC] [0mGET request processed
+➤ └ Completed in 57.25µs
+➤ ┌ [34mGetBurnchainRewardSlotHolders
+[0m➤ │ limit
+➤ │ offset
+➤ │ [90m[TYPE] [0mParameter `limit` processed
+➤ │        └ [33mOptional
+[0m➤ │ [90m[FUNC] [0mGET request processed
+➤ │ [90m[TYPE] [0mParameter `offset` processed
+➤ │        └ [33mOptional
+[0m➤ │ [90m[TYPE] [0mResponse 200 processed
+➤ └ Completed in 78.084µs
+➤ ┌ [34mGetMicroblockList
+[0m➤ │ limit
+➤ │ offset
+➤ │ [90m[FUNC] [0mGET request processed
+➤ │ [90m[TYPE] [0mParameter `offset` processed
+➤ │        └ [33mOptional
+[0m➤ │ [90m[TYPE] [0mParameter `limit` processed
+➤ │        └ [33mOptional
+[0m➤ │ [90m[TYPE] [0mResponse 200 processed
+➤ └ Completed in 86.584µs
+➤ ┌ [34mGetNamesOwnedByAddress
+[0m➤ │ blockchain
+➤ │ address
+➤ │ [90m[TYPE] [0mParameter `address` processed
+➤ │ [90m[FUNC] [0mGET request processed
+➤ │ [90m[TYPE] [0mResponse 404 processed
+➤ │ [90m[TYPE] [0mParameter `blockchain` processed
+➤ │ [90m[TYPE] [0mResponse 200 processed
+➤ └ Completed in 70.875µs
+➤ ┌ [34mGetNamePrice
+[0m➤ │ name
+➤ │ [90m[FUNC] [0mGET request processed
+➤ │ [90m[TYPE] [0mParameter `name` processed
+➤ │ [90m[TYPE] [0mResponse 200 processed
+➤ └ Completed in 56.625µs
+➤ ┌ [34mGetCoreAPIInfo
+[0m➤ │ [90m[FUNC] [0mGET request processed
+➤ │ [90m[TYPE] [0mResponse 200 processed
+➤ └ Completed in 99.25µs
+➤ ┌ [34mGetContractDataMapEntry
+[0m➤ │ contract_address
+➤ │ contract_name
+➤ │ map_name
+➤ │ proof
+➤ │ tip
+➤ │ [90m[TYPE] [0mParameter `proof` processed
+➤ │        └ [33mOptional
+[0m➤ │ [90m[FUNC] [0mPOST request processed
+➤ │ [90m[TYPE] [0mParameter `tip` processed
+➤ │        └ [33mOptional
+[0m➤ │ [90m[TYPE] [0mParameter `contract_name` processed
+➤ │ [90m[TYPE] [0mResponse 400 processed
+➤ │ [90m[TYPE] [0mParameter `map_name` processed
+➤ │ [90m[TYPE] [0mParameter `contract_address` processed
+➤ │ [90m[TYPE] [0mResponse 200 processed
+➤ └ Completed in 114.792µs
+➤ ┌ [34mGetAccountTransactionsWithTransfers
+[0m➤ │ principal
+➤ │ limit
+➤ │ offset
+➤ │ height
+➤ │ unanchored
+➤ │ until_block
+➤ │ [90m[TYPE] [0mParameter `principal` processed
+➤ │ [90m[TYPE] [0mParameter `height` processed
+➤ │ [90m[TYPE] [0mParameter `limit` processed
+➤ │ [90m[TYPE] [0mParameter `unanchored` processed
+➤ │        └ [33mOptional
+[0m➤ │ [90m[TYPE] [0mParameter `offset` processed
+➤ │        └ [33mOptional
+[0m➤ │ [90m[TYPE] [0mResponse 200 processed
+➤ │ [90m[TYPE] [0mParameter `until_block` processed
+➤ │        └ [33mOptional
+[0m➤ │        └ [33mOptional
+[0m➤ │        └ [33mOptional
+[0m➤ │ [90m[FUNC] [0mGET request processed
+➤ └ Completed in 128.209µs
+➤ ┌ [34mGetBlockList
+[0m➤ │ limit
+➤ │ offset
+➤ │ [90m[TYPE] [0mParameter `offset` processed
+➤ │        └ [33mOptional
+[0m➤ │ [90m[TYPE] [0mParameter `limit` processed
+➤ │        └ [33mOptional
+[0m➤ │ [90m[TYPE] [0mResponse 200 processed
+➤ │ [90m[FUNC] [0mGET request processed
+➤ └ Completed in 97.083µs
+➤ ┌ [34mGetFTMetadataList
+[0m➤ │ limit
+➤ │ offset
+➤ │ [90m[FUNC] [0mGET request processed
+➤ │ [90m[TYPE] [0mParameter `limit` processed
+➤ │        └ [33mOptional
+[0m➤ │ [90m[TYPE] [0mParameter `offset` processed
+➤ │        └ [33mOptional
+[0m➤ │ [90m[TYPE] [0mResponse 200 processed
+➤ └ Completed in 117.042µs
+➤ ┌ [34mGetNFTMetadataList
+[0m➤ │ limit
+➤ │ offset
+➤ │ [90m[TYPE] [0mParameter `offset` processed
+➤ │        └ [33mOptional
+[0m➤ │ [90m[FUNC] [0mGET request processed
+➤ │ [90m[TYPE] [0mParameter `limit` processed
+➤ │        └ [33mOptional
+[0m➤ │ [90m[TYPE] [0mResponse 200 processed
+➤ └ Completed in 89.459µs
+➤ ┌ [34mGetNameInfo
+[0m➤ │ name
+➤ │ [90m[TYPE] [0mResponse 400 processed
+➤ │ [90m[FUNC] [0mGET request processed
+➤ │ [90m[TYPE] [0mParameter `name` processed
+➤ │ [90m[TYPE] [0mResponse 404 processed
+➤ │ [90m[TYPE] [0mResponse 200 processed
+➤ └ Completed in 97.25µs
+➤ ┌ [34mPostCoreNodeTransactions
+[0m➤ │ [90m[FUNC] [0mPOST request processed
+➤ │ [90m[TYPE] [0mResponse 200 processed
+➤ │ [90m[TYPE] [0mResponse 400 processed
+➤ └ Completed in 77.25µs
+➤ ┌ [34mGetAllNamespaces
+[0m➤ │ [90m[FUNC] [0mGET request processed
+➤ │ [90m[TYPE] [0mResponse 200 processed
+➤ └ Completed in 59.125µs
+➤ ┌ [34mGetAddressMempoolTransactions
+[0m➤ │ address
+➤ │ limit
+➤ │ offset
+➤ │ unanchored
+➤ │ [90m[TYPE] [0mParameter `limit` processed
+➤ │        └ [33mOptional
+[0m➤ │ [90m[FUNC] [0mGET request processed
+➤ │ [90m[TYPE] [0mParameter `unanchored` processed
+➤ │        └ [33mOptional
+[0m➤ │ [90m[TYPE] [0mParameter `offset` processed
+➤ │        └ [33mOptional
+[0m➤ │ [90m[TYPE] [0mResponse 200 processed
+➤ │ [90m[TYPE] [0mParameter `address` processed
+➤ └ Completed in 91.125µs
+➤ ┌ [34mGetAccountBalance
+[0m➤ │ principal
+➤ │ unanchored
+➤ │ until_block
+➤ │ [90m[TYPE] [0mParameter `principal` processed
+➤ │ [90m[TYPE] [0mParameter `until_block` processed
+➤ │        └ [33mOptional
+[0m➤ │ [90m[TYPE] [0mParameter `unanchored` processed
+➤ │        └ [33mOptional
+[0m➤ │ [90m[FUNC] [0mGET request processed
+➤ │ [90m[TYPE] [0mResponse 200 processed
+➤ └ Completed in 166.417µs
+➤ ┌ [34mGetContractByID
+[0m➤ │ [90m[TYPE] [0mResponse 200 processed
+➤ │ [90m[FUNC] [0mGET request processed
+➤ │ [90m[TYPE] [0mResponse 404 processed
+➤ └ Completed in 41.75µs
+➤ ┌ [34mGetNFTMints
+[0m➤ │ asset_identifier
+➤ │ limit
+➤ │ offset
+➤ │ unanchored
+➤ │ tx_metadata
+➤ │ [90m[TYPE] [0mParameter `limit` processed
+➤ │        └ [33mOptional
+[0m➤ │ [90m[TYPE] [0mParameter `asset_identifier` processed
+➤ │ [90m[TYPE] [0mParameter `unanchored` processed
+➤ │        └ [33mOptional
+[0m➤ │ [90m[TYPE] [0mParameter `offset` processed
+➤ │        └ [33mOptional
+[0m➤ │ [90m[FUNC] [0mGET request processed
+➤ │ [90m[TYPE] [0mResponse 200 processed
+➤ │ [90m[TYPE] [0mParameter `tx_metadata` processed
+➤ │        └ [33mOptional
+[0m➤ └ Completed in 90.625µs
+➤ Rendering output to ../api.v2.gen.go
+[32mFinished processing in 15.321041ms
+[0m

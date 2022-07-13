@@ -8,7 +8,7 @@ import (
 
 	"github.com/deepmap/oapi-codegen/pkg/util"
 	"github.com/valeralabs/jenny/jen"
-	"github.com/valeralabs/sdk/api"
+	// "github.com/valeralabs/sdk/api"
 )
 
 //go:generate git submodule update --init --recursive
@@ -20,11 +20,6 @@ type Code struct {
 func (p *Code) add(code ...jen.Code) {
 	p.Generated = append(p.Generated, code...)
 }
-
-type TopLevelSchemas map[string]bool
-
-func (t *TopLevelSchemas) process(schema string) {
-
 
 func main() {
 	fmt.Println("Loading OpenAPI 3.0 spec...")
@@ -41,19 +36,9 @@ func main() {
 	// type generation
 	f := jen.NewFile("api")
 
-	addedSchemas := make(map[string]bool)
-
-	func isInAddedSchemas(key string) bool {
-		if addedSchemas == nil {
-			return false
-		}
-		_, ok := addedSchemas[key]
-		return ok
-	}
+	var topSchemas sync.Map
 
 	for name, path := range swagger.Paths {
-		// delete(swagger.Paths, name)
-
 		// clean up the swagger object
 		if path.Parameters != nil {
 			for _, parameter := range path.Parameters {
@@ -88,13 +73,12 @@ func main() {
 
 					// parameters
 					for _, parameter := range operation.Parameters {
-						fmt.Println(prefix+parameter.Value.Name)
 						wg.Add(1)
 						parameter := parameter
 
 						go func() {
 							defer wg.Done()
-							processParameter(parameter, &params, opIdTypeName, f)
+							processParameter(parameter, &params, opIdTypeName, f, &topSchemas)
 							fmt.Printf(typePrefix+"Parameter `%v` processed\n", parameter.Value.Name)
 							if !parameter.Value.Required {
 								fmt.Printf(prefix + "       └ " + string(colourCodes["yellow"]) + "Optional\n" + string(colourCodes["reset"]))
@@ -115,7 +99,7 @@ func main() {
 
 								go func() {
 									defer wg.Done()
-									processRequestBodyProperty(prop, &bodyParams, opIdTypeName, title, f)
+									processRequestBodyProperty(prop, &bodyParams, opIdTypeName, title, f, &topSchemas)
 									fmt.Printf(typePrefix+"Body property `%v` processed\n", title)
 								}()
 							}
@@ -131,32 +115,39 @@ func main() {
 
 						go func() {
 							defer wg.Done()
-							processResponse(response, opIdTypeName, statusCode, f)
+							processResponse(response, opIdTypeName, statusCode, f, &topSchemas)
 							fmt.Printf(typePrefix+"Response %v processed\n", statusCode)
 						}()
 					}
 
 					// ---- FUNCTIONS
 
-					// funcPrefix := prefix + string(colourCodes["gray"]) + "[FUNC] " + string(colourCodes["reset"])
+					funcPrefix := prefix + string(colourCodes["gray"]) + "[FUNC] " + string(colourCodes["reset"])
 
 					possibleResponseTypes := []jen.Code{}
 					for statusCode := range operation.Responses {
 						if statusCode == "200" {
 							possibleResponseTypes = append(possibleResponseTypes, jen.ID(opIdTypeName+"Response"))
 						}
-						//else {
-						// 	possibleResponseTypes = append(possibleResponseTypes, jen.ID(opIdTypeName + statusCode + "Error"))
-						// }
 					}
 
 					possibleResponseTypes = append(possibleResponseTypes, jen.Error())
 
 					switch method {
 					case "GET":
-						processGetReq(f, opIdTypeName, operation, name, possibleResponseTypes)
+						wg.Add(1)
+						go func() {
+							defer wg.Done()
+							processGetReq(f, opIdTypeName, operation, name, possibleResponseTypes)
+							fmt.Printf(funcPrefix+"GET request processed\n")
+						}()
 					case "POST":
-						processPostReq(f, opIdTypeName, operation, bodyParams, name, possibleResponseTypes)
+						wg.Add(1)
+						go func() {
+							defer wg.Done()
+							processPostReq(f, opIdTypeName, operation, bodyParams, name, possibleResponseTypes)
+							fmt.Printf(funcPrefix+"POST request processed\n")
+						}()
 					default:
 						panic(fmt.Sprintf("Unsupported method %v", method))
 					}
@@ -173,20 +164,15 @@ func main() {
 		}
 	}
 
+	// loop over the top schemas and generate the top level types
+	topSchemas.Range(func(key any, value any) bool {
+		fmt.Println(key)
+		f.Type().ID(cleanID(key.(string))).Structure(value.(Code).Generated...)
+		return true
+	})
+
 	for _, code := range manuallyAddedTypes {
 		f.Add(code)
-	}
-
-	// log all paths with operations that have 0 parameters
-	for name, path := range swagger.Paths {
-		for _, operation := range path.Operations() {
-			if operation != nil {
-				if len(operation.Parameters) == 0 {
-					fmt.Printf("➤ ┌ %v\n", len(operation.Parameters))
-					fmt.Printf("➤ └ %v\n", name)
-				}
-			}
-		}
 	}
 
 	fmt.Printf("➤ Rendering output to %v\n", output)
@@ -199,19 +185,19 @@ func main() {
 
 	fmt.Printf(string(colourCodes["green"])+"Finished processing in %v\n"+string(colourCodes["reset"]), time.Since(processingStart))
 
-	params := api.GetBlockListParams{}
+	// params := api.GetBlockListParams{}
 
-	server := api.HiroMainnet
+	// server := api.HiroMainnet
 
-	resp, err := api.GetBlockList(server, params)
+	// resp, err := api.GetBlockList(server, params)
 
-	if err != nil {
-		fmt.Println(err)
-		panic(err)
-	} else {
-		fmt.Println(len(resp.Results))
-		for _, block := range resp.Results {
-			fmt.Println(block)
-		}
-	}
+	// if err != nil {
+	// 	fmt.Println(err)
+	// 	panic(err)
+	// } else {
+	// 	fmt.Println(len(resp.Results))
+	// 	for _, block := range resp.Results {
+	// 		fmt.Println(block)
+	// 	}
+	// }
 }
