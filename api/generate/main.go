@@ -166,7 +166,6 @@ func main() {
 
 	// loop over the top schemas and generate the top level types
 	topSchemas.Range(func(key any, value any) bool {
-		fmt.Println(key)
 		f.Type().ID(cleanID(key.(string))).Structure(value.(Code).Generated...)
 		return true
 	})

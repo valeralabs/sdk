@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 	"sync"
@@ -94,7 +95,7 @@ func processResponse(response *openapi3.ResponseRef, opID string, statusCode str
 
 			if respType == "" {
 				respType = "any"
-			} 
+			}
 
 			f.Add(
 				jen.Commentf("Defines a %v%v response for %v.", statusCode, descMsg, opID),
@@ -345,63 +346,62 @@ func processObjectOrArray(schema *openapi3.Schema, tls *sync.Map, f *jen.File, b
 		targetTitle = schema.Title
 	} else {
 		targetTitle = backupTitle
+		fmt.Println(targetTitle, schema.Title, schema.Type)
+		if schema.Items != nil {
+			x, _ := json.Marshal(schema)
+			fmt.Println(string(x))
+		}
 	}
 	targetTitle = cleanID(targetTitle)
 
-	// has the schema been processed already?
-	// if _, ok := tls.Load(targetTitle); !ok {
-		if schema.Type != "" {
-			switch schema.Type {
-			case "object":
-				props := schema.Properties
+	if schema.Type != "" {
+		switch schema.Type {
+		case "object":
+			props := schema.Properties
 
-				for k, v := range props {
-					prop := v.Value
-					tag := map[string]string{"json": k}
+			for k, v := range props {
+				prop := v.Value
+				tag := map[string]string{"json": k}
 
-					cleanedKey := cleanID(k)
+				cleanedKey := cleanID(k)
 
-					switch prop.Type {
-					case "object":
-						nestID, _ := processObjectOrArray(prop, tls, f, backupTitle+cleanID(k))
-						q.add(jen.ID(cleanedKey).ID(nestID).Tag(tag))
-					case "array":
-						nestID, _ := processObjectOrArray(prop, tls, f, backupTitle+cleanID(k))
-						q.add(jen.ID(cleanedKey).ID(nestID).Tag(tag))
-					default:
-						q.add(
-							jen.ID(cleanedKey).ID(typeReplace(prop.Type)).Tag(tag),
-						)
-					}
-				}
-			case "array":
-				items := schema.Items.Value
-				if items.Enum != nil { // enum type
-					var values []string // convert to string array
-					for _, enum := range items.Enum {
-						values = append(values, cleanID(enum.(string)))
-					}
+				switch prop.Type {
+				case "object":
 
-					var enums Code
-			
-					for index, value := range values {
-						if index == 0 {
-							enums.add(jen.ID(value).ID(targetTitle).Op("=").Iota())
-						} else {
-							enums.add(jen.ID(value))
-						}
-					}
-			
-					f.Type().ID(targetTitle).Int64()
-					f.Const().Definitions(enums.Generated...)
-				} else {
-					return "[]"+targetTitle, q
+					nestID, _ := processObjectOrArray(prop, tls, f, backupTitle+cleanID(k))
+					q.add(jen.ID(cleanedKey).ID(nestID).Tag(tag))
+				case "array":
+					nestID, _ := processObjectOrArray(prop, tls, f, backupTitle+cleanID(k))
+					q.add(jen.ID(cleanedKey).ID(nestID).Tag(tag))
+				default:
+					q.add(
+						jen.ID(cleanedKey).ID(typeReplace(prop.Type)).Tag(tag),
+					)
 				}
 			}
-		} else {
-			if schema.AnyOf != nil {
-				q.add(jen.Comment("This is an anyOf type, and so any of the following fields may be set"))
+		case "array":
+			items := schema.Items.Value
+			if items.Enum != nil { // enum type
+				var values []string // convert to string array
+				for _, enum := range items.Enum {
+					values = append(values, cleanID(enum.(string)))
+				}
 
+				var enums Code
+
+				for index, value := range values {
+					if index == 0 {
+						enums.add(jen.ID(value).ID(targetTitle).Op("=").Iota())
+					} else {
+						enums.add(jen.ID(value))
+					}
+				}
+
+				f.Type().ID(targetTitle).Int64()
+				f.Const().Definitions(enums.Generated...)
+			} else if items.AnyOf != nil {
+				q.add(jen.Comment("This is an anyOf type, and so any of the following fields may be set"))
+	
 				keys := make(map[string]*openapi3.Schema)
 				for _, anyOf := range schema.AnyOf {
 					val := anyOf.Value
@@ -425,13 +425,60 @@ func processObjectOrArray(schema *openapi3.Schema, tls *sync.Map, f *jen.File, b
 						)
 					}
 				}
+			} else {
+				if items.Title != "" {
+					targetTitle = items.Title
+				}
+
+				cleanedKey := cleanID(targetTitle)
+				switch items.Type {
+				case "object":
+					nestID, _ := processObjectOrArray(items, tls, f, backupTitle+cleanedKey)
+					q.add(jen.ID(cleanedKey).ID(nestID))
+				case "array":
+					nestID, _ := processObjectOrArray(items, tls, f, backupTitle+cleanedKey)
+					q.add(jen.ID(cleanedKey).ID(nestID))
+				default:
+					q.add(
+						jen.ID(cleanedKey).ID(typeReplace(items.Type)),
+					)
+				}
+				
+				tls.Store(targetTitle, q)
+				return "[]" + targetTitle, q
 			}
 		}
+	} else {
+		if schema.AnyOf != nil {
+			q.add(jen.Comment("This is an anyOf type, and so any of the following fields may be set"))
 
-		fmt.Println(targetTitle, q)
+			keys := make(map[string]*openapi3.Schema)
+			for _, anyOf := range schema.AnyOf {
+				val := anyOf.Value
+				for k, v := range val.Properties {
+					keys[k] = v.Value
+				}
+			}
+			for k, prop := range keys {
+				tag := map[string]string{"json": k}
+				cleanedKey := cleanID(k)
+				switch prop.Type {
+				case "object":
+					nestID, _ := processObjectOrArray(prop, tls, f, backupTitle+cleanID(k))
+					q.add(jen.ID(cleanedKey).ID(nestID).Tag(tag))
+				case "array":
+					nestID, _ := processObjectOrArray(prop, tls, f, backupTitle+cleanID(k))
+					q.add(jen.ID(cleanedKey).ID(nestID).Tag(tag))
+				default:
+					q.add(
+						jen.ID(cleanedKey).ID(typeReplace(prop.Type)).Tag(tag),
+					)
+				}
+			}
+		}
+	}
 
-		tls.Store(targetTitle, q)
-	// }
+	tls.Store(targetTitle, q)
 
 	return targetTitle, q
 }
