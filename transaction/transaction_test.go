@@ -130,6 +130,8 @@ func TestSigning(test *testing.T) {
 
 	test.Logf("got transaction %+v\n", transaction.Authorization.GetCondition())
 
+	// Zeroing out the signature, in case the signature never gets changed resulting in a false
+	// positive
 	transaction.Authorization.GetCondition().SetSignature([65]byte{}, constant.PublicKeyEncodingCompressed)
 
 	decoded, err := hex.DecodeString("edf9aee84d9b7abc145504dde6726c64f369d37ee34ded868fabd876c26570bc01")
