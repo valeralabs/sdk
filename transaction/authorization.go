@@ -115,7 +115,6 @@ func (condition *SingleSignatureSpendingCondition) SetNonce(nonce uint64) {
 func (condition SingleSignatureSpendingCondition) Clear() SpendingCondition {
 	condition.Fee = 0
 	condition.Nonce = 0
-	condition.Signer = [20]byte{}
 	condition.Signature = [65]byte{}
 
 	return &condition

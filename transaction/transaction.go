@@ -10,7 +10,6 @@ import (
 	"unicode"
 
 	"github.com/btcsuite/btcd/btcutil"
-	"github.com/ethereum/go-ethereum/crypto/secp256k1"
 	"github.com/linden/binstruct"
 	"github.com/linden/bite"
 	"github.com/valeralabs/sdk/address"
@@ -556,37 +555,42 @@ func (transaction *StacksTransaction) Marshal() ([]byte, error) {
 
 func (transaction *StacksTransaction) Sign(private keys.PrivateKey) error {
 	if transaction.Authorization == nil {
-		transaction.Authorization = StandardAuthorization{&SingleSignatureSpendingCondition{}}
+		fmt.Errorf("Transaction must have an authorization before signing")
 	}
 
 	cleared := *transaction
-	cleared.Authorization.SetCondition(cleared.Authorization.GetCondition().Clear())
+	newAuth := cleared.Authorization.SetCondition(cleared.Authorization.GetCondition().Clear())
+	cleared.Authorization = newAuth
 
 	marshaled, err := cleared.Marshal()
-
 	if err != nil {
 		return fmt.Errorf("could not marshal transaction: %v", err)
 	}
 
+	transactionBytes := make([]byte, hex.DecodedLen(len(marshaled)))
+	_, err = hex.Decode(transactionBytes, marshaled)
+	if err != nil {
+		return fmt.Errorf("could not hex decode marshaled transaction: %v", err)
+	}
+
+	sighash := sha512.Sum512_256(transactionBytes)
+
+	// Corresponds to presign-sighash
 	var buffer bytes.Buffer
 	writer := binstruct.NewWriter(&buffer, binary.BigEndian, false)
 
-	initial := sha512.Sum512_256(marshaled)
-
-	encoded := make([]byte, hex.EncodedLen(len(initial)))
-	hex.Encode(encoded, initial[:])
+	writer.Write(sighash[:])
+	writer.WriteByte(0x04)
 
 	fee := transaction.Authorization.GetCondition().GetFee()
-	nonce := transaction.Authorization.GetCondition().GetNonce()
-
-	writer.Write(encoded[:])
-	writer.WriteByte(0x04)
 	writer.WriteUint64(uint64(fee))
+
+	nonce := transaction.Authorization.GetCondition().GetNonce()
 	writer.WriteUint64(uint64(nonce))
 
-	hash := sha512.Sum512_256(buffer.Bytes())
+	presignSighash := sha512.Sum512_256(buffer.Bytes())
 
-	signature, err := secp256k1.Sign(hash[:], private.Serialize())
+	signature, err := private.SignRecoverable(presignSighash[:])
 
 	if err != nil {
 		return fmt.Errorf("could not presign-sighash: %v", err)
