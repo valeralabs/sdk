@@ -2,7 +2,7 @@
 package ValeraSDK
 
 //go:generate go vet
-//go:generate go run golang.org/x/mobile/cmd/gomobile bind --target=macos .
+//go:generate go run golang.org/x/mobile/cmd/gomobile bind --target=macos,ios .
 
 import (
 	"errors"
@@ -221,7 +221,7 @@ func (cursor *StacksTransaction) Encode() (string, error) {
 
 // Sign a Stacks Transaction.
 // `account`: the account used to sign the transaction.
-func (stacks *StacksTransaction) Sign(account *Account) error {
+func (stacks *StacksTransaction) Sign(account *Account, fee int, nonce int) error {
 	if account == nil {
 		return errors.New("account is nil")
 	}
@@ -229,6 +229,26 @@ func (stacks *StacksTransaction) Sign(account *Account) error {
 	if stacks == nil {
 		return errors.New("stacks is nil")
 	}
+
+	if fee < 0 {
+		return errors.New("fee must be > 0")
+	}
+
+	if nonce < 0 {
+		return errors.New("nonce must be > 0")
+	}
+
+	if (*stacks.value).Authorization == nil {
+		(*stacks.value).Authorization = transaction.StandardAuthorization{
+			Condition: &transaction.SingleSignatureSpendingCondition{},
+		}
+	}
+
+	condition := (*stacks.value).Authorization.GetCondition()
+	condition.SetFee(uint64(fee))
+	condition.SetNonce(uint64(nonce))
+
+	(*stacks.value).Authorization = (*stacks.value).Authorization.SetCondition(condition)
 
 	err := (*stacks.value).Sign(*account.value.PrivateKey)
 

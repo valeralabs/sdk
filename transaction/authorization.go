@@ -8,14 +8,20 @@ import (
 type SpendingCondition interface {
 	GetKeyEncoding() constant.PublicKeyEncoding
 	GetSignature() [65]byte
-	SetSignature([65]byte, [20]byte, constant.PublicKeyEncoding) SpendingCondition
+	SetSignature([65]byte, constant.PublicKeyEncoding)
 	GetHashMode() address.HashMode
 	GetSigner() [20]byte
+	SetSigner([20]byte)
+	SetNonce(uint64)
 	GetNonce() uint64
+	SetFee(uint64)
 	GetFee() uint64
+	Clear() SpendingCondition
 }
 
+//TODO(Linden): simplify with a pointer?
 type Authorization interface {
+	SetCondition(SpendingCondition) Authorization
 	GetCondition() SpendingCondition
 }
 
@@ -56,8 +62,18 @@ func (authorization StandardAuthorization) GetCondition() SpendingCondition {
 	return authorization.Condition
 }
 
+func (authorization StandardAuthorization) SetCondition(condition SpendingCondition) Authorization {
+	authorization.Condition = condition
+	return authorization
+}
+
 func (authorization SponsoredAuthorization) GetCondition() SpendingCondition {
 	return authorization.Condition
+}
+
+func (authorization SponsoredAuthorization) SetCondition(condition SpendingCondition) Authorization {
+	authorization.Condition = condition
+	return authorization
 }
 
 func (condition SingleSignatureSpendingCondition) GetKeyEncoding() constant.PublicKeyEncoding {
@@ -76,6 +92,10 @@ func (condition SingleSignatureSpendingCondition) GetSigner() [20]byte {
 	return condition.Signer
 }
 
+func (condition *SingleSignatureSpendingCondition) SetSigner(signer [20]byte) {
+	condition.Signer = signer
+}
+
 func (condition SingleSignatureSpendingCondition) GetFee() uint64 {
 	return condition.Fee
 }
@@ -84,12 +104,26 @@ func (condition SingleSignatureSpendingCondition) GetNonce() uint64 {
 	return condition.Nonce
 }
 
-func (condition SingleSignatureSpendingCondition) SetSignature(signature [65]byte, signer [20]byte, encoding constant.PublicKeyEncoding) SpendingCondition {
-	condition.Signer = signer
+func (condition *SingleSignatureSpendingCondition) SetFee(fee uint64) {
+	condition.Fee = fee
+}
+
+func (condition *SingleSignatureSpendingCondition) SetNonce(nonce uint64) {
+	condition.Nonce = nonce
+}
+
+func (condition SingleSignatureSpendingCondition) Clear() SpendingCondition {
+	condition.Fee = 0
+	condition.Nonce = 0
+	condition.Signer = [20]byte{}
+	condition.Signature = [65]byte{}
+
+	return &condition
+}
+
+func (condition *SingleSignatureSpendingCondition) SetSignature(signature [65]byte, encoding constant.PublicKeyEncoding) {
 	condition.Signature = signature
 	condition.KeyEncoding = encoding
-
-	return condition
 }
 
 //TODO(MooseMan): implement multiple-signature
@@ -117,6 +151,18 @@ func (condition MultipleSignatureSpendingCondition) GetNonce() uint64 {
 	return condition.Nonce
 }
 
-func (condition MultipleSignatureSpendingCondition) SetSignature(signature [65]byte, signer [20]byte, publicKeyEncoding constant.PublicKeyEncoding) SpendingCondition {
-	panic("TODO: Implement multiple signature spending condition adding signatures")
+func (condition *MultipleSignatureSpendingCondition) SetFee(fee uint64) {
+	condition.Fee = fee
+}
+
+func (condition *MultipleSignatureSpendingCondition) SetNonce(nonce uint64) {
+	condition.Nonce = nonce
+}
+
+func (condition MultipleSignatureSpendingCondition) Clear() SpendingCondition {
+	panic("TODO: implement multiple signatures")
+}
+
+func (condition MultipleSignatureSpendingCondition) SetSignature(signature [65]byte, publicKeyEncoding constant.PublicKeyEncoding) SpendingCondition {
+	panic("TODO: implement multiple signature spending condition adding signatures")
 }

@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"unicode"
 
+	"github.com/btcsuite/btcd/btcutil"
 	"github.com/ethereum/go-ethereum/crypto/secp256k1"
 	"github.com/linden/binstruct"
 	"github.com/linden/bite"
@@ -89,7 +90,7 @@ func (transaction *StacksTransaction) Unmarshal(data []byte) error {
 			panic("TODO: implement HashModeP2SH and HashModeP2WSH_P2SH")
 		}
 
-		transaction.Authorization = StandardAuthorization{SingleSignatureSpendingCondition(condition)}
+		transaction.Authorization = StandardAuthorization{&condition}
 
 	case 0x05:
 		// sponsored authorization
@@ -369,7 +370,7 @@ func (transaction *StacksTransaction) Marshal() ([]byte, error) {
 	switch authorization := any(transaction.Authorization).(type) {
 	case StandardAuthorization:
 		switch condition := any(authorization.GetCondition()).(type) {
-		case SingleSignatureSpendingCondition:
+		case *SingleSignatureSpendingCondition:
 			writer.WriteUint8(uint8(0x04))
 			writer.WriteUint8(uint8(condition.HashMode))
 
@@ -553,32 +554,32 @@ func (transaction *StacksTransaction) Marshal() ([]byte, error) {
 	return encoded, nil
 }
 
-func (transaction StacksTransaction) AddSpendingCondition() error {
-	panic("TODO: finish AddSpendingCondition function")
-}
-
-// TODO: add sponsored and multiple signature support
 func (transaction *StacksTransaction) Sign(private keys.PrivateKey) error {
-	transaction.Authorization = StandardAuthorization{SingleSignatureSpendingCondition{}}
+	if transaction.Authorization == nil {
+		transaction.Authorization = StandardAuthorization{&SingleSignatureSpendingCondition{}}
+	}
 
-	marshaled, err := transaction.Marshal()
+	cleared := *transaction
+	cleared.Authorization.SetCondition(cleared.Authorization.GetCondition().Clear())
+
+	marshaled, err := cleared.Marshal()
 
 	if err != nil {
 		return fmt.Errorf("could not marshal transaction: %v", err)
 	}
 
-	content := make([]byte, hex.EncodedLen(len(marshaled)))
-	hex.Encode(content, marshaled)
-
 	var buffer bytes.Buffer
 	writer := binstruct.NewWriter(&buffer, binary.BigEndian, false)
 
-	initial := sha512.Sum512_256(content)
+	initial := sha512.Sum512_256(marshaled)
+
+	encoded := make([]byte, hex.EncodedLen(len(initial)))
+	hex.Encode(encoded, initial[:])
 
 	fee := transaction.Authorization.GetCondition().GetFee()
 	nonce := transaction.Authorization.GetCondition().GetNonce()
 
-	writer.Write(initial[:])
+	writer.Write(encoded[:])
 	writer.WriteByte(0x04)
 	writer.WriteUint64(uint64(fee))
 	writer.WriteUint64(uint64(nonce))
@@ -592,7 +593,11 @@ func (transaction *StacksTransaction) Sign(private keys.PrivateKey) error {
 	}
 
 	condition := transaction.Authorization.GetCondition()
-	condition = condition.SetSignature(*(*[65]byte)(signature), *(*[20]byte)(private.PublicKey().Serialize()), constant.PublicKeyEncodingCompressed)
+	condition.SetSignature(*(*[65]byte)(signature), constant.PublicKeyEncodingCompressed)
+
+	public := private.PublicKey().Serialize()
+	hash160 := btcutil.Hash160(public)
+	condition.SetSigner(*(*[20]byte)(hash160))
 
 	transaction.Authorization = StandardAuthorization{condition}
 
