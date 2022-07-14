@@ -1,7 +1,8 @@
 package main
 
 import (
-	"fmt"
+	"io/ioutil"
+	"log"
 	"strings"
 
 	"github.com/deepmap/oapi-codegen/pkg/util"
@@ -51,6 +52,12 @@ func main() {
 				processParameter(file, parameter, opIdTypeName)
 			}
 
+			err = file.Render(ioutil.Discard)
+
+			if err != nil {
+				log.Fatalf("%s: failed to parse parameters: %v\n", opIdTypeName, err)
+			}
+
 			parameters := &jen.Statement{}
 
 			// request body
@@ -63,6 +70,12 @@ func main() {
 			}
 
 			file.Add(parameters)
+
+			err = file.Render(ioutil.Discard)
+
+			if err != nil {
+				log.Fatalf("%s: failed to parse request body: %v\n", opIdTypeName, err)
+			}
 
 			// responses
 			for statusCode, response := range operation.Responses {
@@ -79,6 +92,12 @@ func main() {
 
 			responseTypes.Add(jen.Error())
 
+			err = file.Render(ioutil.Discard)
+
+			if err != nil {
+				log.Fatalf("%s: failed to parse response types: %v\n", opIdTypeName, err)
+			}
+
 			switch method {
 			case "GET":
 				processGetReq(file, opIdTypeName, operation, name, responseTypes)
@@ -87,7 +106,13 @@ func main() {
 				processPostReq(file, opIdTypeName, operation, parameters, name, responseTypes)
 
 			default:
-				panic(fmt.Sprintf("Unsupported method %v", method))
+				log.Fatalf("Unsupported method %v", method)
+			}
+
+			err = file.Render(ioutil.Discard)
+
+			if err != nil {
+				log.Fatalf("%s: failed to parse method (%s): %v\n", opIdTypeName, method, err)
 			}
 		}
 	}
