@@ -598,8 +598,16 @@ func (transaction *StacksTransaction) Sign(private keys.PrivateKey) error {
 		return fmt.Errorf("could not presign-sighash: %v", err)
 	}
 
+	var publicKeyEncoding constant.PublicKeyEncoding
+	switch private.Compressed {
+	case true:
+		publicKeyEncoding = constant.PublicKeyEncodingCompressed
+	case false:
+		publicKeyEncoding = constant.PublicKeyEncodingUncompressed
+	}
+
 	condition := transaction.Authorization.GetCondition()
-	condition.SetSignature(*(*[65]byte)(signature), constant.PublicKeyEncodingCompressed)
+	condition.SetSignature(*(*[65]byte)(signature), publicKeyEncoding)
 
 	public := private.PublicKey().Serialize()
 	hash160 := btcutil.Hash160(public)
