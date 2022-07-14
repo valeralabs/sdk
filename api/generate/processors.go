@@ -134,8 +134,6 @@ func processPostReq(file *jen.File, opIdTypeName string, operation *openapi3.Ope
 
 	var inputs []jen.Code
 
-	inputs = append(inputs, jen.ID("server").ID("Server"))
-
 	// if there are parameters, add them to the input params
 	if len(operation.Parameters) > 0 {
 		inputs = append(inputs, jen.ID("params").ID(opIdTypeName+"Params"))
@@ -149,10 +147,10 @@ func processPostReq(file *jen.File, opIdTypeName string, operation *openapi3.Ope
 
 	if len(operation.Parameters) > 0 {
 		body = append(body,
-			// url := fmt.Sprintf("%s%s", server, fillPath(name, params))
+			// url := fmt.Sprintf("%s%s", Network, fillPath(name, params))
 			jen.ID("url").Op(":=").Qualified("fmt", "Sprintf").Call(
 				jen.Literal("%s%s"),
-				jen.ID("server"),
+				jen.ID("Network"),
 				jen.ID("fillPath").Call(
 					jen.Literal(name),
 					jen.ID("params"),
@@ -162,10 +160,10 @@ func processPostReq(file *jen.File, opIdTypeName string, operation *openapi3.Ope
 		)
 	} else {
 		body = append(body,
-			// url := fmt.Sprintf("%s%s", server, name))
+			// url := fmt.Sprintf("%s%s", Network, name))
 			jen.ID("url").Op(":=").Qualified("fmt", "Sprintf").Call(
 				jen.Literal("%s%s"),
-				jen.ID("server"),
+				jen.ID("Network"),
 				jen.Literal(name),
 				jen.Line(),
 			),
@@ -241,8 +239,6 @@ func processPostReq(file *jen.File, opIdTypeName string, operation *openapi3.Ope
 func processGetReq(file *jen.File, opIdTypeName string, operation *openapi3.Operation, name string, responses *jen.Statement) {
 	var parameters []jen.Code
 
-	parameters = append(parameters, jen.ID("server").ID("Server"))
-
 	// if there are parameters, add them to the input params
 	if len(operation.Parameters) > 0 {
 		parameters = append(parameters, jen.ID("params").ID(opIdTypeName+"Params"))
@@ -252,10 +248,10 @@ func processGetReq(file *jen.File, opIdTypeName string, operation *openapi3.Oper
 
 	if len(operation.Parameters) > 0 {
 		body = append(body,
-			// url := fmt.Sprintf("%s%s", server, fillPath(name, params))
+			// url := fmt.Sprintf("%s%s", Network, fillPath(name, params))
 			jen.ID("url").Op(":=").Qualified("fmt", "Sprintf").Call(
 				jen.Literal("%s%s"),
-				jen.ID("server"),
+				jen.ID("Network"),
 				jen.ID("fillPath").Call(
 					jen.Literal(name),
 					jen.ID("params"),
@@ -264,10 +260,10 @@ func processGetReq(file *jen.File, opIdTypeName string, operation *openapi3.Oper
 		)
 	} else {
 		body = append(body,
-			// url := fmt.Sprintf("%s%s", server, name))
+			// url := fmt.Sprintf("%s%s", Network, name))
 			jen.ID("url").Op(":=").Qualified("fmt", "Sprintf").Call(
 				jen.Literal("%s%s"),
-				jen.ID("server"),
+				jen.ID("Network"),
 				jen.Literal(name),
 			),
 		)
