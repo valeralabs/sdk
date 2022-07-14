@@ -130,9 +130,11 @@ func TestSigning(test *testing.T) {
 
 	test.Logf("got transaction %+v\n", transaction.Authorization.GetCondition())
 
-	// Zeroing out the signature, in case the signature never gets changed resulting in a false
-	// positive
-	transaction.Authorization.GetCondition().SetSignature([65]byte{}, constant.PublicKeyEncodingCompressed)
+	// zeroing out the signature, in case the signature never gets changed resulting in a false positive
+	empty := transaction.Authorization.GetCondition()
+	empty.SetSignature([65]byte{}, constant.PublicKeyEncodingCompressed)
+
+	transaction.Authorization = transaction.Authorization.SetCondition(empty)
 
 	decoded, err := hex.DecodeString("edf9aee84d9b7abc145504dde6726c64f369d37ee34ded868fabd876c26570bc01")
 
@@ -160,7 +162,9 @@ func TestSigning(test *testing.T) {
 
 	test.Logf("got transaction %+v %s\n", transaction.Authorization.GetCondition(), decoded)
 
-	if !bytes.Equal(decoded, ExampleTokenTransfer) {
+	if bytes.Equal(decoded, ExampleTokenTransfer) == false {
 		test.Fatalf("marshaled transaction is not same as initial transaction")
 	}
+
+	test.Logf("got transaction %s\n", decoded)
 }

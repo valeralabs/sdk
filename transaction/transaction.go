@@ -559,23 +559,25 @@ func (transaction *StacksTransaction) Sign(private keys.PrivateKey) error {
 	}
 
 	cleared := *transaction
-	newAuth := cleared.Authorization.SetCondition(cleared.Authorization.GetCondition().Clear())
-	cleared.Authorization = newAuth
+	cleared.Authorization = cleared.Authorization.SetCondition(cleared.Authorization.GetCondition().Clear())
 
 	marshaled, err := cleared.Marshal()
+
 	if err != nil {
 		return fmt.Errorf("could not marshal transaction: %v", err)
 	}
 
 	transactionBytes := make([]byte, hex.DecodedLen(len(marshaled)))
+
 	_, err = hex.Decode(transactionBytes, marshaled)
+
 	if err != nil {
 		return fmt.Errorf("could not hex decode marshaled transaction: %v", err)
 	}
 
 	sighash := sha512.Sum512_256(transactionBytes)
 
-	// Corresponds to presign-sighash
+	// corresponds to presign-sighash
 	var buffer bytes.Buffer
 	writer := binstruct.NewWriter(&buffer, binary.BigEndian, false)
 
