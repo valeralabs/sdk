@@ -83,3 +83,37 @@ func TestWallet(test *testing.T) {
 		}
 	})
 }
+
+//./valera-sdk-demo token-transfer -P [...] -A 0 -S 1000 -R "SP3DHADHHYXMSP66FJZ057J70AHC5BQW1VQT9YGW8" -M "hello" -M 10 -F 20
+func TestTokenTransfer(test *testing.T) {
+	wallet, _ := NewWalletFromPhrase(ExampleGoodSeedPhrase, "")
+
+	private, _ := (*wallet.value).Root.ECPrivKey()
+
+	test.Logf("private key %x\n", private.Serialize())
+
+	account, _ := wallet.Account(0)
+	principal, _ := NewPrincipal("SP3TZ3NY4GB3E3Y1K1D40BHE07P20KMS4A8YC4QRJ")
+
+	transfer, err := NewTokenTransfer(principal, 100, "hello", nil, false)
+
+	if err != nil {
+		test.Fatalf("failed to transfer %v\n", err)
+	}
+
+	test.Logf("transfer %+v\n", transfer)
+
+	err = transfer.Sign(account, 100, 10)
+
+	if err != nil {
+		test.Fatalf("failed to sign %v\n", err)
+	}
+
+	encoded, err := transfer.Encode()
+
+	if err != nil {
+		test.Fatalf("failed to encode %v\n", err)
+	}
+
+	test.Logf("transaction %s\n", encoded)
+}
