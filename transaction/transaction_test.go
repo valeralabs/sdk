@@ -128,6 +128,14 @@ func TestSigning(test *testing.T) {
 
 	transaction.Unmarshal(ExampleTokenTransfer)
 
+	test.Logf("got transaction %+v\n", transaction.Authorization.GetCondition())
+
+	// zeroing out the signature, in case the signature never gets changed resulting in a false positive
+	empty := transaction.Authorization.GetCondition()
+	empty.SetSignature([65]byte{}, constant.PublicKeyEncodingCompressed)
+
+	transaction.Authorization = transaction.Authorization.SetCondition(empty)
+
 	decoded, err := hex.DecodeString("edf9aee84d9b7abc145504dde6726c64f369d37ee34ded868fabd876c26570bc01")
 
 	if err != nil {
@@ -152,9 +160,11 @@ func TestSigning(test *testing.T) {
 		test.Fatalf("could not marshal transaction: %v", err)
 	}
 
-	if bytes.Equal(decoded, ExampleTokenTransfer) == true {
-		test.Fatalf("signed transaction is the same as unsigned transaction")
+	test.Logf("got transaction %+v %s\n", transaction.Authorization.GetCondition(), decoded)
+
+	if bytes.Equal(decoded, ExampleTokenTransfer) == false {
+		test.Fatalf("marshaled transaction is not same as initial transaction")
 	}
 
-	test.Logf("got signed transaction %#+v\n", transaction)
+	test.Logf("got transaction %s\n", decoded)
 }

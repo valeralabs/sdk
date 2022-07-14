@@ -9,7 +9,7 @@ import (
 	"fmt"
 	"unicode"
 
-	"github.com/ethereum/go-ethereum/crypto/secp256k1"
+	"github.com/btcsuite/btcd/btcutil"
 	"github.com/linden/binstruct"
 	"github.com/linden/bite"
 	"github.com/valeralabs/sdk/address"
@@ -89,7 +89,7 @@ func (transaction *StacksTransaction) Unmarshal(data []byte) error {
 			panic("TODO: implement HashModeP2SH and HashModeP2WSH_P2SH")
 		}
 
-		transaction.Authorization = StandardAuthorization{SingleSignatureSpendingCondition(condition)}
+		transaction.Authorization = StandardAuthorization{&condition}
 
 	case 0x05:
 		// sponsored authorization
@@ -369,7 +369,7 @@ func (transaction *StacksTransaction) Marshal() ([]byte, error) {
 	switch authorization := any(transaction.Authorization).(type) {
 	case StandardAuthorization:
 		switch condition := any(authorization.GetCondition()).(type) {
-		case SingleSignatureSpendingCondition:
+		case *SingleSignatureSpendingCondition:
 			writer.WriteUint8(uint8(0x04))
 			writer.WriteUint8(uint8(condition.HashMode))
 
@@ -553,46 +553,57 @@ func (transaction *StacksTransaction) Marshal() ([]byte, error) {
 	return encoded, nil
 }
 
-func (transaction StacksTransaction) AddSpendingCondition() error {
-	panic("TODO: finish AddSpendingCondition function")
-}
-
-// TODO: add sponsored and multiple signature support
 func (transaction *StacksTransaction) Sign(private keys.PrivateKey) error {
-	transaction.Authorization = StandardAuthorization{SingleSignatureSpendingCondition{}}
+	if transaction.Authorization == nil {
+		fmt.Errorf("Transaction must have an authorization before signing")
+	}
 
-	marshaled, err := transaction.Marshal()
+	cleared := *transaction
+	cleared.Authorization = cleared.Authorization.SetCondition(cleared.Authorization.GetCondition().Clear())
+
+	marshaled, err := cleared.Marshal()
 
 	if err != nil {
 		return fmt.Errorf("could not marshal transaction: %v", err)
 	}
 
-	content := make([]byte, hex.EncodedLen(len(marshaled)))
-	hex.Encode(content, marshaled)
+	transactionBytes := make([]byte, hex.DecodedLen(len(marshaled)))
 
+	_, err = hex.Decode(transactionBytes, marshaled)
+
+	if err != nil {
+		return fmt.Errorf("could not hex decode marshaled transaction: %v", err)
+	}
+
+	sighash := sha512.Sum512_256(transactionBytes)
+
+	// corresponds to presign-sighash
 	var buffer bytes.Buffer
 	writer := binstruct.NewWriter(&buffer, binary.BigEndian, false)
 
-	initial := sha512.Sum512_256(content)
+	writer.Write(sighash[:])
+	writer.WriteByte(0x04)
 
 	fee := transaction.Authorization.GetCondition().GetFee()
-	nonce := transaction.Authorization.GetCondition().GetNonce()
-
-	writer.Write(initial[:])
-	writer.WriteByte(0x04)
 	writer.WriteUint64(uint64(fee))
+
+	nonce := transaction.Authorization.GetCondition().GetNonce()
 	writer.WriteUint64(uint64(nonce))
 
-	hash := sha512.Sum512_256(buffer.Bytes())
+	presignSighash := sha512.Sum512_256(buffer.Bytes())
 
-	signature, err := secp256k1.Sign(hash[:], private.Serialize())
+	signature, err := private.SignRecoverable(presignSighash[:])
 
 	if err != nil {
 		return fmt.Errorf("could not presign-sighash: %v", err)
 	}
 
 	condition := transaction.Authorization.GetCondition()
-	condition = condition.SetSignature(*(*[65]byte)(signature), *(*[20]byte)(private.PublicKey().Serialize()), constant.PublicKeyEncodingCompressed)
+	condition.SetSignature(*(*[65]byte)(signature), constant.PublicKeyEncodingCompressed)
+
+	public := private.PublicKey().Serialize()
+	hash160 := btcutil.Hash160(public)
+	condition.SetSigner(*(*[20]byte)(hash160))
 
 	transaction.Authorization = StandardAuthorization{condition}
 

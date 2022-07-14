@@ -2,7 +2,9 @@ package keys
 
 import (
 	"errors"
+	"fmt"
 	"github.com/decred/dcrd/dcrec/secp256k1/v4"
+	libsecp256k1 "github.com/ethereum/go-ethereum/crypto/secp256k1"
 )
 
 type PublicKey struct {
@@ -29,6 +31,29 @@ func (key PrivateKey) PublicKey() PublicKey {
 
 func (key PrivateKey) Serialize() []byte {
 	return key.Value.Serialize()
+}
+
+// Message must be 32 bytes. Libsecp256k1 will not allow a non 32 byte message. Message should be a hash of what is actually being signed.
+func (key PrivateKey) SignRecoverable(message []byte) ([]byte, error) {
+	if len(message) != 32 {
+		return []byte{}, errors.New("message must be 32 bytes")
+	}
+
+	signature, err := libsecp256k1.Sign(message, key.Serialize())
+	if err != nil {
+		return []byte{}, fmt.Errorf("libsecp256k1 could not sign message: %v", err)
+	}
+
+	// Reording the serialization of each part of the signature
+	// This is necessary to comply with how stacks serialized recoverable signatures
+	V := signature[64]
+	RS := signature[:64]
+
+	reorderedSignature := []byte{}
+	reorderedSignature = append(reorderedSignature, V)
+	reorderedSignature = append(reorderedSignature, RS...)
+
+	return reorderedSignature, nil
 }
 
 func NewPrivateKey(raw []byte) (PrivateKey, error) {
