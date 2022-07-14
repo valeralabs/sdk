@@ -12,9 +12,9 @@ func processParameter(file *jen.File, parameter *openapi3.ParameterRef, opID str
 	val := parameter.Value
 	schema := val.Schema.Value
 
-	parameters := &jen.Statement{}
+	var parameters []jen.Code
 
-	parameters.Add(jen.Comment(cleanDesc(val.Description)))
+	parameters = append(parameters, jen.Comment(cleanDesc(val.Description)))
 
 	if val.Required == false {
 		defaultStr := ""
@@ -23,10 +23,10 @@ func processParameter(file *jen.File, parameter *openapi3.ParameterRef, opID str
 			defaultStr = fmt.Sprintf("The default value is %v.", schema.Default)
 		}
 
-		parameters.Add(jen.Commentf("Optional. " + defaultStr))
+		parameters = append(parameters, jen.Commentf("Optional. "+defaultStr))
 
 		if schema.Max != nil {
-			parameters.Add(jen.Comment(fmt.Sprintf("Max value is %v.", *schema.Max)))
+			parameters = append(parameters, jen.Comment(fmt.Sprintf("Max value is %v.", *schema.Max)))
 		}
 	}
 
@@ -37,17 +37,17 @@ func processParameter(file *jen.File, parameter *openapi3.ParameterRef, opID str
 
 		file.Add(object)
 
-		parameters.Add(
+		parameters = append(parameters,
 			jen.ID(cleanID(val.Name)).ID(id),
 		)
 	} else {
-		parameters.Add(
+		parameters = append(parameters,
 			jen.ID(cleanID(val.Name)).ID(typeReplace(val.Schema.Value.Type)),
-		).Line()
+		)
 	}
 
-	// file.Commentf("Defines parameters for %v", opID)
-	// file.Type().ID(opID + "Params").Structure(parameters)
+	file.Commentf("Defines parameters for %v", opID)
+	file.Type().ID(opID + "Params").Structure(parameters...)
 }
 
 func processRequestBodyProperty(prop *openapi3.SchemaRef, opID string, title string) *jen.Statement {
