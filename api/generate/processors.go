@@ -1,72 +1,87 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"strings"
-	"sync"
 
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/valeralabs/jenny/jen"
 )
 
-func processParameter(parameter *openapi3.ParameterRef, params *Code, opID string, f *jen.File, tls *sync.Map) {
+func processParameter(file *jen.File, parameter *openapi3.ParameterRef, opID string) {
 	val := parameter.Value
 	schema := val.Schema.Value
-	var queue Code
 
-	queue.add(jen.Comment(cleanDesc(val.Description)))
+	parameters := &jen.Statement{}
 
-	if !val.Required {
+	parameters.Add(jen.Comment(cleanDesc(val.Description)))
+
+	if val.Required == false {
 		defaultStr := ""
+
 		if schema.Default != nil {
 			defaultStr = fmt.Sprintf("The default value is %v.", schema.Default)
 		}
-		queue.add(jen.Commentf("Optional. " + defaultStr))
+
+		parameters.Add(jen.Commentf("Optional. " + defaultStr))
+
 		if schema.Max != nil {
-			queue.add(jen.Comment(fmt.Sprintf("Max value is %v.", *schema.Max)))
+			parameters.Add(jen.Comment(fmt.Sprintf("Max value is %v.", *schema.Max)))
 		}
 	}
 
 	if schema.Type == "array" || schema.Type == "object" {
-		id, _ := processObjectOrArray(schema, tls, f, opID+cleanID(val.Name))
-		queue.add(jen.ID(cleanID(val.Name)).ID(id))
-	} else {
-		queue.add(
-			jen.ID(cleanID(val.Name)).ID(typeReplace(val.Schema.Value.Type)),
+		object := &jen.Statement{}
+
+		id, _ := processObjectOrArray(object, schema, opID+cleanID(val.Name))
+
+		file.Add(object)
+
+		parameters.Add(
+			jen.ID(cleanID(val.Name)).ID(id),
 		)
+	} else {
+		parameters.Add(
+			jen.ID(cleanID(val.Name)).ID(typeReplace(val.Schema.Value.Type)),
+		).Line()
 	}
 
-	params.add(queue.Generated...)
+	// file.Commentf("Defines parameters for %v", opID)
+	// file.Type().ID(opID + "Params").Structure(parameters)
 }
 
-func processRequestBodyProperty(prop *openapi3.SchemaRef, params *Code, opID string, title string, f *jen.File, tls *sync.Map) {
+func processRequestBodyProperty(prop *openapi3.SchemaRef, opID string, title string) *jen.Statement {
+	properties := &jen.Statement{}
+
 	schema := prop.Value
 	titlizedTitle := strings.Title(title)
 
 	// check if it's present in manually added types
 	if _, ok := manuallyAddedTypes[opID+titlizedTitle]; ok {
-		params.add(
+		properties.Add(
 			jen.Comment(cleanDesc(schema.Description)),
 			jen.ID(cleanID(title)).ID(opID+titlizedTitle),
 		)
 	} else {
 		if schema.Type == "array" || schema.Type == "object" {
-			id, _ := processObjectOrArray(schema, tls, f, opID+cleanID(titlizedTitle))
-			params.add(
+			id, _ := processObjectOrArray(properties, schema, opID+cleanID(titlizedTitle))
+
+			properties.Add(
 				jen.Comment(cleanDesc(schema.Description)),
 				jen.ID(cleanID(title)).ID(id),
 			)
 		} else {
-			params.add(
+			properties.Add(
 				jen.Comment(cleanDesc(schema.Description)),
 				jen.ID(cleanID(title)).ID(typeReplace(schema.Type)),
 			)
 		}
 	}
+
+	return properties
 }
 
-func processResponse(response *openapi3.ResponseRef, opID string, statusCode string, f *jen.File, addedSchemas *sync.Map) {
+func processResponse(file *jen.File, response *openapi3.ResponseRef, opID string, statusCode string) {
 	val := response.Value
 
 	for _, content := range val.Content {
@@ -84,11 +99,17 @@ func processResponse(response *openapi3.ResponseRef, opID string, statusCode str
 			var respType string
 
 			if schema.Type == "array" || schema.Type == "object" {
-				respType, _ = processObjectOrArray(schema, addedSchemas, f, backupTitle)
+				object := &jen.Statement{}
+
+				respType, _ = processObjectOrArray(object, schema, backupTitle)
+
+				file.Add(object).Line()
 			} else {
 				respType = typeReplace(schema.Type)
 			}
+
 			descMsg := ""
+
 			if val.Description != nil {
 				descMsg = fmt.Sprintf(" (%v)", *val.Description)
 			}
@@ -97,36 +118,37 @@ func processResponse(response *openapi3.ResponseRef, opID string, statusCode str
 				respType = "any"
 			}
 
-			f.Add(
+			file.Add(
 				jen.Commentf("Defines a %v%v response for %v.", statusCode, descMsg, opID),
 				jen.Line(),
 				jen.Type().ID(backupTitle).ID(respType),
+				jen.Line(),
 			)
 		}
 	}
 }
 
-func processPostReq(f *jen.File, opIdTypeName string, operation *openapi3.Operation, bodyParams Code, name string, possibleResponseTypes []jen.Code) {
+func processPostReq(file *jen.File, opIdTypeName string, operation *openapi3.Operation, parameters *jen.Statement, name string, responses *jen.Statement) {
 	// POST
-	f.Type().ID(opIdTypeName + "Body").Structure(bodyParams.Generated...)
+	file.Type().ID(opIdTypeName + "Body").Structure(parameters)
 
-	var inputParams Code
+	var inputs []jen.Code
 
-	inputParams.add(jen.ID("server").ID("Server"))
+	inputs = append(inputs, jen.ID("server").ID("Server"))
 
 	// if there are parameters, add them to the input params
 	if len(operation.Parameters) > 0 {
-		inputParams.add(jen.ID("params").ID(opIdTypeName + "Params"))
+		inputs = append(inputs, jen.ID("params").ID(opIdTypeName+"Params"))
 	}
 	// if there is a request body, add it to the input params
 	if operation.RequestBody != nil {
-		inputParams.add(jen.ID("body").ID(opIdTypeName + "Body"))
+		inputs = append(inputs, jen.ID("body").ID(opIdTypeName+"Body"))
 	}
 
-	var funcCode Code
+	var body []jen.Code
 
 	if len(operation.Parameters) > 0 {
-		funcCode.add(
+		body = append(body,
 			// url := fmt.Sprintf("%s%s", server, fillPath(name, params))
 			jen.ID("url").Op(":=").Qualified("fmt", "Sprintf").Call(
 				jen.Literal("%s%s"),
@@ -135,24 +157,28 @@ func processPostReq(f *jen.File, opIdTypeName string, operation *openapi3.Operat
 					jen.Literal(name),
 					jen.ID("params"),
 				),
+				jen.Line(),
 			),
 		)
 	} else {
-		funcCode.add(
+		body = append(body,
 			// url := fmt.Sprintf("%s%s", server, name))
 			jen.ID("url").Op(":=").Qualified("fmt", "Sprintf").Call(
 				jen.Literal("%s%s"),
 				jen.ID("server"),
 				jen.Literal(name),
+				jen.Line(),
 			),
 		)
 	}
 
-	funcCode.add(
+	body = append(body,
 		// var returnedErr error
 		jen.Var().ID("returnedErr").Error(),
+		jen.Line(),
 		// sendBody, _ := json.Marshal(body)
 		jen.ID("sendBody").Op(",").ID("_").Op(":=").Qualified("encoding/json", "Marshal").Call(jen.ID("body")),
+		jen.Line(),
 		// resp, status := makePostReq(url, string(sendBody), &returnedErr)
 		jen.ID("resp").Op(",").ID("status").Op(":=").ID("makePostReq").Call(jen.ID("url"), jen.ID("string").Call(jen.ID("sendBody")), jen.ID("&returnedErr")),
 		jen.Line(),
@@ -201,49 +227,31 @@ func processPostReq(f *jen.File, opIdTypeName string, operation *openapi3.Operat
 	)
 
 	if operation.Description != "" {
-		// // detect if there are references (like `transaction_payload`) and replace them with the actual values
-		// // pull each reference by backticks and replace with cleanID(reference)
-		// splitStr := strings.Split(operation.Description, "`")
-		// for i := 0; i < len(splitStr); i++ {
-		// 	if i % 2 == 0 {
-		// 		// make sure it's not surrounded by no none-whitespace characters
-		// 		if strings.TrimSpace(splitStr[i]) == "" {
-		// 			splitStr[i] = cleanID(splitStr[i])
-		// 		}
-		// 	}
-		// }
-
-		f.Comment(operation.Description)
+		file.Comment(operation.Description)
 	}
-	f.Func().ID(opIdTypeName).Parameters(
-		inputParams.Generated...,
-	).Parameters(possibleResponseTypes...).Block(
-		funcCode.Generated...,
+
+	file.Func().ID(opIdTypeName).Parameters(
+		inputs...,
+	).Parameters(responses).Block(
+		body...,
 	).Line()
 }
 
-func processGetReq(f *jen.File, opIdTypeName string, operation *openapi3.Operation, name string, possibleResponseTypes []jen.Code) {
-	// GET
+// GET
+func processGetReq(file *jen.File, opIdTypeName string, operation *openapi3.Operation, name string, responses *jen.Statement) {
+	var parameters []jen.Code
 
-	var inputParams Code
-
-	inputParams.add(jen.ID("server").ID("Server"))
-
-	if opIdTypeName == "GetBlockByHeight" {
-		for _, param := range operation.Parameters {
-			fmt.Println(param)
-		}
-	}
+	parameters = append(parameters, jen.ID("server").ID("Server"))
 
 	// if there are parameters, add them to the input params
 	if len(operation.Parameters) > 0 {
-		inputParams.add(jen.ID("params").ID(opIdTypeName + "Params"))
+		parameters = append(parameters, jen.ID("params").ID(opIdTypeName+"Params"))
 	}
 
-	var funcCode Code
+	var body []jen.Code
 
 	if len(operation.Parameters) > 0 {
-		funcCode.add(
+		body = append(body,
 			// url := fmt.Sprintf("%s%s", server, fillPath(name, params))
 			jen.ID("url").Op(":=").Qualified("fmt", "Sprintf").Call(
 				jen.Literal("%s%s"),
@@ -255,7 +263,7 @@ func processGetReq(f *jen.File, opIdTypeName string, operation *openapi3.Operati
 			),
 		)
 	} else {
-		funcCode.add(
+		body = append(body,
 			// url := fmt.Sprintf("%s%s", server, name))
 			jen.ID("url").Op(":=").Qualified("fmt", "Sprintf").Call(
 				jen.Literal("%s%s"),
@@ -265,7 +273,7 @@ func processGetReq(f *jen.File, opIdTypeName string, operation *openapi3.Operati
 		)
 	}
 
-	funcCode.add(
+	body = append(body,
 		// var returnedErr error
 		jen.Var().ID("returnedErr").Error(),
 		// resp, status := makePostReq(url, &returnedErr)
@@ -316,42 +324,25 @@ func processGetReq(f *jen.File, opIdTypeName string, operation *openapi3.Operati
 	)
 
 	if operation.Description != "" {
-		// // detect if there are references (like `transaction_payload`) and replace them with the actual values
-		// // pull each reference by backticks and replace with cleanID(reference)
-		// splitStr := strings.Split(operation.Description, "`")
-		// for i := 0; i < len(splitStr); i++ {
-		// 	if i % 2 == 0 {
-		// 		// make sure it's not surrounded by no none-whitespace characters
-		// 		if strings.TrimSpace(splitStr[i]) == "" {
-		// 			splitStr[i] = cleanID(splitStr[i])
-		// 		}
-		// 	}
-		// }
-
-		f.Comment(operation.Description)
+		file.Comment(operation.Description)
 	}
-	f.Func().ID(opIdTypeName).Parameters(
-		inputParams.Generated...,
-	).Parameters(possibleResponseTypes...).Block(
-		funcCode.Generated...,
+
+	file.Func().ID(opIdTypeName).Parameters(
+		parameters...,
+	).Parameters(responses).Block(
+		body...,
 	).Line()
 }
 
-func processObjectOrArray(schema *openapi3.Schema, tls *sync.Map, f *jen.File, backupTitle string) (string, Code) {
-	var q Code
+func processObjectOrArray(file *jen.Statement, schema *openapi3.Schema, backupTitle string) (string, *jen.Statement) {
+	object := &jen.Statement{}
 
-	var targetTitle string
+	targetTitle := schema.Title
 
-	if schema.Title != "" {
-		targetTitle = schema.Title
-	} else {
+	if targetTitle == "" {
 		targetTitle = backupTitle
-		fmt.Println(targetTitle, schema.Title, schema.Type)
-		if schema.Items != nil {
-			x, _ := json.Marshal(schema)
-			fmt.Println(string(x))
-		}
 	}
+
 	targetTitle = cleanID(targetTitle)
 
 	if schema.Type != "" {
@@ -367,62 +358,83 @@ func processObjectOrArray(schema *openapi3.Schema, tls *sync.Map, f *jen.File, b
 
 				switch prop.Type {
 				case "object":
+					nestID, _ := processObjectOrArray(file, prop, backupTitle+cleanID(k))
 
-					nestID, _ := processObjectOrArray(prop, tls, f, backupTitle+cleanID(k))
-					q.add(jen.ID(cleanedKey).ID(nestID).Tag(tag))
+					object.Add(
+						jen.ID(cleanedKey).ID(nestID).Tag(tag),
+					).Line()
+
 				case "array":
-					nestID, _ := processObjectOrArray(prop, tls, f, backupTitle+cleanID(k))
-					q.add(jen.ID(cleanedKey).ID(nestID).Tag(tag))
+					nestID, _ := processObjectOrArray(file, prop, backupTitle+cleanID(k))
+
+					object.Add(
+						jen.ID(cleanedKey).ID(nestID).Tag(tag),
+					).Line()
+
 				default:
-					q.add(
+					object.Add(
 						jen.ID(cleanedKey).ID(typeReplace(prop.Type)).Tag(tag),
-					)
+					).Line()
 				}
 			}
 		case "array":
 			items := schema.Items.Value
+
 			if items.Enum != nil { // enum type
 				var values []string // convert to string array
+
 				for _, enum := range items.Enum {
 					values = append(values, cleanID(enum.(string)))
 				}
 
-				var enums Code
+				enums := &jen.Statement{}
 
 				for index, value := range values {
 					if index == 0 {
-						enums.add(jen.ID(value).ID(targetTitle).Op("=").Iota())
+						enums.Add(jen.ID(value).ID(targetTitle).Op("=").Iota()).Line()
 					} else {
-						enums.add(jen.ID(value))
+						enums.Add(jen.ID(value)).Line()
 					}
 				}
 
-				f.Type().ID(targetTitle).Int64()
-				f.Const().Definitions(enums.Generated...)
+				file.Type().ID(targetTitle).Int64().Line()
+				file.Const().Definitions(enums).Line()
 			} else if items.AnyOf != nil {
-				q.add(jen.Comment("This is an anyOf type, and so any of the following fields may be set"))
-	
+				object.Add(jen.Comment("This is an anyOf type, and so any of the following fields may be set"))
+
 				keys := make(map[string]*openapi3.Schema)
+
 				for _, anyOf := range schema.AnyOf {
 					val := anyOf.Value
+
 					for k, v := range val.Properties {
 						keys[k] = v.Value
 					}
 				}
+
 				for k, prop := range keys {
 					tag := map[string]string{"json": k}
 					cleanedKey := cleanID(k)
+
 					switch prop.Type {
 					case "object":
-						nestID, _ := processObjectOrArray(prop, tls, f, backupTitle+cleanID(k))
-						q.add(jen.ID(cleanedKey).ID(nestID).Tag(tag))
+						nestID, _ := processObjectOrArray(file, prop, backupTitle+cleanID(k))
+
+						object.Add(
+							jen.ID(cleanedKey).ID(nestID).Tag(tag),
+						).Line()
+
 					case "array":
-						nestID, _ := processObjectOrArray(prop, tls, f, backupTitle+cleanID(k))
-						q.add(jen.ID(cleanedKey).ID(nestID).Tag(tag))
+						nestID, _ := processObjectOrArray(file, prop, backupTitle+cleanID(k))
+
+						object.Add(
+							jen.ID(cleanedKey).ID(nestID).Tag(tag),
+						).Line()
+
 					default:
-						q.add(
+						object.Add(
 							jen.ID(cleanedKey).ID(typeReplace(prop.Type)).Tag(tag),
-						)
+						).Line()
 					}
 				}
 			} else {
@@ -431,54 +443,70 @@ func processObjectOrArray(schema *openapi3.Schema, tls *sync.Map, f *jen.File, b
 				}
 
 				cleanedKey := cleanID(targetTitle)
+
 				switch items.Type {
 				case "object":
-					nestID, _ := processObjectOrArray(items, tls, f, backupTitle+cleanedKey)
-					q.add(jen.ID(cleanedKey).ID(nestID))
+					nestID, _ := processObjectOrArray(file, items, backupTitle+cleanedKey)
+					object.Add(jen.ID(cleanedKey).ID(nestID)).Line()
+
 				case "array":
-					nestID, _ := processObjectOrArray(items, tls, f, backupTitle+cleanedKey)
-					q.add(jen.ID(cleanedKey).ID(nestID))
+					nestID, _ := processObjectOrArray(file, items, backupTitle+cleanedKey)
+					object.Add(jen.ID(cleanedKey).ID(nestID)).Line()
+
 				default:
-					q.add(
+					object.Add(
 						jen.ID(cleanedKey).ID(typeReplace(items.Type)),
-					)
+					).Line()
 				}
-				
-				tls.Store(targetTitle, q)
-				return "[]" + targetTitle, q
+
+				file.Type().ID(targetTitle).Structure(object).Line()
+
+				return "[]" + targetTitle, object
 			}
 		}
 	} else {
 		if schema.AnyOf != nil {
-			q.add(jen.Comment("This is an anyOf type, and so any of the following fields may be set"))
+			object.Add(jen.Comment("This is an anyOf type, and so any of the following fields may be set"))
 
 			keys := make(map[string]*openapi3.Schema)
+
 			for _, anyOf := range schema.AnyOf {
 				val := anyOf.Value
+
 				for k, v := range val.Properties {
 					keys[k] = v.Value
 				}
 			}
+
 			for k, prop := range keys {
 				tag := map[string]string{"json": k}
 				cleanedKey := cleanID(k)
+
 				switch prop.Type {
 				case "object":
-					nestID, _ := processObjectOrArray(prop, tls, f, backupTitle+cleanID(k))
-					q.add(jen.ID(cleanedKey).ID(nestID).Tag(tag))
+					nestID, _ := processObjectOrArray(file, prop, backupTitle+cleanID(k))
+
+					object.Add(
+						jen.ID(cleanedKey).ID(nestID).Tag(tag),
+					).Line()
+
 				case "array":
-					nestID, _ := processObjectOrArray(prop, tls, f, backupTitle+cleanID(k))
-					q.add(jen.ID(cleanedKey).ID(nestID).Tag(tag))
+					nestID, _ := processObjectOrArray(file, prop, backupTitle+cleanID(k))
+
+					object.Add(
+						jen.ID(cleanedKey).ID(nestID).Tag(tag),
+					).Line()
+
 				default:
-					q.add(
+					object.Add(
 						jen.ID(cleanedKey).ID(typeReplace(prop.Type)).Tag(tag),
-					)
+					).Line()
 				}
 			}
 		}
 	}
 
-	tls.Store(targetTitle, q)
+	file.Type().ID(targetTitle).Structure(object).Line()
 
-	return targetTitle, q
+	return targetTitle, object
 }
