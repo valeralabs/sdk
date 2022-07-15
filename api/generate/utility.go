@@ -5,7 +5,7 @@ import (
 	"strings"
 )
 
-var LowerCaseReplacements = regexp.MustCompile(`(?P<start>(.*(_|{)|\A))(?P<match>iso|nft|btc|stx|api|id|tx|ft|tld|abi|txid)(?P<end>((_|}).*|\z))`)
+var LowerCaseReplacements = regexp.MustCompile(`(?P<start>(.*(_|{)|\A))(?P<match>iso|nft|btc|stx|api|id|tx|ft|tld|abi|txid|tld)(?P<end>((_|}).*|\z))`)
 
 func clean(source string) string {
 	for LowerCaseReplacements.MatchString(source) {

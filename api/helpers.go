@@ -19,6 +19,8 @@ const (
 	HiroTestnet   Server = "https://stacks-node-api.testnet.stacks.co"
 )
 
+var Network Server = ValeraMainnet
+
 func check(err error, save *error) {
 	if err != nil {
 		*save = err
