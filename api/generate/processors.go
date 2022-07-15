@@ -3,18 +3,17 @@ package main
 import (
 	"fmt"
 	"strings"
+	"unicode"
 
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/valeralabs/jenny/jen"
 )
 
-func processParameter(file *jen.File, parameter *openapi3.ParameterRef, opID string) {
-	val := parameter.Value
+func processParameter(file *jen.File, from *openapi3.ParameterRef, opID string) (parameter []jen.Code, argument []jen.Code, value []jen.Code) {
+	val := from.Value
 	schema := val.Schema.Value
 
-	var parameters []jen.Code
-
-	parameters = append(parameters, jen.Comment(cleanDesc(val.Description)))
+	parameter = append(parameter, jen.Comment(cleanDesc(val.Description)))
 
 	if val.Required == false {
 		defaultStr := ""
@@ -23,34 +22,54 @@ func processParameter(file *jen.File, parameter *openapi3.ParameterRef, opID str
 			defaultStr = fmt.Sprintf("The default value is %v.", schema.Default)
 		}
 
-		parameters = append(parameters, jen.Commentf("Optional. "+defaultStr))
+		parameter = append(parameter, jen.Commentf("Optional. "+defaultStr))
 
 		if schema.Max != nil {
-			parameters = append(parameters, jen.Comment(fmt.Sprintf("Max value is %v.", *schema.Max)))
+			parameter = append(parameter, jen.Comment(fmt.Sprintf("Max value is %v.", *schema.Max)))
 		}
 	}
+
+	name := cleanID(val.Name)
+	lower := name
+
+	if unicode.IsLower(rune(name[1])) {
+		lower = strings.ToLower(string(name[0])) + name[1:]
+	}
+
+	if name == "Type" {
+		lower = "_type"
+	}
+
+	value = append(value, jen.ID(lower))
 
 	if schema.Type == "array" || schema.Type == "object" {
 		object := &jen.Statement{}
 
-		id, _ := processObjectOrArray(object, schema, opID+cleanID(val.Name))
+		id, _ := processObjectOrArray(object, schema, opID+name)
 
 		file.Add(object)
 
-		parameters = append(parameters,
-			jen.ID(cleanID(val.Name)).ID(id),
+		parameter = append(parameter,
+			jen.ID(name).ID(id),
+		)
+
+		argument = append(argument,
+			jen.ID(lower).ID(id),
 		)
 	} else {
-		parameters = append(parameters,
-			jen.ID(cleanID(val.Name)).ID(typeReplace(val.Schema.Value.Type)),
+		parameter = append(parameter,
+			jen.ID(name).ID(typeReplace(val.Schema.Value.Type)),
+		)
+
+		argument = append(argument,
+			jen.ID(lower).ID(typeReplace(val.Schema.Value.Type)),
 		)
 	}
 
-	file.Commentf("Defines parameters for %v", opID)
-	file.Type().ID(opID + "Params").Structure(parameters...)
+	return parameter, argument, value
 }
 
-func processRequestBodyProperty(prop *openapi3.SchemaRef, opID string, title string) *jen.Statement {
+func processRequestBodyProperty(file *jen.File, prop *openapi3.SchemaRef, opID string, title string) {
 	properties := &jen.Statement{}
 
 	schema := prop.Value
@@ -78,7 +97,7 @@ func processRequestBodyProperty(prop *openapi3.SchemaRef, opID string, title str
 		}
 	}
 
-	return properties
+	file.Type().ID(opID + "Body").Structure(properties)
 }
 
 func processResponse(file *jen.File, response *openapi3.ResponseRef, opID string, statusCode string) {
@@ -128,16 +147,10 @@ func processResponse(file *jen.File, response *openapi3.ResponseRef, opID string
 	}
 }
 
-func processPostReq(file *jen.File, opIdTypeName string, operation *openapi3.Operation, parameters *jen.Statement, name string, responses *jen.Statement) {
+func processPostReq(file *jen.File, opIdTypeName string, operation *openapi3.Operation, arguments []jen.Code, values []jen.Code, name string, responses *jen.Statement) {
 	// POST
-	file.Type().ID(opIdTypeName + "Body").Structure(parameters)
+	inputs := arguments
 
-	var inputs []jen.Code
-
-	// if there are parameters, add them to the input params
-	if len(operation.Parameters) > 0 {
-		inputs = append(inputs, jen.ID("params").ID(opIdTypeName+"Params"))
-	}
 	// if there is a request body, add it to the input params
 	if operation.RequestBody != nil {
 		inputs = append(inputs, jen.ID("body").ID(opIdTypeName+"Body"))
@@ -145,7 +158,7 @@ func processPostReq(file *jen.File, opIdTypeName string, operation *openapi3.Ope
 
 	var body []jen.Code
 
-	if len(operation.Parameters) > 0 {
+	if len(arguments) > 0 {
 		body = append(body,
 			// url := fmt.Sprintf("%s%s", Network, fillPath(name, params))
 			jen.ID("url").Op(":=").Qualified("fmt", "Sprintf").Call(
@@ -153,7 +166,7 @@ func processPostReq(file *jen.File, opIdTypeName string, operation *openapi3.Ope
 				jen.ID("Network"),
 				jen.ID("fillPath").Call(
 					jen.Literal(name),
-					jen.ID("params"),
+					jen.ID(opIdTypeName+"Params").Values(values...),
 				),
 				jen.Line(),
 			),
@@ -236,14 +249,7 @@ func processPostReq(file *jen.File, opIdTypeName string, operation *openapi3.Ope
 }
 
 // GET
-func processGetReq(file *jen.File, opIdTypeName string, operation *openapi3.Operation, name string, responses *jen.Statement) {
-	var parameters []jen.Code
-
-	// if there are parameters, add them to the input params
-	if len(operation.Parameters) > 0 {
-		parameters = append(parameters, jen.ID("params").ID(opIdTypeName+"Params"))
-	}
-
+func processGetReq(file *jen.File, opIdTypeName string, operation *openapi3.Operation, arguments []jen.Code, values []jen.Code, name string, responses *jen.Statement) {
 	var body []jen.Code
 
 	if len(operation.Parameters) > 0 {
@@ -254,7 +260,7 @@ func processGetReq(file *jen.File, opIdTypeName string, operation *openapi3.Oper
 				jen.ID("Network"),
 				jen.ID("fillPath").Call(
 					jen.Literal(name),
-					jen.ID("params"),
+					jen.ID(opIdTypeName+"Params").Values(values...),
 				),
 			),
 		)
@@ -324,7 +330,7 @@ func processGetReq(file *jen.File, opIdTypeName string, operation *openapi3.Oper
 	}
 
 	file.Func().ID(opIdTypeName).Parameters(
-		parameters...,
+		arguments...,
 	).Parameters(responses).Block(
 		body...,
 	).Line()

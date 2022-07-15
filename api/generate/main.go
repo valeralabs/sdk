@@ -47,9 +47,22 @@ func main() {
 
 			opIdTypeName := cleanID(operation.OperationID)
 
+			var parameters []jen.Code
+			var arguments []jen.Code
+			var values []jen.Code
+
 			// parameters
-			for _, parameter := range operation.Parameters {
-				processParameter(file, parameter, opIdTypeName)
+			for _, from := range operation.Parameters {
+				parameter, argument, value := processParameter(file, from, opIdTypeName)
+
+				parameters = append(parameters, parameter...)
+				arguments = append(arguments, argument...)
+				values = append(values, value...)
+			}
+
+			if len(parameters) > 0 {
+				file.Commentf("Defines parameters for %v", opIdTypeName)
+				file.Type().ID(opIdTypeName + "Params").Structure(parameters...)
 			}
 
 			err = file.Render(ioutil.Discard)
@@ -58,18 +71,14 @@ func main() {
 				log.Fatalf("%s: failed to parse parameters: %v\n", opIdTypeName, err)
 			}
 
-			parameters := &jen.Statement{}
-
 			// request body
 			if operation.RequestBody != nil {
 				for _, body := range operation.RequestBody.Value.Content {
 					for title, prop := range body.Schema.Value.Properties {
-						parameters.Add(processRequestBodyProperty(prop, opIdTypeName, title))
+						processRequestBodyProperty(file, prop, opIdTypeName, title)
 					}
 				}
 			}
-
-			file.Add(parameters)
 
 			err = file.Render(ioutil.Discard)
 
@@ -100,10 +109,10 @@ func main() {
 
 			switch method {
 			case "GET":
-				processGetReq(file, opIdTypeName, operation, name, responseTypes)
+				processGetReq(file, opIdTypeName, operation, arguments, values, name, responseTypes)
 
 			case "POST":
-				processPostReq(file, opIdTypeName, operation, parameters, name, responseTypes)
+				processPostReq(file, opIdTypeName, operation, arguments, values, name, responseTypes)
 
 			default:
 				log.Fatalf("Unsupported method %v", method)
