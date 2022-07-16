@@ -84,7 +84,8 @@ func TestWallet(test *testing.T) {
 	})
 }
 
-//./valera-sdk-demo token-transfer -P [...] -A 0 -S 1000 -R "SP3DHADHHYXMSP66FJZ057J70AHC5BQW1VQT9YGW8" -M "hello" -M 10 -F 20
+//./valera-sdk-demo token-transfer -P [...] -A 0 -S 1000 -R "SP3DHADHHYXMSP66FJZ057J70AHC5BQW1VQT9YGW8" -M "hello" -M 10 -F 180
+
 func TestTokenTransfer(test *testing.T) {
 	wallet, _ := NewWalletFromPhrase(ExampleGoodSeedPhrase, "")
 
@@ -93,17 +94,16 @@ func TestTokenTransfer(test *testing.T) {
 	test.Logf("private key %x\n", private.Serialize())
 
 	account, _ := wallet.Account(0)
-	principal, _ := NewPrincipal("SP3TZ3NY4GB3E3Y1K1D40BHE07P20KMS4A8YC4QRJ")
 
-	transfer, err := NewTokenTransfer(principal, 100, "hello", nil, false)
+	principal, _ := NewPrincipal("SP3DHADHHYXMSP66FJZ057J70AHC5BQW1VQT9YGW8")
+
+	transfer, err := NewTokenTransfer(principal, 1000, "hello", nil, true)
 
 	if err != nil {
 		test.Fatalf("failed to transfer %v\n", err)
 	}
 
-	test.Logf("transfer %+v\n", transfer)
-
-	err = transfer.Sign(account, 100, 10)
+	err = transfer.Sign(account, 180, 4)
 
 	if err != nil {
 		test.Fatalf("failed to sign %v\n", err)

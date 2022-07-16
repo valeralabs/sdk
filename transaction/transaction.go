@@ -556,6 +556,7 @@ func (transaction *StacksTransaction) Marshal() ([]byte, error) {
 func (transaction *StacksTransaction) Sign(private keys.PrivateKey) error {
 	// set the signer
 	public := private.PublicKey().Serialize()
+	
 	hash160 := btcutil.Hash160(public)
 
 	condition := transaction.Authorization.GetCondition()
@@ -566,13 +567,15 @@ func (transaction *StacksTransaction) Sign(private keys.PrivateKey) error {
 	empty := *transaction
 	empty.Authorization = empty.Authorization.SetCondition(empty.Authorization.GetCondition().Clear())
 
-	raw, err := empty.Marshal()
-
+	hexBytes, err := empty.Marshal()
 	if err != nil {
 		return err
 	}
 
-	hash := sha512.Sum512_256(raw)
+	transactionBytes := make([]byte, hex.DecodedLen(len(hexBytes)))
+	hex.Decode(transactionBytes, hexBytes)
+
+	hash := sha512.Sum512_256(transactionBytes)
 
 	// order presign
 	presign := new(bytes.Buffer)
@@ -588,8 +591,11 @@ func (transaction *StacksTransaction) Sign(private keys.PrivateKey) error {
 
 	presigned := sha512.Sum512_256(presign.Bytes())
 
-	// sign
 	signature, err := private.SignRecoverable(presigned[:])
+
+	if err != nil {
+		fmt.Printf("err: %v\n", err)
+	}
 
 	if err != nil {
 		return err
