@@ -16,6 +16,13 @@ require (
 )
 
 require (
+	golang.org/x/mobile v0.0.0-20220518205345-8578da9835fd // indirect
+	golang.org/x/mod v0.6.0-dev.0.20211013180041-c96bc1413d57 // indirect
+	golang.org/x/tools v0.1.8-0.20211029000441-d6a9af8af023 // indirect
+	golang.org/x/xerrors v0.0.0-20220517211312-f3a8303e98df // indirect
+)
+
+require (
 	github.com/linden/fetch v0.0.0-20220607012258-070a21681224
 	github.com/tidwall/match v1.1.1 // indirect
 	github.com/tidwall/pretty v1.2.0 // indirect

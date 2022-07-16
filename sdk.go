@@ -4,12 +4,13 @@ package ValeraSDK
 //go:generate go vet
 
 import (
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"strings"
-	"encoding/hex"
 
 	"github.com/valeralabs/sdk/address"
+	"github.com/valeralabs/sdk/api"
 	"github.com/valeralabs/sdk/constant"
 	"github.com/valeralabs/sdk/encoding/c32"
 	"github.com/valeralabs/sdk/encoding/clarity"
@@ -166,7 +167,7 @@ func NewPrincipal(value string) (*Principal, error) {
 
 	// TODO change c32.Decode to decode to bytes instead of hex, and then change this to fit
 	pkHashHex, version, err := c32.ChecksumDecode(raw)
-	
+
 	pkHash := make([]byte, hex.DecodedLen(len(pkHashHex)))
 	hex.Decode(pkHash, pkHashHex)
 
@@ -257,6 +258,35 @@ func (stacks *StacksTransaction) Sign(account *Account, fee int, nonce int) erro
 	(*stacks.value).Authorization = (*stacks.value).Authorization.SetCondition(condition)
 
 	err := (*stacks.value).Sign(*account.value.PrivateKey)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// Broadcast a Stacks Transaction to the Stacks network.
+// `account`: the account used to sign the transaction.
+func (stacks *StacksTransaction) Broadcast(account *Account) error {
+	if account == nil {
+		return errors.New("account is nil")
+	}
+
+	if stacks == nil {
+		return errors.New("transaction is nil")
+	}
+
+	raw, err := (*stacks.value).Marshal()
+
+	if err != nil {
+		return err
+	}
+
+	decoded := make([]byte, hex.DecodedLen(len(raw)))
+	hex.Decode(decoded, raw)
+
+	err = api.BroadcastTransaction(decoded)
 
 	if err != nil {
 		return err
