@@ -1,3 +1,0 @@
-[submodule "api/generate/source"]
-	path = api/generate/source
-	url = https://github.com/hirosystems/stacks-blockchain-api.git
