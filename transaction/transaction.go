@@ -554,66 +554,56 @@ func (transaction *StacksTransaction) Marshal() ([]byte, error) {
 }
 
 func (transaction *StacksTransaction) Sign(private keys.PrivateKey) error {
-	if transaction.Authorization == nil {
-		fmt.Errorf("Transaction must have an authorization before signing")
-	}
-
-	cleared := *transaction
-	cleared.Authorization = cleared.Authorization.SetCondition(cleared.Authorization.GetCondition().Clear())
-
-	marshaled, err := cleared.Marshal()
-
-	if err != nil {
-		return fmt.Errorf("could not marshal transaction: %v", err)
-	}
-
-	transactionBytes := make([]byte, hex.DecodedLen(len(marshaled)))
-
-	_, err = hex.Decode(transactionBytes, marshaled)
-
-	if err != nil {
-		return fmt.Errorf("could not hex decode marshaled transaction: %v", err)
-	}
-
-	sighash := sha512.Sum512_256(transactionBytes)
-
-	// corresponds to presign-sighash
-	var buffer bytes.Buffer
-	writer := binstruct.NewWriter(&buffer, binary.BigEndian, false)
-
-	writer.Write(sighash[:])
-	writer.WriteByte(0x04)
-
-	fee := transaction.Authorization.GetCondition().GetFee()
-	writer.WriteUint64(uint64(fee))
-
-	nonce := transaction.Authorization.GetCondition().GetNonce()
-	writer.WriteUint64(uint64(nonce))
-
-	presignSighash := sha512.Sum512_256(buffer.Bytes())
-
-	signature, err := private.SignRecoverable(presignSighash[:])
-
-	if err != nil {
-		return fmt.Errorf("could not presign-sighash: %v", err)
-	}
-
-	var publicKeyEncoding constant.PublicKeyEncoding
-	switch private.Compressed {
-	case true:
-		publicKeyEncoding = constant.PublicKeyEncodingCompressed
-	case false:
-		publicKeyEncoding = constant.PublicKeyEncodingUncompressed
-	}
+	// set the signer
+	public := private.PublicKey().Serialize()
+	
+	hash160 := btcutil.Hash160(public)
 
 	condition := transaction.Authorization.GetCondition()
-	condition.SetSignature(*(*[65]byte)(signature), publicKeyEncoding)
-
-	public := private.PublicKey().Serialize()
-	hash160 := btcutil.Hash160(public)
 	condition.SetSigner(*(*[20]byte)(hash160))
+	transaction.Authorization = transaction.Authorization.SetCondition(condition)
 
-	transaction.Authorization = StandardAuthorization{condition}
+	// get the empty transaction
+	empty := *transaction
+	empty.Authorization = empty.Authorization.SetCondition(empty.Authorization.GetCondition().Clear())
+
+	hexBytes, err := empty.Marshal()
+	if err != nil {
+		return err
+	}
+
+	transactionBytes := make([]byte, hex.DecodedLen(len(hexBytes)))
+	hex.Decode(transactionBytes, hexBytes)
+
+	hash := sha512.Sum512_256(transactionBytes)
+
+	// order presign
+	presign := new(bytes.Buffer)
+
+	presign.Write(hash[:])
+	presign.WriteByte(0x04)
+	binary.Write(presign, binary.BigEndian, condition.GetFee())
+	binary.Write(presign, binary.BigEndian, condition.GetNonce())
+
+	if presign.Len() != 49 {
+		return errors.New("presign is invalid")
+	}
+
+	presigned := sha512.Sum512_256(presign.Bytes())
+
+	signature, err := private.SignRecoverable(presigned[:])
+
+	if err != nil {
+		fmt.Printf("err: %v\n", err)
+	}
+
+	if err != nil {
+		return err
+	}
+
+	condition.SetSignature(*(*[65]byte)(signature))
+
+	transaction.Authorization.SetCondition(condition)
 
 	return nil
 }

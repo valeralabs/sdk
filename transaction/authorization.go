@@ -8,7 +8,7 @@ import (
 type SpendingCondition interface {
 	GetKeyEncoding() constant.PublicKeyEncoding
 	GetSignature() [65]byte
-	SetSignature([65]byte, constant.PublicKeyEncoding)
+	SetSignature([65]byte)
 	GetHashMode() address.HashMode
 	GetSigner() [20]byte
 	SetSigner([20]byte)
@@ -120,9 +120,8 @@ func (condition SingleSignatureSpendingCondition) Clear() SpendingCondition {
 	return &condition
 }
 
-func (condition *SingleSignatureSpendingCondition) SetSignature(signature [65]byte, encoding constant.PublicKeyEncoding) {
+func (condition *SingleSignatureSpendingCondition) SetSignature(signature [65]byte) {
 	condition.Signature = signature
-	condition.KeyEncoding = encoding
 }
 
 //TODO(MooseMan): implement multiple-signature
@@ -162,6 +161,6 @@ func (condition MultipleSignatureSpendingCondition) Clear() SpendingCondition {
 	panic("TODO: implement multiple signatures")
 }
 
-func (condition MultipleSignatureSpendingCondition) SetSignature(signature [65]byte, publicKeyEncoding constant.PublicKeyEncoding) SpendingCondition {
+func (condition MultipleSignatureSpendingCondition) SetSignature(signature [65]byte) SpendingCondition {
 	panic("TODO: implement multiple signature spending condition adding signatures")
 }

@@ -132,7 +132,7 @@ func TestSigning(test *testing.T) {
 
 	// zeroing out the signature, in case the signature never gets changed resulting in a false positive
 	empty := transaction.Authorization.GetCondition()
-	empty.SetSignature([65]byte{}, constant.PublicKeyEncodingCompressed)
+	empty.SetSignature([65]byte{})
 
 	transaction.Authorization = transaction.Authorization.SetCondition(empty)
 

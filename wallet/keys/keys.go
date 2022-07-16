@@ -40,6 +40,7 @@ func (key PrivateKey) SignRecoverable(message []byte) ([]byte, error) {
 	}
 
 	signature, err := libsecp256k1.Sign(message, key.Serialize())
+
 	if err != nil {
 		return []byte{}, fmt.Errorf("libsecp256k1 could not sign message: %v", err)
 	}

@@ -2,12 +2,12 @@
 package ValeraSDK
 
 //go:generate go vet
-//go:generate go run golang.org/x/mobile/cmd/gomobile bind --target=macos,ios .
 
 import (
 	"errors"
 	"fmt"
 	"strings"
+	"encoding/hex"
 
 	"github.com/valeralabs/sdk/address"
 	"github.com/valeralabs/sdk/constant"
@@ -164,7 +164,13 @@ func NewPrincipal(value string) (*Principal, error) {
 
 	var version byte
 
-	principal.Hash, version, err = c32.ChecksumDecode(raw)
+	// TODO change c32.Decode to decode to bytes instead of hex, and then change this to fit
+	pkHashHex, version, err := c32.ChecksumDecode(raw)
+	
+	pkHash := make([]byte, hex.DecodedLen(len(pkHashHex)))
+	hex.Decode(pkHash, pkHashHex)
+
+	principal.Hash = pkHash
 
 	if err != nil {
 		return &Principal{}, err
