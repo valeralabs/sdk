@@ -28,3 +28,13 @@ func TestGetBalance(test *testing.T) {
 
 	test.Logf("balance %+v\n", balances)
 }
+
+func TestNextNonce(test *testing.T) {
+	nonce, err := NextNonce("SP3TZ3NY4GB3E3Y1K1D40BHE07P20KMS4A8YC4QRJ")
+
+	if err != nil {
+		test.Fatalf("failed to get next nonce because %v\n", err)
+	}
+
+	test.Logf("nonce %+v\n", nonce)
+}

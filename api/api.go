@@ -19,6 +19,10 @@ type AccountBalance struct {
 	NFT map[string]Balance `json:"non_fungible_tokens"`
 }
 
+type rawNextNonce struct {
+	NextNonce int `json:"possible_next_nonce"`
+}
+
 var Server = "https://stacks-node-api.mainnet.stacks.co"
 
 // https://hirosystems.github.io/stacks-blockchain-api/#tag/Transactions/operation/post_core_node_transactions
@@ -59,4 +63,19 @@ func GetBalance(address string) (AccountBalance, error) {
 	}
 
 	return response.Body, nil
+}
+
+// https://hirosystems.github.io/stacks-blockchain-api/#tag/Accounts/operation/get_account_nonces
+func NextNonce(address string) (int, error) {
+	response, err := fetch.Fetch[rawNextNonce](Server+"/extended/v1/address/"+address+"/nonces", fetch.Options{})
+
+	if err != nil {
+		return 0, err
+	}
+
+	if response.Status != 200 {
+		return 0, errors.New("failed to get next nonce")
+	}
+
+	return response.Body.NextNonce, nil
 }
