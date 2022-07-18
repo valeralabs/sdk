@@ -9,13 +9,13 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/valeralabs/sdk/address"
-	"github.com/valeralabs/sdk/api"
-	"github.com/valeralabs/sdk/constant"
-	"github.com/valeralabs/sdk/encoding/c32"
-	"github.com/valeralabs/sdk/encoding/clarity"
-	"github.com/valeralabs/sdk/transaction"
-	"github.com/valeralabs/sdk/wallet"
+	"valera.co/vdk/address"
+	"valera.co/vdk/api"
+	"valera.co/vdk/constant"
+	"valera.co/vdk/encoding/c32"
+	"valera.co/vdk/encoding/clarity"
+	"valera.co/vdk/transaction"
+	"valera.co/vdk/wallet"
 )
 
 // Wrapper around [wallet.Wallet].

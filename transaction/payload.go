@@ -1,8 +1,8 @@
 package transaction
 
 import (
-	"github.com/valeralabs/sdk/address"
-	"github.com/valeralabs/sdk/encoding/clarity"
+	"valera.co/vdk/address"
+	"valera.co/vdk/encoding/clarity"
 )
 
 //go:generate go run golang.org/x/tools/cmd/stringer@latest -type=PayloadType -output=payload_string.go

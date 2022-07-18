@@ -11,7 +11,7 @@ import (
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/tyler-smith/go-bip39"
 
-	"github.com/valeralabs/sdk/wallet/keys"
+	"valera.co/vdk/wallet/keys"
 )
 
 const HardenedOffset = 0x80000000

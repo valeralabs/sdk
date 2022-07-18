@@ -5,8 +5,8 @@ import (
 	"encoding/hex"
 	"testing"
 
-	"github.com/valeralabs/sdk/constant"
-	"github.com/valeralabs/sdk/wallet/keys"
+	"valera.co/vdk/constant"
+	"valera.co/vdk/wallet/keys"
 )
 
 var (

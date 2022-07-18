@@ -1,4 +1,4 @@
-module github.com/valeralabs/sdk
+module valera.co/vdk
 
 go 1.18
 

@@ -12,10 +12,10 @@ import (
 	"github.com/btcsuite/btcd/btcutil"
 	"github.com/linden/binstruct"
 	"github.com/linden/bite"
-	"github.com/valeralabs/sdk/address"
-	"github.com/valeralabs/sdk/constant"
-	"github.com/valeralabs/sdk/encoding/clarity"
-	"github.com/valeralabs/sdk/wallet/keys"
+	"valera.co/vdk/address"
+	"valera.co/vdk/constant"
+	"valera.co/vdk/encoding/clarity"
+	"valera.co/vdk/wallet/keys"
 )
 
 type StacksTransaction struct {
@@ -556,7 +556,7 @@ func (transaction *StacksTransaction) Marshal() ([]byte, error) {
 func (transaction *StacksTransaction) Sign(private keys.PrivateKey) error {
 	// set the signer
 	public := private.PublicKey().Serialize()
-	
+
 	hash160 := btcutil.Hash160(public)
 
 	condition := transaction.Authorization.GetCondition()

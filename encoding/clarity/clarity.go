@@ -7,8 +7,8 @@ import (
 
 	"github.com/linden/binstruct"
 	"github.com/linden/bite"
-	"github.com/valeralabs/sdk/address"
-	"github.com/valeralabs/sdk/constant"
+	"valera.co/vdk/address"
+	"valera.co/vdk/constant"
 )
 
 //go:generate go run golang.org/x/tools/cmd/stringer@latest -type=ClarityType -output=clarity_string.go

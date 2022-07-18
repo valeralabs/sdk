@@ -6,8 +6,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/valeralabs/sdk/address"
-	"github.com/valeralabs/sdk/wallet"
+	"valera.co/vdk/address"
+	"valera.co/vdk/wallet"
 )
 
 var HelpMessage = strings.Join([]string{
@@ -44,7 +44,7 @@ func main() {
 		err := recover()
 
 		if err != nil {
-			fmt.Printf("uh-oh, error occured \"%v\" please file an issue at github.com/valeralabs/sdk\n", err)
+			fmt.Printf("uh-oh, error occured \"%v\" please file an issue at valera.co/vdk\n", err)
 		}
 	}()
 

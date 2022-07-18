@@ -5,8 +5,8 @@ import (
 
 	"github.com/linden/binstruct"
 	"github.com/linden/bite"
-	"github.com/valeralabs/sdk/address"
-	"github.com/valeralabs/sdk/encoding/clarity"
+	"valera.co/vdk/address"
+	"valera.co/vdk/encoding/clarity"
 )
 
 //go:generate go run golang.org/x/tools/cmd/stringer@latest -type=PostConditionMode,PostConditionType,FungibleConditionCode,NonFungibleConditionCode -output=postcondition_string.go

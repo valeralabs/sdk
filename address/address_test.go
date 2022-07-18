@@ -4,7 +4,7 @@ import (
 	"encoding/hex"
 	"testing"
 
-	"github.com/valeralabs/sdk/wallet/keys"
+	"valera.co/vdk/wallet/keys"
 )
 
 func TestBasicAddress(test *testing.T) {

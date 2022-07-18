@@ -11,8 +11,8 @@ import (
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcd/txscript"
 
-	"github.com/valeralabs/sdk/encoding/c32"
-	"github.com/valeralabs/sdk/wallet/keys"
+	"valera.co/vdk/encoding/c32"
+	"valera.co/vdk/wallet/keys"
 )
 
 type Address struct {
