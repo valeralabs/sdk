@@ -1,8 +1,8 @@
 package transaction
 
 import (
-	"testing"
 	"bytes"
+	"testing"
 )
 
 var (
@@ -28,13 +28,14 @@ func TestTransactionWithStacksPostConditionWithStandardPrincipal(test *testing.T
 		test.Fatalf("failed to marshal transaction: %v", err)
 	}
 
-	if !bytes.Equal(transactionBytes, TransactionWithStacksPostConditionWithStandardPrincipal) {
-		// test.Fatalf("Marshalled transaction does not match origin transaction")
+	if bytes.Equal(transactionBytes, TransactionWithStacksPostConditionWithStandardPrincipal) == false {
+		test.Fatalf("Marshalled transaction does not match origin transaction")
 	}
 
 	var otherTransaction StacksTransaction
 
 	err = otherTransaction.Unmarshal(transactionBytes)
+
 	if err != nil {
 		test.Fatalf("failed to unmarshal transaction: %v", err)
 	}
@@ -57,7 +58,7 @@ func TestFungiblePostConditionWithContractPrincipal(test *testing.T) {
 		test.Fatalf("failed to marshal transaction: %v", err)
 	}
 
-	if !bytes.Equal(transactionBytes, TransactionWithFungiblePostConditionWithContractPrincipal) {
+	if bytes.Equal(transactionBytes, TransactionWithFungiblePostConditionWithContractPrincipal) == false {
 		test.Fatalf("Marshalled transaction does not match origin transaction")
 	}
 }
@@ -79,7 +80,7 @@ func TestTransactionWithNonFungiblePostConditionWithOriginPrincipal(test *testin
 		test.Fatalf("failed to marshal transaction: %v", err)
 	}
 
-	if !bytes.Equal(transactionBytes, TransactionWithNonFungiblePostConditionWithOriginPrincipal) {
+	if bytes.Equal(transactionBytes, TransactionWithNonFungiblePostConditionWithOriginPrincipal) == false {
 		test.Fatalf("Marshalled transaction does not match origin transaction")
 	}
 }

@@ -90,6 +90,7 @@ func TestBasicAddress(test *testing.T) {
 		}
 
 		b58, err = address.B58()
+
 		if err != nil {
 			test.Fatalf("could not encode multisig address in base 58, err: %v", err)
 		}
@@ -119,6 +120,7 @@ func TestBasicAddress(test *testing.T) {
 		}
 
 		c32, err = address.C32()
+
 		if err != nil {
 			test.Fatalf("could not encode p2wpkh address in c32, err: %v", err)
 		}
@@ -148,6 +150,7 @@ func TestBasicAddress(test *testing.T) {
 		}
 
 		c32, err = address.C32()
+
 		if err != nil {
 			test.Fatalf("could not encode multsig address in c32, err: %v", err)
 		}
@@ -159,6 +162,7 @@ func TestBasicAddress(test *testing.T) {
 		}
 
 		b58, err = address.B58()
+
 		if err != nil {
 			test.Fatalf("could not encode multisig address in base 58, err: %v", err)
 		}

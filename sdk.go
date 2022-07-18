@@ -165,13 +165,12 @@ func NewPrincipal(value string) (*Principal, error) {
 
 	var version byte
 
-	// TODO change c32.Decode to decode to bytes instead of hex, and then change this to fit
-	pkHashHex, version, err := c32.ChecksumDecode(raw)
+	hexed, version, err := c32.ChecksumDecode(raw)
 
-	pkHash := make([]byte, hex.DecodedLen(len(pkHashHex)))
-	hex.Decode(pkHash, pkHashHex)
+	hash := make([]byte, hex.DecodedLen(len(hexed)))
+	hex.Decode(hash, hexed)
 
-	principal.Hash = pkHash
+	principal.Hash = hash
 
 	if err != nil {
 		return &Principal{}, err

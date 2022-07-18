@@ -139,8 +139,9 @@ func (transaction *StacksTransaction) Unmarshal(data []byte) error {
 			}
 
 			principal, err := DecodePostConditionPrincipal(&reader, origin)
+
 			if err != nil {
-				return fmt.Errorf("Could not decode post condition principal: %v", err)
+				return fmt.Errorf("could not decode post condition principal: %v", err)
 			}
 
 			condition := FungibleConditionCode(reader.ReadSingle())
@@ -187,7 +188,10 @@ func (transaction *StacksTransaction) Unmarshal(data []byte) error {
 			}
 
 			condition := FungibleConditionCode(reader.ReadSingle())
-			condition.Check()
+
+			if condition.Check() == false {
+				return fmt.Errorf("fungible condition code is invalid: %v", err)
+			}
 
 			amount := binary.BigEndian.Uint64(reader.Read(8))
 
@@ -235,7 +239,10 @@ func (transaction *StacksTransaction) Unmarshal(data []byte) error {
 			reader.Read(value.Length(true))
 
 			condition := NonFungibleConditionCode(reader.ReadSingle())
-			condition.Check()
+
+			if condition.Check() == false {
+				return fmt.Errorf("non-fungible condition code is invalid: %v", err)
+			}
 
 			postConditions = append(postConditions, PostConditionNFT{condition, principal, value, asset})
 		}
@@ -436,8 +443,9 @@ func (transaction *StacksTransaction) Marshal() ([]byte, error) {
 			postCondition.Asset.Encode(writer)
 
 			valueBytes, err := postCondition.Value.Marshal(true)
+
 			if err != nil {
-				return []byte{}, fmt.Errorf("Could not marshal post condition value: %v", err)
+				return []byte{}, fmt.Errorf("could not marshal post condition value: %v", err)
 			}
 
 			writer.Write(valueBytes)
@@ -567,15 +575,16 @@ func (transaction *StacksTransaction) Sign(private keys.PrivateKey) error {
 	empty := *transaction
 	empty.Authorization = empty.Authorization.SetCondition(empty.Authorization.GetCondition().Clear())
 
-	hexBytes, err := empty.Marshal()
+	hexed, err := empty.Marshal()
+
 	if err != nil {
 		return err
 	}
 
-	transactionBytes := make([]byte, hex.DecodedLen(len(hexBytes)))
-	hex.Decode(transactionBytes, hexBytes)
+	decoded := make([]byte, hex.DecodedLen(len(hexed)))
+	hex.Decode(decoded, hexed)
 
-	hash := sha512.Sum512_256(transactionBytes)
+	hash := sha512.Sum512_256(decoded)
 
 	// order presign
 	presign := new(bytes.Buffer)

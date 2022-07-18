@@ -97,6 +97,7 @@ func NewAddressMultipleSignature(publics []keys.PublicKey, signatures int, versi
 
 		for _, publicKey := range publics {
 			addressPublicKey, err := btcutil.NewAddressPubKey(publicKey.Serialize(), &chaincfg.MainNetParams)
+
 			if err != nil {
 				return Address{}, err
 			}
@@ -117,6 +118,7 @@ func NewAddressMultipleSignature(publics []keys.PublicKey, signatures int, versi
 
 		for _, publicKey := range publics {
 			addressPublicKey, err := btcutil.NewAddressPubKey(publicKey.Serialize(), &chaincfg.MainNetParams)
+
 			if err != nil {
 				return Address{}, err
 			}
@@ -137,6 +139,7 @@ func NewAddressMultipleSignature(publics []keys.PublicKey, signatures int, versi
 		witnessScriptBuilder.AddData(scriptHash[:])
 
 		witnessScript, err := witnessScriptBuilder.Script()
+
 		if err != nil {
 			return Address{}, err
 		}

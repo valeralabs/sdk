@@ -175,8 +175,9 @@ func DecodeAsset(reader *bite.Reader) (Asset, error) {
 
 func (asset Asset) Encode(writer binstruct.Writer) error {
 	err := clarity.EncodePrincipal(asset.Address, writer)
+
 	if err != nil {
-		return fmt.Errorf("Could not encode principal: %v", err)
+		return fmt.Errorf("could not encode principal: %v", err)
 	}
 
 	writer.WriteUint8(uint8(len(asset.Name)))

@@ -67,7 +67,7 @@ func Encode(raw []byte) ([]byte, error) {
 			current := bytes.IndexByte(HexAlphabet, raw[index]) >> carry
 
 			if current < 0 {
-				return []byte{}, fmt.Errorf("got invalid digit %s (%d) at %d\n", string(raw[index]), raw[index], index)
+				return []byte{}, fmt.Errorf("got invalid digit %s (%d) at %d", string(raw[index]), raw[index], index)
 			}
 
 			var next int
@@ -102,7 +102,7 @@ func Encode(raw []byte) ([]byte, error) {
 }
 
 func ChecksumEncode(raw []byte, version byte) ([]byte, error) {
-	if version < 0 || version > 31 {
+	if version > 31 {
 		return []byte{}, fmt.Errorf("version has to be between 0 - 31 got %d", version)
 	}
 
