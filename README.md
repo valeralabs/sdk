@@ -1,2 +1,2 @@
-## V*alera* D*evelopment* K*it*
+# Valera Development Kit
 our Stacks SDK focused on mobile support.
