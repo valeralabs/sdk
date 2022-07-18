@@ -296,10 +296,11 @@ func (stacks *StacksTransaction) Broadcast(account *Account) error {
 
 func create(payload transaction.Payload, conditions *PostCondition, strict bool) transaction.StacksTransaction {
 	result := transaction.StacksTransaction{
-		Version:    constant.TransactionVersionMainnet,
-		ChainID:    constant.ChainIDMainnet,
-		Payload:    payload,
-		AnchorMode: constant.AnchorModeAny,
+		Version:       constant.TransactionVersionMainnet,
+		ChainID:       constant.ChainIDMainnet,
+		Payload:       payload,
+		AnchorMode:    constant.AnchorModeAny,
+		Authorization: transaction.StandardAuthorization{&transaction.SingleSignatureSpendingCondition{}},
 	}
 
 	if conditions != nil {
@@ -477,11 +478,28 @@ func (value *ClarityValue) Raw() string {
 	return fmt.Sprintf("%#+v\n", *value.value)
 }
 
-func NewClarityValue(prefix int, base int, content string) (*ClarityValue, error) {
-	if prefix < 0 {
-		prefix = constant.DefaultPrefixLength
-	}
+func (value *ClarityValue) SetPrefix(prefix int) {
+	(*value.value).PrefixLength = prefix
+}
 
+// `base`:
+// 	  0  is Int
+// 	  1  is UInt
+// 	  2  is Buffer
+// 	  3  is BoolTrue
+// 	  4  is BoolFalse
+// 	  5  is PrincipalStandard
+// 	  6  is PrincipalContract
+// 	  7  is ResponseOk
+// 	  8  is ResponseErr
+// 	  9  is OptionalNone
+// 	  10 is OptionalSome
+// 	  11 is List
+// 	  12 is Tuple
+// 	  13 is StringASCII
+// 	  14 is StringUTF8
+// `content`: value
+func NewClarityValue(base int, content string) (*ClarityValue, error) {
 	typed := clarity.ClarityType(base)
 
 	if typed.Check() == false {
@@ -491,9 +509,16 @@ func NewClarityValue(prefix int, base int, content string) (*ClarityValue, error
 	return &ClarityValue{&clarity.Value{
 		Type:         typed,
 		Content:      []byte(content),
-		PrefixLength: prefix,
+		PrefixLength: constant.DefaultPrefixLength,
 	}}, nil
+}
 
+func (list *ClarityList) SetPrefix(prefix int) {
+	(*list.value).PrefixLength = prefix
+}
+
+func (list *ClarityList) SetSubPrefix(prefix int) {
+	(*list.value).SubPrefixLength = prefix
 }
 
 func (list *ClarityList) Add(value *ClarityValue) {
@@ -504,17 +529,9 @@ func (list *ClarityList) Raw() string {
 	return fmt.Sprintf("%#+v\n", *list.value)
 }
 
-func NewClarityList(prefix int, sub int) *ClarityList {
-	if prefix == 0 {
-		prefix = constant.DefaultPrefixLength
-	}
-
-	if sub == 0 {
-		sub = constant.DefaultPrefixLength
-	}
-
+func NewClarityList() *ClarityList {
 	return &ClarityList{&clarity.List{
-		PrefixLength:    prefix,
-		SubPrefixLength: sub,
+		PrefixLength:    constant.DefaultPrefixLength,
+		SubPrefixLength: constant.DefaultPrefixLength,
 	}}
 }

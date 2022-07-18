@@ -85,25 +85,18 @@ func TestWallet(test *testing.T) {
 }
 
 //./valera-sdk-demo token-transfer -P [...] -A 0 -S 1000 -R "SP3DHADHHYXMSP66FJZ057J70AHC5BQW1VQT9YGW8" -M "hello" -M 10 -F 180
-
 func TestTokenTransfer(test *testing.T) {
 	wallet, _ := NewWalletFromPhrase(ExampleGoodSeedPhrase, "")
-
-	private, _ := (*wallet.value).Root.ECPrivKey()
-
-	test.Logf("private key %x\n", private.Serialize())
-
 	account, _ := wallet.Account(0)
+	principal, _ := NewPrincipal("SP27X4NTRKGZ4C0G1FQ8WATM95JNNZKBQ4NSHDGE")
 
-	principal, _ := NewPrincipal("SP3DHADHHYXMSP66FJZ057J70AHC5BQW1VQT9YGW8")
-
-	transfer, err := NewTokenTransfer(principal, 1000, "hello", nil, true)
+	transfer, err := NewTokenTransfer(principal, 10, "hello", nil, true)
 
 	if err != nil {
 		test.Fatalf("failed to transfer %v\n", err)
 	}
 
-	err = transfer.Sign(account, 180, 4)
+	err = transfer.Sign(account, 180, 70)
 
 	if err != nil {
 		test.Fatalf("failed to sign %v\n", err)
@@ -116,4 +109,68 @@ func TestTokenTransfer(test *testing.T) {
 	}
 
 	test.Logf("transaction %s\n", encoded)
+
+	err = transfer.Broadcast(account)
+
+	if err != nil {
+		test.Fatalf("failed to broadcast %v\n", err)
+	}
+}
+
+func TestNewSmartContract(test *testing.T) {
+	wallet, _ := NewWalletFromPhrase(ExampleGoodSeedPhrase, "")
+	account, _ := wallet.Account(0)
+
+	contract, err := NewSmartContract("example", ";; hello world", nil, true)
+
+	if err != nil {
+		test.Fatalf("failed to create contract %v\n", err)
+	}
+
+	err = contract.Sign(account, 180, 68)
+
+	if err != nil {
+		test.Fatalf("failed sign %v\n", err)
+	}
+
+	err = contract.Broadcast(account)
+
+	if err != nil {
+		test.Fatalf("%v\n", err)
+	}
+}
+
+func TestContractCall(test *testing.T) {
+	wallet, _ := NewWalletFromPhrase(ExampleGoodSeedPhrase, "")
+	account, _ := wallet.Account(0)
+
+	principal, _ := NewPrincipal("SP466FNC0P7JWTNM2R9T199QRZN1MYEDTAR0KP27.miamicoin-token")
+
+	list := NewClarityList()
+
+	value, err := NewClarityValue(2, "hello world")
+
+	if err != nil {
+		test.Fatalf("failed to encode %v\n", err)
+	}
+
+	list.Add(value)
+
+	call, err := NewContractCall(principal, "get-balance", list, nil, true)
+
+	if err != nil {
+		test.Fatalf("failed to transfer %v\n", err)
+	}
+
+	err = call.Sign(account, 1800, 69)
+
+	if err != nil {
+		test.Fatalf("failed sign %v\n", err)
+	}
+
+	err = call.Broadcast(account)
+
+	if err != nil {
+		test.Fatalf("failed to broadcast %v\n", err)
+	}
 }
