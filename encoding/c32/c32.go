@@ -16,11 +16,22 @@ var HexAlphabet = []byte("0123456789abcdef")
 var HexPattern = regexp.MustCompile(`^[0-9a-fA-F]*$`)
 var C32Pattern = regexp.MustCompile(`^[0-9A-Z]*$`)
 
+var ZeroPattern = regexp.MustCompile(`(0)`)
+var OnePattern = regexp.MustCompile(`(L|I)`)
+
 func hash(source []byte) []byte {
 	sha := sha256.New()
 	sha.Write(source)
 
 	return sha.Sum(nil)
+}
+
+func Normalize(raw []byte) []byte {
+	result := bytes.ToUpper(raw)
+	result = ZeroPattern.ReplaceAll(result, []byte("0"))
+	result = OnePattern.ReplaceAll(result, []byte("1"))
+
+	return result
 }
 
 func Checksum(raw []byte) []byte {
@@ -122,6 +133,8 @@ func ChecksumEncode(raw []byte, version byte) ([]byte, error) {
 }
 
 func Decode(raw []byte) ([]byte, error) {
+	raw = Normalize(raw)
+
 	if C32Pattern.Match(raw) == false {
 		return []byte{}, fmt.Errorf("expected C32 got %s", raw)
 	}
