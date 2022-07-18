@@ -36,6 +36,10 @@ func BroadcastTransaction(raw []byte) error {
 	}
 
 	if response.Status != 200 {
+		if response.Body[0] == '"' {
+			return errors.New(response.Body)
+		}
+
 		return errors.New(gjson.Get(response.Body, "reason").String())
 	}
 
