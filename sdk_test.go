@@ -42,16 +42,9 @@ func TestWallet(test *testing.T) {
 	}
 
 	test.Logf("account %+v\n", account)
+	test.Logf("principal %+v\n", account.Principal)
 
-	principal, err := account.Principal()
-
-	if err != nil {
-		test.Fatalf("failed to derive principal from account %v\n", err)
-	}
-
-	test.Logf("principal %+v\n", principal)
-
-	stacks, err := principal.Stacks()
+	stacks, err := account.Principal.Stacks()
 
 	if err != nil {
 		test.Fatalf("failed to derive stacks address from principal: %v\n", err)
@@ -63,7 +56,7 @@ func TestWallet(test *testing.T) {
 
 	test.Logf("stacks %s\n", stacks)
 
-	bitcoin, err := principal.Bitcoin()
+	bitcoin, err := account.Principal.Bitcoin()
 
 	if err != nil {
 		test.Fatalf("failed to derive bitcoin address from principal: %v\n", err)
@@ -96,7 +89,7 @@ func TestTokenTransfer(test *testing.T) {
 		test.Fatalf("failed to transfer %v\n", err)
 	}
 
-	err = transfer.Sign(account, 180, 70)
+	err = transfer.Sign(account)
 
 	if err != nil {
 		test.Fatalf("failed to sign %v\n", err)
@@ -112,7 +105,7 @@ func TestTokenTransfer(test *testing.T) {
 
 	err = transfer.Broadcast(account)
 
-	if err != nil {
+	if err != nil && err.Error() != "NotEnoughFunds" {
 		test.Fatalf("failed to broadcast %v\n", err)
 	}
 }
@@ -127,7 +120,7 @@ func TestNewSmartContract(test *testing.T) {
 		test.Fatalf("failed to create contract %v\n", err)
 	}
 
-	err = contract.Sign(account, 180, 68)
+	err = contract.Sign(account)
 
 	if err != nil {
 		test.Fatalf("failed sign %v\n", err)
@@ -135,7 +128,7 @@ func TestNewSmartContract(test *testing.T) {
 
 	err = contract.Broadcast(account)
 
-	if err != nil {
+	if err != nil && err.Error() != "NotEnoughFunds" {
 		test.Fatalf("%v\n", err)
 	}
 }
@@ -143,12 +136,11 @@ func TestNewSmartContract(test *testing.T) {
 func TestContractCall(test *testing.T) {
 	wallet, _ := NewWalletFromPhrase(ExampleGoodSeedPhrase, "")
 	account, _ := wallet.Account(0)
-
-	principal, _ := NewPrincipal("SP466FNC0P7JWTNM2R9T199QRZN1MYEDTAR0KP27.miamicoin-token")
+	principal, _ := NewPrincipal("SP3TZ3NY4GB3E3Y1K1D40BHE07P20KMS4A8YC4QRJ.straight-ivory-scallop")
 
 	list := NewClarityList()
 
-	value, err := NewClarityValue(2, "hello world")
+	value, err := NewClarityValue(1, "100")
 
 	if err != nil {
 		test.Fatalf("failed to encode %v\n", err)
@@ -156,13 +148,13 @@ func TestContractCall(test *testing.T) {
 
 	list.Add(value)
 
-	call, err := NewContractCall(principal, "get-balance", list, nil, true)
+	call, err := NewContractCall(principal, "respond", list, nil, true)
 
 	if err != nil {
 		test.Fatalf("failed to transfer %v\n", err)
 	}
 
-	err = call.Sign(account, 1800, 69)
+	err = call.Sign(account)
 
 	if err != nil {
 		test.Fatalf("failed sign %v\n", err)
@@ -170,7 +162,7 @@ func TestContractCall(test *testing.T) {
 
 	err = call.Broadcast(account)
 
-	if err != nil {
+	if err != nil && err.Error() != "NotEnoughFunds" {
 		test.Fatalf("failed to broadcast %v\n", err)
 	}
 }

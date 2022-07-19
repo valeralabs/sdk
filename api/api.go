@@ -116,5 +116,11 @@ func EstimateFee(payload []byte) (int, error) {
 		return 0, errors.New("did not return any estimations")
 	}
 
-	return response.Body.Estimations[1].Fee, nil
+	for _, estimation := range response.Body.Estimations {
+		if estimation.Fee >= 180 {
+			return estimation.Fee, nil
+		}
+	}
+
+	return 0, errors.New("fee rate was too low")
 }

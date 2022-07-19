@@ -23,14 +23,16 @@ type Wallet struct {
 	value *wallet.Wallet
 }
 
-// Wrapper around [wallet.Account].
-type Account struct {
-	value *wallet.Account
-}
-
 // Wrapper around [address.Address].
 type Principal struct {
 	value *address.Address
+}
+
+// Wrapper around [wallet.Account].
+type Account struct {
+	Principal *Principal
+
+	value *wallet.Account
 }
 
 // Wrapper around [transaction.Payload].
@@ -103,27 +105,27 @@ func (wallet *Wallet) Account(index int) (*Account, error) {
 		return &Account{}, err
 	}
 
-	return &Account{&account}, nil
-}
-
-// Get underlying Wallet as a String.
-func (wallet *Wallet) Raw() string {
-	return fmt.Sprintf("%#+v\n", *wallet.value)
-}
-
-func (account *Account) Principal() (*Principal, error) {
 	version := address.AddressVersion{
 		HashMode: address.HashModeP2PKH,
 		Network:  address.NetworkMainnet,
 	}
 
-	principal, err := address.NewAddressSingleSignature((*account.value).PrivateKey.PublicKey(), version)
+	principal, err := address.NewAddressSingleSignature(account.PrivateKey.PublicKey(), version)
 
 	if err != nil {
-		return &Principal{}, err
+		return &Account{}, err
 	}
 
-	return &Principal{&principal}, nil
+	return &Account{
+		Principal: &Principal{&principal},
+
+		value: &account,
+	}, nil
+}
+
+// Get underlying Wallet as a String.
+func (wallet *Wallet) Raw() string {
+	return fmt.Sprintf("%#+v\n", *wallet.value)
 }
 
 // Derive a Stacks address (C32) from a [Principal].
@@ -190,6 +192,17 @@ func (account *Account) Raw() string {
 	return fmt.Sprintf("%#+v\n", *account.value)
 }
 
+// Get the *possible* next nonce.
+func (account *Account) NextNonce() (int, error) {
+	principal, err := account.Principal.Stacks()
+
+	if err != nil {
+		return 0, err
+	}
+
+	return api.NextNonce(principal)
+}
+
 func bind(from transaction.StacksTransaction) *StacksTransaction {
 	return &StacksTransaction{
 		Version:    from.Version.String(),
@@ -225,23 +238,47 @@ func (cursor *StacksTransaction) Encode() (string, error) {
 	return string(encoded), err
 }
 
+// Estimate the fee of a Stacks Transaction.
+func (cursor *StacksTransaction) EstimateFee() (int, error) {
+	marshaled, err := (*cursor.value).Payload.Marshal()
+
+	if err != nil {
+		return 0, err
+	}
+
+	hexed := make([]byte, hex.EncodedLen(len(marshaled)))
+	hex.Encode(hexed, marshaled)
+
+	fee, err := api.EstimateFee(hexed)
+
+	if err != nil {
+		return 5000, nil
+	}
+
+	return fee, nil
+}
+
+// Set the nonce manually.
+func (stacks *StacksTransaction) SetNonce(nonce int) {
+	condition := (*stacks.value).Authorization.GetCondition()
+	condition.SetNonce(uint64(nonce))
+}
+
+// Set the fee manually.
+func (stacks *StacksTransaction) SetFee(fee int) {
+	condition := (*stacks.value).Authorization.GetCondition()
+	condition.SetFee(uint64(fee))
+}
+
 // Sign a Stacks Transaction.
 // `account`: the account used to sign the transaction.
-func (stacks *StacksTransaction) Sign(account *Account, fee int, nonce int) error {
+func (stacks *StacksTransaction) Sign(account *Account) error {
 	if account == nil {
 		return errors.New("account is nil")
 	}
 
 	if stacks == nil {
 		return errors.New("stacks is nil")
-	}
-
-	if fee < 0 {
-		return errors.New("fee must be > 0")
-	}
-
-	if nonce < 0 {
-		return errors.New("nonce must be > 0")
 	}
 
 	if (*stacks.value).Authorization == nil {
@@ -251,8 +288,26 @@ func (stacks *StacksTransaction) Sign(account *Account, fee int, nonce int) erro
 	}
 
 	condition := (*stacks.value).Authorization.GetCondition()
-	condition.SetFee(uint64(fee))
-	condition.SetNonce(uint64(nonce))
+
+	if condition.GetNonce() == 0 {
+		nonce, err := account.NextNonce()
+
+		if err != nil {
+			return err
+		}
+
+		condition.SetNonce(uint64(nonce))
+	}
+
+	if condition.GetFee() == 0 {
+		fee, err := stacks.EstimateFee()
+
+		if err != nil {
+			return err
+		}
+
+		condition.SetFee(uint64(fee))
+	}
 
 	(*stacks.value).Authorization = (*stacks.value).Authorization.SetCondition(condition)
 
