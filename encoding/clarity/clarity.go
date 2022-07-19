@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"errors"
+	"strconv"
 
 	"github.com/linden/binstruct"
 	"github.com/linden/bite"
@@ -98,6 +99,24 @@ func (cursor Value) Marshal(typed bool) ([]byte, error) {
 
 	if typed == true {
 		buffer = append(buffer, byte(cursor.Type))
+
+		switch cursor.Type {
+		case ClarityTypeInt, ClarityTypeUInt:
+			content, err := strconv.Atoi(string(cursor.Content))
+
+			if err != nil {
+				return []byte{}, err
+			}
+
+			cursor := make([]byte, 8)
+
+			binary.BigEndian.PutUint64(cursor, uint64(content))
+
+			buffer = append(buffer, make([]byte, 8)...)
+			buffer = append(buffer, cursor...)
+
+			return buffer, nil
+		}
 	}
 
 	buffer = append(buffer, createLengthPrefix(len(cursor.Content), cursor.PrefixLength)...)
