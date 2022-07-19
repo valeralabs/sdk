@@ -38,3 +38,13 @@ func TestNextNonce(test *testing.T) {
 
 	test.Logf("nonce %+v\n", nonce)
 }
+
+func TestEstimateFee(test *testing.T) {
+	fee, err := EstimateFee([]byte("010568656c6c6f0000000e3b3b2068656c6c6f20776f726c64"))
+
+	if err != nil {
+		test.Fatalf("failed to estimate fee because %v\n", err)
+	}
+
+	test.Logf("fee %+v\n", fee)
+}

@@ -2,9 +2,11 @@ package api
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/linden/fetch"
 	"github.com/tidwall/gjson"
+	"github.com/tidwall/sjson"
 )
 
 type Balance struct {
@@ -21,6 +23,12 @@ type AccountBalance struct {
 
 type rawNextNonce struct {
 	NextNonce int `json:"possible_next_nonce"`
+}
+
+type rawEstimateFee struct {
+	Estimations []struct {
+		Fee int
+	}
 }
 
 var Server = "https://stacks-node-api.mainnet.stacks.co"
@@ -40,6 +48,10 @@ func BroadcastTransaction(raw []byte) error {
 	}
 
 	if response.Status != 200 {
+		if len(response.Body) == 0 {
+			return fmt.Errorf("bad status %s", response.StatusText)
+		}
+
 		if response.Body[0] == '"' {
 			return errors.New(response.Body)
 		}
@@ -78,4 +90,31 @@ func NextNonce(address string) (int, error) {
 	}
 
 	return response.Body.NextNonce, nil
+}
+
+// https://hirosystems.github.io/stacks-blockchain-api/#tag/Fees/operation/fetch_fee_rate
+func EstimateFee(payload []byte) (int, error) {
+	body, _ := sjson.Set("", "transaction_payload", payload)
+
+	response, err := fetch.Fetch[rawEstimateFee](Server+"/v2/fees/transaction", fetch.Options{
+		Headers: fetch.Headers{
+			"Content-Type": "application/json",
+		},
+		Method: "POST",
+		Body:   body,
+	})
+
+	if err != nil {
+		return 0, err
+	}
+
+	if response.Status != 200 {
+		return 0, errors.New("failed to get fee rate")
+	}
+
+	if len(response.Body.Estimations) < 2 {
+		return 0, errors.New("did not return any estimations")
+	}
+
+	return response.Body.Estimations[1].Fee, nil
 }
