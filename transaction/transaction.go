@@ -454,104 +454,13 @@ func (transaction *StacksTransaction) Marshal() ([]byte, error) {
 		}
 	}
 
-	//TODO: handle strict post-conditions
+	payload, err := transaction.Payload.Marshal()
 
-	switch any(transaction.Payload).(type) {
-	case PayloadTokenTransfer:
-		writer.WriteUint8(uint8(PayloadTypeTokenTransfer))
-
-		payload := any(transaction.Payload).(PayloadTokenTransfer)
-
-		if payload.Address.Contract == "" {
-			writer.WriteUint8(uint8(clarity.ClarityTypePrincipalStandard))
-		} else {
-			writer.WriteUint8(uint8(clarity.ClarityTypePrincipalContract))
-		}
-
-		err := clarity.EncodePrincipal(payload.Address, writer)
-
-		if err != nil {
-			return []byte{}, err
-		}
-
-		writer.WriteUint64(uint64(payload.Amount))
-
-		// TODO: figure out this padding
-		length := writer.Len() + constant.MemoLengthBytes + 2
-
-		writer.Write([]byte(payload.Memo))
-
-		for writer.Len() < length {
-			writer.WriteByte(0x00)
-		}
-
-	case PayloadSmartContract:
-		writer.WriteUint8(uint8(PayloadTypeSmartContract))
-
-		payload := any(transaction.Payload).(PayloadSmartContract)
-
-		name := clarity.Value{
-			Content:      []byte(payload.Name),
-			PrefixLength: 1,
-		}
-
-		raw, err := name.Marshal(false)
-
-		if err != nil {
-			return []byte{}, err
-		}
-
-		writer.Write(raw)
-
-		body := clarity.Value{
-			Content:      []byte(payload.Body),
-			PrefixLength: 4,
-		}
-
-		raw, err = body.Marshal(false)
-
-		if err != nil {
-			return []byte{}, err
-		}
-
-		writer.Write(raw)
-
-	case PayloadContractCall:
-		writer.WriteUint8(uint8(PayloadTypeContractCall))
-
-		payload := any(transaction.Payload).(PayloadContractCall)
-
-		err := clarity.EncodePrincipal(payload.Address, writer)
-
-		if err != nil {
-			return []byte{}, err
-		}
-
-		function := clarity.Value{
-			Content:      []byte(payload.Function),
-			PrefixLength: 1,
-		}
-
-		raw, err := function.Marshal(false)
-
-		if err != nil {
-			return []byte{}, err
-		}
-
-		writer.Write(raw)
-
-		raw, err = payload.Arguments.Marshal(true)
-
-		if err != nil {
-			return []byte{}, err
-		}
-
-		writer.Write(raw)
-
-	default:
-		panic("TODO: handle other payloads")
-
+	if err != nil {
+		return []byte{}, err
 	}
+
+	writer.Write(payload)
 
 	raw := buffer.Bytes()
 
