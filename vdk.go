@@ -1,5 +1,5 @@
 // Provides a mobile-safe wrapper.
-package ValeraSDK
+package VDK
 
 import (
 	"encoding/hex"

@@ -1,6 +1,6 @@
 // additional testing for valera SDK
 // this is a fail-safe, most of this is covered elsewhere
-package ValeraSDK
+package VDK
 
 import (
 	"strings"
