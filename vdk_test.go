@@ -254,3 +254,39 @@ func TestPostConditions(test *testing.T) {
 		test.Fatalf("failed to broadcast %v\n", err)
 	}
 }
+
+func TestBalance(test *testing.T) {
+	principal, err := NewPrincipal("SP3TZ3NY4GB3E3Y1K1D40BHE07P20KMS4A8YC4QRJ")
+
+	if err != nil {
+		test.Fatalf("failed to create principal %v", err)
+	}
+
+	balance, err := NewBalance(principal)
+
+	if err != nil {
+		test.Fatalf("failed to create balance %v", err)
+	}
+
+	test.Logf("STX: %d\n", balance.STX())
+
+	for index := 0; index < balance.FTLength(); index++ {
+		asset, count, err := balance.FTAt(index)
+
+		if err != nil {
+			test.Fatalf("failed to FT %v", err)
+		}
+
+		test.Logf("FT: %+v %d\n", asset, count)
+	}
+
+	for index := 0; index < balance.NFTLength(); index++ {
+		asset, count, err := balance.NFTAt(index)
+
+		if err != nil {
+			test.Fatalf("failed to NFT %v", err)
+		}
+
+		test.Logf("NFT: %+v %d\n", asset, count)
+	}
+}
