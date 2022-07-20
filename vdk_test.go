@@ -283,22 +283,22 @@ func TestBalance(test *testing.T) {
 	test.Logf("STX: %d\n", balance.STX())
 
 	for index := 0; index < balance.FTLength(); index++ {
-		asset, count, err := balance.FTAt(index)
+		total, err := balance.FTAt(index)
 
 		if err != nil {
 			test.Fatalf("failed to FT %v", err)
 		}
 
-		test.Logf("FT: %+v %d\n", asset, count)
+		test.Logf("FT: %+v %d\n", *total.Asset, total.Amount)
 	}
 
 	for index := 0; index < balance.NFTLength(); index++ {
-		asset, count, err := balance.NFTAt(index)
+		total, err := balance.NFTAt(index)
 
 		if err != nil {
 			test.Fatalf("failed to NFT %v", err)
 		}
 
-		test.Logf("NFT: %+v %d\n", asset, count)
+		test.Logf("NFT: %+v %d\n", *total.Asset, total.Amount)
 	}
 }

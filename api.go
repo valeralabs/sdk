@@ -12,6 +12,11 @@ type BalanceKeys struct {
 	NFT []string
 }
 
+type BalanceValue struct {
+	Asset  *Asset
+	Amount int
+}
+
 type Balance struct {
 	keys *BalanceKeys
 
@@ -41,7 +46,7 @@ func (balance *Balance) STX() int {
 }
 
 //TODO(Linden): remove once golang/go#13445 is fixed.
-func (balance *Balance) FTAt(at int) (*Asset, int, error) {
+func (balance *Balance) FTAt(at int) (*BalanceValue, error) {
 	index := 0
 
 	for _, raw := range (*balance.keys).FT {
@@ -51,23 +56,23 @@ func (balance *Balance) FTAt(at int) (*Asset, int, error) {
 			asset, err := splitUp(raw)
 
 			if err != nil {
-				return &Asset{}, 0, err
+				return &BalanceValue{}, err
 			}
 
-			return asset, total.Balance, nil
+			return &BalanceValue{asset, total.Balance}, nil
 		}
 
 		index++
 	}
 
-	return &Asset{}, 0, errors.New("not found")
+	return &BalanceValue{}, errors.New("not found")
 }
 
 func (balance *Balance) FTLength() int {
 	return len((*balance.value).FT)
 }
 
-func (balance *Balance) NFTAt(at int) (*Asset, int, error) {
+func (balance *Balance) NFTAt(at int) (*BalanceValue, error) {
 	index := 0
 
 	for _, raw := range (*balance.keys).NFT {
@@ -77,16 +82,16 @@ func (balance *Balance) NFTAt(at int) (*Asset, int, error) {
 			asset, err := splitUp(raw)
 
 			if err != nil {
-				return &Asset{}, 0, err
+				return &BalanceValue{}, err
 			}
 
-			return asset, total.Balance, nil
+			return &BalanceValue{asset, total.Balance}, nil
 		}
 
 		index++
 	}
 
-	return &Asset{}, 0, errors.New("not found")
+	return &BalanceValue{}, errors.New("not found")
 }
 
 func (balance *Balance) NFTLength() int {
