@@ -157,7 +157,7 @@ func NewClarityList() *ClarityList {
 // Get the `Asset` as a string.
 func (asset *Asset) String() string {
 	stacks, _ := (*asset.Contract.value).C32()
-	return stacks + asset.Name
+	return stacks + "::" + asset.Name
 }
 
 // Create a new Asset (FT or NFT)
