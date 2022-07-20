@@ -9,16 +9,24 @@ import (
 	"github.com/tidwall/sjson"
 )
 
-type Balance struct {
+type STXBalance struct {
 	Balance  int `json:",string"`
 	Sent     int `json:"total_sent,string"`
 	Received int `json:"total_received,string"`
 }
 
+type FTBalance struct {
+	Balance int `json:",string"`
+}
+
+type NFTBalance struct {
+	Balance int `json:"count,string"`
+}
+
 type AccountBalance struct {
-	STX Balance            `json:"stx"`
-	FT  map[string]Balance `json:"fungible_tokens"`
-	NFT map[string]Balance `json:"non_fungible_tokens"`
+	STX STXBalance            `json:"stx"`
+	FT  map[string]FTBalance  `json:"fungible_tokens"`
+	NFT map[string]NFTBalance `json:"non_fungible_tokens"`
 }
 
 type rawNextNonce struct {
