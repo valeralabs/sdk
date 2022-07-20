@@ -1,12 +1,15 @@
 # Valera Development Kit
-our Stacks SDK focused on mobile support.
+Our Stacks SDK focused on mobile support.
+
+## Projects
+- [VCLI](https://github.com/valeralabs/vcli), a simple Stacks utility cli for MacOS. 
 
 ## Building
-Clone the git repository.
+1. Clone the git repository.
 ```sh 
 git clone https://github.com/valeralabs/vdk
 ```
-Generate the framework.
+2. Generate the framework.
 ```sh 
 go generate ./...
 ```
