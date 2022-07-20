@@ -66,6 +66,11 @@ type ClarityList struct {
 	value *clarity.List
 }
 
+type Asset struct {
+	Contract *Principal
+	Name     string
+}
+
 // Derive a wallet from your mnemonic seed phrase with the option of using a password.
 // This implements [BIP39](https://github.com/bitcoin/bips/blob/master/bip-0039/bip-0039-wordlists.md).
 // Note: Hiro wallet doesn't use a password only for encryption.
@@ -349,23 +354,24 @@ func (stacks *StacksTransaction) Broadcast(account *Account) error {
 	return nil
 }
 
-func create(payload transaction.Payload, conditions *PostCondition, strict bool) transaction.StacksTransaction {
-	result := transaction.StacksTransaction{
-		Version:       constant.TransactionVersionMainnet,
-		ChainID:       constant.ChainIDMainnet,
-		Payload:       payload,
-		AnchorMode:    constant.AnchorModeAny,
-		Authorization: transaction.StandardAuthorization{&transaction.SingleSignatureSpendingCondition{}},
-	}
-
-	if conditions != nil {
-		result.PostConditions = *conditions.value
-	}
+func (stacks *StacksTransaction) SetCondition(conditions *PostCondition, strict bool) {
+	(*stacks.value).PostConditions = *conditions.value
 
 	if strict == true {
-		result.PostConditionMode = transaction.PostConditionModeStrict
+		(*stacks.value).PostConditionMode = transaction.PostConditionModeStrict
 	} else {
-		result.PostConditionMode = transaction.PostConditionModeLoose
+		(*stacks.value).PostConditionMode = transaction.PostConditionModeLoose
+	}
+}
+
+func create(payload transaction.Payload) transaction.StacksTransaction {
+	result := transaction.StacksTransaction{
+		Version:           constant.TransactionVersionMainnet,
+		ChainID:           constant.ChainIDMainnet,
+		Payload:           payload,
+		AnchorMode:        constant.AnchorModeAny,
+		Authorization:     transaction.StandardAuthorization{&transaction.SingleSignatureSpendingCondition{}},
+		PostConditionMode: transaction.PostConditionModeLoose,
 	}
 
 	return result
@@ -377,7 +383,7 @@ func create(payload transaction.Payload, conditions *PostCondition, strict bool)
 // `memo`: optional arbitrary info.
 // `conditions`: the post-conditions.
 // `strict`: has to follow post-condtions.
-func NewTokenTransfer(recipient *Principal, amount int, memo string, conditions *PostCondition, strict bool) (*StacksTransaction, error) {
+func NewTokenTransfer(recipient *Principal, amount int, memo string) (*StacksTransaction, error) {
 	if recipient == nil {
 		return &StacksTransaction{}, errors.New("recipient is nil")
 	}
@@ -388,7 +394,7 @@ func NewTokenTransfer(recipient *Principal, amount int, memo string, conditions 
 		Memo:    memo,
 	}
 
-	return bind(create(payload, conditions, strict)), nil
+	return bind(create(payload)), nil
 }
 
 // Create a contract call.
@@ -397,7 +403,7 @@ func NewTokenTransfer(recipient *Principal, amount int, memo string, conditions 
 // `arguments`: arguments as a `ClarityList` or nil.
 // `conditions`: the post-conditions.
 // `strict`: has to follow post-condtions.
-func NewContractCall(contract *Principal, function string, arguments *ClarityList, conditions *PostCondition, strict bool) (*StacksTransaction, error) {
+func NewContractCall(contract *Principal, function string, arguments *ClarityList) (*StacksTransaction, error) {
 	if contract == nil {
 		return &StacksTransaction{}, errors.New("contract is nil")
 	}
@@ -416,7 +422,7 @@ func NewContractCall(contract *Principal, function string, arguments *ClarityLis
 		Arguments: *arguments.value,
 	}
 
-	return bind(create(payload, conditions, strict)), nil
+	return bind(create(payload)), nil
 }
 
 // Create a new contract.
@@ -425,13 +431,13 @@ func NewContractCall(contract *Principal, function string, arguments *ClarityLis
 // `body`: the contract source code.
 // `conditions`: the post-conditions.
 // `strict`: has to follow post-condtions.
-func NewSmartContract(name string, body string, conditions *PostCondition, strict bool) (*StacksTransaction, error) {
+func NewSmartContract(name string, body string) (*StacksTransaction, error) {
 	payload := transaction.PayloadSmartContract{
 		Name: name,
 		Body: body,
 	}
 
-	return bind(create(payload, conditions, strict)), nil
+	return bind(create(payload)), nil
 }
 
 func conditionPrincipal(from *Principal) transaction.PostConditionPrincipal {
@@ -491,7 +497,7 @@ func (condition *PostCondition) AddSTX(code int, amount int, principal *Principa
 // `amount`: total uSTX
 // `principal`: the destination (or if nil origin is assumed)
 // `asset`: name of the token
-func (condition *PostCondition) AddFT(code int, amount int, principal *Principal, asset string) error {
+func (condition *PostCondition) AddFT(code int, amount int, principal *Principal, asset *Asset) error {
 	if code < 1 || code > 5 {
 		return errors.New("code is invalid")
 	}
@@ -500,8 +506,8 @@ func (condition *PostCondition) AddFT(code int, amount int, principal *Principal
 		return errors.New("amount must be > 0")
 	}
 
-	if asset == "" {
-		return errors.New("asset is required")
+	if asset == nil {
+		return errors.New("asset is nil")
 	}
 
 	if principal == nil {
@@ -513,8 +519,8 @@ func (condition *PostCondition) AddFT(code int, amount int, principal *Principal
 		Principal: conditionPrincipal(principal),
 		Amount:    uint64(amount),
 		Asset: transaction.Asset{
-			Address: *principal.value,
-			Name:    asset,
+			Address: *asset.Contract.value,
+			Name:    asset.Name,
 		},
 	})
 
@@ -589,4 +595,23 @@ func NewClarityList() *ClarityList {
 		PrefixLength:    constant.DefaultPrefixLength,
 		SubPrefixLength: constant.DefaultPrefixLength,
 	}}
+}
+
+func NewAsset(contract *Principal, name string) (*Asset, error) {
+	if contract == nil {
+		return &Asset{}, errors.New("contract is nil")
+	}
+
+	if (*contract.value).Contract == "" {
+		return &Asset{}, errors.New("contract is a standard principal")
+	}
+
+	if name == "" {
+		return &Asset{}, errors.New("asset name is invalid")
+	}
+
+	return &Asset{
+		Contract: contract,
+		Name:     name,
+	}, nil
 }

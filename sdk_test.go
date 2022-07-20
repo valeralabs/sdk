@@ -83,7 +83,7 @@ func TestTokenTransfer(test *testing.T) {
 	account, _ := wallet.Account(0)
 	principal, _ := NewPrincipal("SP27X4NTRKGZ4C0G1FQ8WATM95JNNZKBQ4NSHDGE")
 
-	transfer, err := NewTokenTransfer(principal, 10, "hello", nil, true)
+	transfer, err := NewTokenTransfer(principal, 10, "hello")
 
 	if err != nil {
 		test.Fatalf("failed to transfer %v\n", err)
@@ -114,7 +114,7 @@ func TestNewSmartContract(test *testing.T) {
 	wallet, _ := NewWalletFromPhrase(ExampleGoodSeedPhrase, "")
 	account, _ := wallet.Account(0)
 
-	contract, err := NewSmartContract("example", ";; hello world", nil, true)
+	contract, err := NewSmartContract("example", ";; hello world")
 
 	if err != nil {
 		test.Fatalf("failed to create contract %v\n", err)
@@ -148,11 +148,99 @@ func TestContractCall(test *testing.T) {
 
 	list.Add(value)
 
-	call, err := NewContractCall(principal, "respond", list, nil, true)
+	call, err := NewContractCall(principal, "respond", list)
 
 	if err != nil {
 		test.Fatalf("failed to transfer %v\n", err)
 	}
+
+	err = call.Sign(account)
+
+	if err != nil {
+		test.Fatalf("failed sign %v\n", err)
+	}
+
+	err = call.Broadcast(account)
+
+	if err != nil && err.Error() != "NotEnoughFunds" {
+		test.Fatalf("failed to broadcast %v\n", err)
+	}
+}
+
+func TestPostConditions(test *testing.T) {
+	wallet, _ := NewWalletFromPhrase(ExampleGoodSeedPhrase, "")
+	account, _ := wallet.Account(0)
+	principal, _ := NewPrincipal("SP3TZ3NY4GB3E3Y1K1D40BHE07P20KMS4A8YC4QRJ.straight-ivory-scallop")
+
+	list := NewClarityList()
+
+	value, err := NewClarityValue(1, "200")
+
+	if err != nil {
+		test.Fatalf("failed to encode %v\n", err)
+	}
+
+	list.Add(value)
+
+	call, err := NewContractCall(principal, "respond", list)
+
+	if err != nil {
+		test.Fatalf("failed to transfer %v\n", err)
+	}
+
+	conditions := NewPostCondition()
+
+	for index := 1; index <= 5; index++ {
+		err = conditions.AddSTX(index, index*1000, nil)
+
+		if err != nil {
+			test.Fatalf("failed to create condition %d %v", index, err)
+		}
+	}
+
+	other, err := NewPrincipal("SP27X4NTRKGZ4C0G1FQ8WATM95JNNZKBQ4NSHDGE")
+
+	if err != nil {
+		test.Fatalf("failed to other principal %v", err)
+	}
+
+	for index := 1; index <= 5; index++ {
+		err = conditions.AddSTX(index, index*1000, other)
+
+		if err != nil {
+			test.Fatalf("failed to create condition %d %v", index, err)
+		}
+	}
+
+	contract, err := NewPrincipal("SP27X4NTRKGZ4C0G1FQ8WATM95JNNZKBQ4NSHDGE.example")
+
+	if err != nil {
+		test.Fatalf("failed to create contract %v", err)
+	}
+
+	for index := 1; index <= 5; index++ {
+		err = conditions.AddSTX(index, index*1000, contract)
+
+		if err != nil {
+			test.Fatalf("failed to create condition %d %v", index, err)
+		}
+	}
+
+	asset, err := NewAsset(contract, "EXA")
+
+	if err != nil {
+		test.Fatalf("failed to create asset %v", err)
+	}
+
+	for index := 1; index <= 5; index++ {
+		err = conditions.AddFT(index, index*1000, other, asset)
+
+		if err != nil {
+			test.Fatalf("failed to create condition %d %v", index, err)
+		}
+	}
+
+	call.SetCondition(conditions, false)
 
 	err = call.Sign(account)
 
