@@ -240,6 +240,18 @@ func TestPostConditions(test *testing.T) {
 		}
 	}
 
+	ID, err := NewClarityValue(0, "100")
+
+	if err != nil {
+		test.Fatalf("failed to create ID %v", err)
+	}
+
+	err = conditions.AddNFT(true, other, asset, ID)
+
+	if err != nil {
+		test.Fatalf("failed to create condition %v", err)
+	}
+
 	call.SetCondition(conditions, false)
 
 	err = call.Sign(account)

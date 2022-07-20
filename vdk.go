@@ -500,7 +500,7 @@ func (condition *PostCondition) AddSTX(code int, amount int, principal *Principa
 // 		5 is <=
 // `amount`: total uSTX
 // `principal`: the destination (or if nil origin is assumed)
-// `asset`: name of the token
+// `asset`: the fungible token
 func (condition *PostCondition) AddFT(code int, amount int, principal *Principal, asset *Asset) error {
 	if code < 1 || code > 5 {
 		return errors.New("code is invalid")
@@ -522,6 +522,41 @@ func (condition *PostCondition) AddFT(code int, amount int, principal *Principal
 		Condition: transaction.FungibleConditionCode(code),
 		Principal: conditionPrincipal(principal),
 		Amount:    uint64(amount),
+		Asset: transaction.Asset{
+			Address: *asset.Contract.value,
+			Name:    asset.Name,
+		},
+	})
+
+	return nil
+}
+
+// Add a NFT PostCondition.
+// `send`: sending (true) or no sending (false)
+// `principal`: the destination (or if nil origin is assumed)
+// `asset`: the non-fungible token
+// `value`: the identifying clarity value
+func (condition *PostCondition) AddNFT(send bool, principal *Principal, asset *Asset, value *ClarityValue) error {
+	if asset == nil {
+		return errors.New("asset is nil")
+	}
+
+	if principal == nil {
+		return errors.New("origin principal is not allowed")
+	}
+
+	var code transaction.NonFungibleConditionCode
+
+	if send == true {
+		code = transaction.NonFungibleConditionCodeSent
+	} else {
+		code = transaction.NonFungibleConditionCodeNotSent
+	}
+
+	*condition.value = append(*condition.value, transaction.PostConditionNFT{
+		Condition: code,
+		Principal: conditionPrincipal(principal),
+		Value:     *value.value,
 		Asset: transaction.Asset{
 			Address: *asset.Contract.value,
 			Name:    asset.Name,
