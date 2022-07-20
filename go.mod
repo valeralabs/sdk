@@ -2,8 +2,6 @@ module valera.co/vdk
 
 go 1.18
 
-replace golang.org/x/mobile => github.com/linden/mobile v0.0.0-20220709224438-7b6c75ef7684
-
 require (
 	github.com/btcsuite/btcd v0.23.1
 	github.com/btcsuite/btcd/btcec/v2 v2.2.0
@@ -14,6 +12,13 @@ require (
 	github.com/tidwall/gjson v1.14.1
 	github.com/tidwall/sjson v1.2.4
 	github.com/tyler-smith/go-bip39 v1.1.0
+)
+
+require (
+	golang.org/x/mobile v0.0.0-20220518205345-8578da9835fd // indirect
+	golang.org/x/mod v0.6.0-dev.0.20211013180041-c96bc1413d57 // indirect
+	golang.org/x/tools v0.1.8-0.20211029000441-d6a9af8af023 // indirect
+	golang.org/x/xerrors v0.0.0-20220517211312-f3a8303e98df // indirect
 )
 
 require (

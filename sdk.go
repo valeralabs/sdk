@@ -1,8 +1,6 @@
 // Provides a mobile-safe wrapper.
 package ValeraSDK
 
-//go:generate go vet
-
 import (
 	"encoding/hex"
 	"errors"
