@@ -103,7 +103,7 @@ func TestTokenTransfer(test *testing.T) {
 
 	test.Logf("transaction %s\n", encoded)
 
-	err = transfer.Broadcast(account)
+	err = transfer.Broadcast()
 
 	if err != nil && err.Error() != "NotEnoughFunds" {
 		test.Fatalf("failed to broadcast %v\n", err)
@@ -126,7 +126,7 @@ func TestNewSmartContract(test *testing.T) {
 		test.Fatalf("failed sign %v\n", err)
 	}
 
-	err = contract.Broadcast(account)
+	err = contract.Broadcast()
 
 	if err != nil && err.Error() != "NotEnoughFunds" {
 		test.Fatalf("%v\n", err)
@@ -160,7 +160,7 @@ func TestContractCall(test *testing.T) {
 		test.Fatalf("failed sign %v\n", err)
 	}
 
-	err = call.Broadcast(account)
+	err = call.Broadcast()
 
 	if err != nil && err.Error() != "NotEnoughFunds" {
 		test.Fatalf("failed to broadcast %v\n", err)
@@ -248,7 +248,7 @@ func TestPostConditions(test *testing.T) {
 		test.Fatalf("failed sign %v\n", err)
 	}
 
-	err = call.Broadcast(account)
+	err = call.Broadcast()
 
 	if err != nil && err.Error() != "NotEnoughFunds" {
 		test.Fatalf("failed to broadcast %v\n", err)

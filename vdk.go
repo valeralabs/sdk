@@ -324,12 +324,7 @@ func (stacks *StacksTransaction) Sign(account *Account) error {
 }
 
 // Broadcast a Stacks Transaction to the Stacks network.
-// `account`: the account used to sign the transaction.
-func (stacks *StacksTransaction) Broadcast(account *Account) error {
-	if account == nil {
-		return errors.New("account is nil")
-	}
-
+func (stacks *StacksTransaction) Broadcast() error {
 	if stacks == nil {
 		return errors.New("transaction is nil")
 	}
