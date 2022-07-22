@@ -22,7 +22,7 @@ func TestBasicAddress(test *testing.T) {
 			test.Fatalf("failed to parse address: %v", err)
 
 		} else {
-			test.Logf("got address %#+v\n", user)
+			test.Logf("got address %+v\n", user)
 		}
 	})
 

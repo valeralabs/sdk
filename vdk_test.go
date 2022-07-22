@@ -140,11 +140,7 @@ func TestContractCall(test *testing.T) {
 
 	list := NewClarityList()
 
-	value, err := NewClarityValue(1, "100")
-
-	if err != nil {
-		test.Fatalf("failed to encode %v\n", err)
-	}
+	value := NewClarityUInt(100)
 
 	list.Add(value)
 
@@ -174,11 +170,7 @@ func TestPostConditions(test *testing.T) {
 
 	list := NewClarityList()
 
-	value, err := NewClarityValue(1, "200")
-
-	if err != nil {
-		test.Fatalf("failed to encode %v\n", err)
-	}
+	value := NewClarityUInt(200)
 
 	list.Add(value)
 
@@ -240,11 +232,7 @@ func TestPostConditions(test *testing.T) {
 		}
 	}
 
-	ID, err := NewClarityValue(0, "100")
-
-	if err != nil {
-		test.Fatalf("failed to create ID %v", err)
-	}
+	ID := NewClarityUInt(100)
 
 	err = conditions.AddNFT(true, other, asset, ID)
 

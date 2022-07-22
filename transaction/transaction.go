@@ -228,7 +228,9 @@ func (transaction *StacksTransaction) Unmarshal(data []byte) error {
 				return fmt.Errorf("failed to deserialize asset: %v", err)
 			}
 
-			var value clarity.Value
+			value := clarity.Value{
+				Type: clarity.ClarityTypeStringUTF8,
+			}
 
 			err = value.Unmarshal(reader.Value, true)
 
@@ -281,6 +283,7 @@ func (transaction *StacksTransaction) Unmarshal(data []byte) error {
 		var payload PayloadSmartContract
 
 		name := clarity.Value{
+			Type:         clarity.ClarityTypeStringUTF8,
 			PrefixLength: 1,
 		}
 
@@ -292,9 +295,10 @@ func (transaction *StacksTransaction) Unmarshal(data []byte) error {
 
 		reader.Read(name.Length(false))
 
-		payload.Name = string(name.Content)
+		payload.Name = string(name.Content.([]byte))
 
 		body := clarity.Value{
+			Type:         clarity.ClarityTypeStringUTF8,
 			PrefixLength: 4,
 		}
 
@@ -306,7 +310,7 @@ func (transaction *StacksTransaction) Unmarshal(data []byte) error {
 
 		reader.Read(body.Length(false))
 
-		payload.Body = string(body.Content)
+		payload.Body = string(body.Content.([]byte))
 
 		transaction.Payload = payload
 
@@ -320,6 +324,7 @@ func (transaction *StacksTransaction) Unmarshal(data []byte) error {
 		}
 
 		function := clarity.Value{
+			Type:         clarity.ClarityTypeStringUTF8,
 			PrefixLength: 1,
 		}
 
@@ -331,7 +336,7 @@ func (transaction *StacksTransaction) Unmarshal(data []byte) error {
 
 		reader.Read(function.Length(false))
 
-		payload.Function = string(function.Content)
+		payload.Function = string(function.Content.([]byte))
 
 		for _, character := range payload.Function {
 			if character > unicode.MaxASCII {

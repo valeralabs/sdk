@@ -100,35 +100,67 @@ func (value *ClarityValue) SetPrefix(prefix int) {
 	(*value.value).PrefixLength = prefix
 }
 
-// `base`:
-// 	  0  is Int
-// 	  1  is UInt
-// 	  2  is Buffer
-// 	  3  is BoolTrue
-// 	  4  is BoolFalse
-// 	  5  is PrincipalStandard
-// 	  6  is PrincipalContract
-// 	  7  is ResponseOk
-// 	  8  is ResponseErr
-// 	  9  is OptionalNone
-// 	  10 is OptionalSome
-// 	  11 is List
-// 	  12 is Tuple
-// 	  13 is StringASCII
-// 	  14 is StringUTF8
-// `content`: value
-func NewClarityValue(base int, content string) (*ClarityValue, error) {
-	typed := clarity.ClarityType(base)
+func bindValue(base clarity.ClarityType, content any) *ClarityValue {
+	return &ClarityValue{
+		&clarity.Value{
+			Type:         base,
+			Content:      content,
+			PrefixLength: constant.DefaultPrefixLength,
+		},
+	}
+}
 
-	if typed.Check() == false {
-		return &ClarityValue{}, errors.New("base is not a clarity type")
+func NewClarityInt(content int) *ClarityValue {
+	return bindValue(clarity.ClarityTypeInt, content)
+}
+
+func NewClarityUInt(content int) *ClarityValue {
+	return bindValue(clarity.ClarityTypeUInt, content)
+}
+
+//TODO(Linden): change to `[]byte` when slice support is added to gomobile.
+func NewClarityBuffer(content string) *ClarityValue {
+	return bindValue(clarity.ClarityTypeBuffer, content)
+}
+
+func NewClarityBool(content bool) *ClarityValue {
+	if content == true {
+		return bindValue(clarity.ClarityTypeBoolTrue, content)
 	}
 
-	return &ClarityValue{&clarity.Value{
-		Type:         typed,
-		Content:      []byte(content),
-		PrefixLength: constant.DefaultPrefixLength,
-	}}, nil
+	return bindValue(clarity.ClarityTypeBoolFalse, content)
+}
+
+func NewClarityResponse(content *ClarityValue, ok bool) *ClarityValue {
+	if ok == true {
+		return bindValue(clarity.ClarityTypeResponseOk, content)
+	}
+
+	return bindValue(clarity.ClarityTypeResponseErr, content)
+}
+
+func NewClarityOptional(content *ClarityValue) *ClarityValue {
+	if content != nil {
+		return bindValue(clarity.ClarityTypeOptionalSome, content)
+	}
+
+	return bindValue(clarity.ClarityTypeOptionalNone, nil)
+}
+
+func NewClarityPrincipal(content Principal) *ClarityValue {
+	if (*content.value).Contract != "" {
+		return bindValue(clarity.ClarityTypePrincipalContract, *content.value)
+	}
+
+	return bindValue(clarity.ClarityTypePrincipalStandard, *content.value)
+}
+
+func NewClarityStringASCII(content string) *ClarityValue {
+	return bindValue(clarity.ClarityTypeStringASCII, content)
+}
+
+func NewClarityStringUTF8(content string) *ClarityValue {
+	return bindValue(clarity.ClarityTypeStringUTF8, content)
 }
 
 func (list *ClarityList) SetPrefix(prefix int) {

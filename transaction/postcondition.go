@@ -98,11 +98,13 @@ func (principal PostConditionPrincipal) Encode(writer binstruct.Writer) {
 
 	case PostConditionPrincipalTypeStandard:
 		writer.WriteUint8(uint8(PostConditionPrincipalTypeStandard))
-		clarity.EncodePrincipal(principal.Address, writer)
+		principal, _ := clarity.EncodePrincipal(principal.Address)
+		writer.Write(principal)
 
 	case PostConditionPrincipalTypeContract:
 		writer.WriteUint8(uint8(PostConditionPrincipalTypeContract))
-		clarity.EncodePrincipal(principal.Address, writer)
+		principal, _ := clarity.EncodePrincipal(principal.Address)
+		writer.Write(principal)
 	}
 }
 
@@ -174,11 +176,13 @@ func DecodeAsset(reader *bite.Reader) (Asset, error) {
 }
 
 func (asset Asset) Encode(writer binstruct.Writer) error {
-	err := clarity.EncodePrincipal(asset.Address, writer)
+	principal, err := clarity.EncodePrincipal(asset.Address)
 
 	if err != nil {
 		return fmt.Errorf("could not encode principal: %v", err)
 	}
+
+	writer.Write(principal)
 
 	writer.WriteUint8(uint8(len(asset.Name)))
 	writer.Write([]byte(asset.Name))

@@ -61,11 +61,13 @@ func (payload PayloadTokenTransfer) Marshal() ([]byte, error) {
 		writer.WriteUint8(uint8(clarity.ClarityTypePrincipalContract))
 	}
 
-	err := clarity.EncodePrincipal(payload.Address, writer)
+	princpal, err := clarity.EncodePrincipal(payload.Address)
 
 	if err != nil {
 		return []byte{}, err
 	}
+
+	writer.Write(princpal)
 
 	writer.WriteUint64(uint64(payload.Amount))
 
@@ -88,6 +90,7 @@ func (payload PayloadSmartContract) Marshal() ([]byte, error) {
 	writer.WriteUint8(uint8(PayloadTypeSmartContract))
 
 	name := clarity.Value{
+		Type:         clarity.ClarityTypeStringUTF8,
 		Content:      []byte(payload.Name),
 		PrefixLength: 1,
 	}
@@ -101,6 +104,7 @@ func (payload PayloadSmartContract) Marshal() ([]byte, error) {
 	writer.Write(raw)
 
 	body := clarity.Value{
+		Type:         clarity.ClarityTypeStringUTF8,
 		Content:      []byte(payload.Body),
 		PrefixLength: 4,
 	}
@@ -123,13 +127,16 @@ func (payload PayloadContractCall) Marshal() ([]byte, error) {
 
 	writer.WriteUint8(uint8(PayloadTypeContractCall))
 
-	err := clarity.EncodePrincipal(payload.Address, writer)
+	principal, err := clarity.EncodePrincipal(payload.Address)
 
 	if err != nil {
 		return []byte{}, err
 	}
 
+	writer.Write(principal)
+
 	function := clarity.Value{
+		Type:         clarity.ClarityTypeStringUTF8,
 		Content:      []byte(payload.Function),
 		PrefixLength: 1,
 	}

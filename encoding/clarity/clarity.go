@@ -4,7 +4,8 @@ import (
 	"bytes"
 	"encoding/binary"
 	"errors"
-	"strconv"
+	"fmt"
+	"math/big"
 
 	"github.com/linden/binstruct"
 	"github.com/linden/bite"
@@ -40,7 +41,7 @@ func (_type ClarityType) Check() bool {
 
 type Value struct {
 	Type         ClarityType
-	Content      []byte
+	Content      any
 	PrefixLength int
 }
 
@@ -74,14 +75,36 @@ func readLengthPrefix(reader *bite.Reader, total int) int {
 }
 
 func (cursor *Value) Unmarshal(raw []byte, typed bool) error {
-	reader := bite.NewReader(raw)
-
 	if cursor.PrefixLength == 0 {
 		cursor.PrefixLength = constant.DefaultPrefixLength
 	}
 
+	reader := bite.NewReader(raw)
+
+	if cursor.Type == ClarityTypeBoolTrue || cursor.Type == ClarityTypeBoolFalse || cursor.Type == ClarityTypeOptionalNone {
+		typed = true
+	}
+
 	if typed == true {
 		cursor.Type = ClarityType(reader.ReadSingle())
+	}
+
+	switch cursor.Type {
+	case ClarityTypeInt, ClarityTypeUInt:
+		if len(reader.Value) < 16 {
+			return errors.New("value is an integer but is not long enough")
+		}
+
+		low := int64(binary.BigEndian.Uint64(reader.Read(8)))
+		high := int64(binary.BigEndian.Uint64(reader.Read(8)))
+
+		value := big.NewInt(low)
+		value.Mul(value, big.NewInt(100000000))
+		value.Add(value, big.NewInt(high))
+
+		cursor.Content = value
+
+		return nil
 	}
 
 	length := readLengthPrefix(&reader, cursor.PrefixLength)
@@ -90,43 +113,122 @@ func (cursor *Value) Unmarshal(raw []byte, typed bool) error {
 	return nil
 }
 
-func (cursor Value) Marshal(typed bool) ([]byte, error) {
-	if len(cursor.Content) > constant.MaxStringLength {
-		return []byte{}, errors.New("string is above the max length")
+func (cursor *Value) Check() bool {
+	switch cursor.Type {
+	case ClarityTypeInt, ClarityTypeUInt:
+		_, isInt := cursor.Content.(int)
+		_, isBig := cursor.Content.(big.Int)
+
+		return isInt || isBig
+
+	case ClarityTypePrincipalStandard, ClarityTypePrincipalContract:
+		_, ok := cursor.Content.(address.Address)
+		return ok
+
+	case ClarityTypeResponseOk, ClarityTypeResponseErr, ClarityTypeOptionalSome:
+		_, ok := cursor.Content.(Value)
+		return ok
+
+	case ClarityTypeStringASCII, ClarityTypeStringUTF8, ClarityTypeBuffer:
+		_, ok := cursor.Content.([]byte)
+		return ok
+
+	}
+
+	return true
+}
+
+func (cursor *Value) Marshal(typed bool) ([]byte, error) {
+	if cursor.Check() == false {
+		return []byte{}, fmt.Errorf("content/type miss-match got \"%T\" from %+v", cursor.Content, cursor)
 	}
 
 	var buffer []byte
 
-	if typed == true {
-		buffer = append(buffer, byte(cursor.Type))
-
-		switch cursor.Type {
-		case ClarityTypeInt, ClarityTypeUInt:
-			content, err := strconv.Atoi(string(cursor.Content))
-
-			if err != nil {
-				return []byte{}, err
-			}
-
-			cursor := make([]byte, 8)
-
-			binary.BigEndian.PutUint64(cursor, uint64(content))
-
-			buffer = append(buffer, make([]byte, 8)...)
-			buffer = append(buffer, cursor...)
-
-			return buffer, nil
-		}
+	if cursor.Type == ClarityTypeBoolTrue || cursor.Type == ClarityTypeBoolFalse || cursor.Type == ClarityTypeOptionalNone {
+		typed = true
 	}
 
-	buffer = append(buffer, createLengthPrefix(len(cursor.Content), cursor.PrefixLength)...)
-	buffer = append(buffer, []byte(cursor.Content)...)
+	if typed == true {
+		buffer = append(buffer, byte(cursor.Type))
+	}
 
-	return buffer, nil
+	switch cursor.Type {
+	case ClarityTypeBoolTrue, ClarityTypeBoolFalse, ClarityTypeOptionalNone:
+		return buffer, nil
+
+	case ClarityTypeInt, ClarityTypeUInt:
+		var content *big.Int
+
+		switch value := cursor.Content.(type) {
+		case int:
+			content = big.NewInt(int64(value))
+
+		case *big.Int:
+			content = value
+		}
+
+		value := content.Bytes()
+
+		for len(value) < 16 {
+			value = append([]byte{0}, value...)
+		}
+
+		buffer = append(buffer, value...)
+
+		return buffer, nil
+
+	case ClarityTypePrincipalStandard, ClarityTypePrincipalContract:
+		principal, err := EncodePrincipal(cursor.Content.(address.Address))
+
+		if err != nil {
+			return []byte{}, err
+		}
+
+		buffer = append(buffer, principal...)
+
+		return buffer, nil
+
+	case ClarityTypeResponseOk, ClarityTypeResponseErr, ClarityTypeOptionalSome:
+		content := cursor.Content.(Value)
+
+		underlying, err := content.Marshal(true)
+
+		if err != nil {
+			return []byte{}, err
+		}
+
+		buffer = append(buffer, underlying...)
+
+		return buffer, nil
+
+	case ClarityTypeStringASCII, ClarityTypeStringUTF8, ClarityTypeBuffer:
+		content := cursor.Content.([]byte)
+
+		if cursor.Type == ClarityTypeStringASCII {
+			for index, _ := range content {
+				content[index] = content[index] & 255
+			}
+		}
+
+		if len(content) > constant.MaxStringLength {
+			return []byte{}, errors.New("string is above the max length")
+		}
+
+		buffer = append(buffer, createLengthPrefix(len(cursor.Content.([]byte)), cursor.PrefixLength)...)
+		buffer = append(buffer, content...)
+
+		return buffer, nil
+
+	case ClarityTypeList, ClarityTypeTuple:
+		return []byte{}, errors.New("list and tuple types are not yet supported")
+	}
+
+	return []byte{}, errors.New("type is invalid")
 }
 
 func (cursor Value) Length(typed bool) int {
-	length := len(cursor.Content) + cursor.PrefixLength
+	length := len(cursor.Content.([]byte)) + cursor.PrefixLength
 
 	if typed {
 		length += 1
@@ -135,12 +237,9 @@ func (cursor Value) Length(typed bool) int {
 	return length
 }
 
-func NewValue(from []byte) Value {
-	if len(from) > constant.MaxStringLength {
-		panic("string is longer then the max length")
-	}
-
+func NewValue(from any, base ClarityType) Value {
 	return Value{
+		Type:         base,
 		Content:      from,
 		PrefixLength: constant.DefaultPrefixLength,
 	}
@@ -161,6 +260,7 @@ func (list *List) Unmarshal(data []byte, typed bool) error {
 
 	for index := 0; index < length; index++ {
 		decoded := Value{
+			Type:         list.Type,
 			PrefixLength: list.SubPrefixLength,
 		}
 
@@ -172,7 +272,7 @@ func (list *List) Unmarshal(data []byte, typed bool) error {
 
 		list.Content = append(list.Content, decoded)
 
-		reader.Read(decoded.PrefixLength + len(decoded.Content))
+		reader.Read(decoded.PrefixLength + len(decoded.Content.([]byte)))
 
 		if typed == true {
 			reader.Read(1)
@@ -198,14 +298,15 @@ func (list List) Marshal(typed bool) ([]byte, error) {
 	return buffer, nil
 }
 
-func NewList(raw [][]byte) List {
+func NewList(raw [][]byte, base ClarityType) List {
 	var list List
 
+	list.Type = base
 	list.PrefixLength = constant.DefaultPrefixLength
 	list.SubPrefixLength = constant.DefaultPrefixLength
 
 	for _, cursor := range raw {
-		list.Content = append(list.Content, NewValue(cursor))
+		list.Content = append(list.Content, NewValue(cursor, list.Type))
 	}
 
 	return list
@@ -228,6 +329,7 @@ func DecodePrincipal(from ClarityType, reader *bite.Reader) (address.Address, er
 
 	if from == ClarityTypePrincipalContract {
 		name := Value{
+			Type:         ClarityTypeStringUTF8,
 			PrefixLength: 1,
 		}
 
@@ -237,19 +339,23 @@ func DecodePrincipal(from ClarityType, reader *bite.Reader) (address.Address, er
 			return address.Address{}, errors.New("invalid contract name")
 		}
 
-		contract = string(name.Content)
+		contract = string(name.Content.([]byte))
 
-		reader.Read(len(name.Content) + 1)
+		reader.Read(len(name.Content.([]byte)) + 1)
 	}
 
 	return address.Address{version, hash, contract}, nil
 }
 
-func EncodePrincipal(from address.Address, writer binstruct.Writer) error {
+func EncodePrincipal(from address.Address) ([]byte, error) {
+	var buffer bytes.Buffer
+
+	writer := binstruct.NewWriter(&buffer, binary.BigEndian, false)
+
 	version, err := from.Version.StacksVersion()
 
 	if err != nil {
-		return err
+		return []byte{}, err
 	}
 
 	writer.WriteUint8(uint8(version))
@@ -257,6 +363,7 @@ func EncodePrincipal(from address.Address, writer binstruct.Writer) error {
 
 	if from.Contract != "" {
 		name := Value{
+			Type:         ClarityTypeStringUTF8,
 			Content:      []byte(from.Contract),
 			PrefixLength: 1,
 		}
@@ -264,11 +371,11 @@ func EncodePrincipal(from address.Address, writer binstruct.Writer) error {
 		raw, err := name.Marshal(false)
 
 		if err != nil {
-			return err
+			return []byte{}, err
 		}
 
 		writer.Write(raw)
 	}
 
-	return nil
+	return buffer.Bytes(), nil
 }
